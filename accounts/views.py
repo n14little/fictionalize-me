@@ -3,11 +3,13 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from features.decorators import feature_required
 from .models import WaitlistEntry
 
 def landing_page(request):
     return render(request, 'accounts/landing.html')
 
+@feature_required('enable_signup')
 def signup_view(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
@@ -20,6 +22,7 @@ def signup_view(request):
         form = UserCreationForm()
     return render(request, 'accounts/signup.html', {'form': form})
 
+@feature_required('enable_signin')
 def signin_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(data=request.POST)

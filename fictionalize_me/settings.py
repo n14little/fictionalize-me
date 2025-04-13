@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'accounts',
+    'features',
 ]
 
 MIDDLEWARE = [
@@ -67,6 +68,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'features.context_processors.feature_flags',
             ],
         },
     },
@@ -128,6 +130,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Feature Flags
+ENABLE_SIGNUP = os.environ.get('ENABLE_SIGNUP', 'False').lower() == 'true'
+ENABLE_SIGNIN = os.environ.get('ENABLE_SIGNIN', 'False').lower() == 'true'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
