@@ -172,3 +172,4 @@ config.local.py
 # Jupyter Notebook
 .ipynb_checkpoints
 
+.env
