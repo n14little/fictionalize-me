@@ -1,0 +1,23 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Join Waitlist - Fictionalize Me{% endblock %}
+
+{% block content %}
+<div class="center">
+    <h2>Join Our Waitlist</h2>
+    <p style="font-size: 1.2rem; margin-bottom: 2rem;">Be the first to experience our AI-powered creative writing assistant</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="interest">What interests you most about Fictionalize Me?</label>
+            <textarea id="interest" name="interest" rows="3"></textarea>
+        </div>
+        <button type="submit">Join Waitlist</button>
+    </form>
+</div>
+{% endblock %}

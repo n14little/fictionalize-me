@@ -1,0 +1,21 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Sign Up - Fictionalize Me{% endblock %}
+
+{% block content %}
+<div class="center">
+    <h2>Create an Account</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field.errors }}
+                {{ field }}
+            </div>
+        {% endfor %}
+        <button type="submit">Sign Up</button>
+    </form>
+    <p style="margin-top: 1rem;">Already have an account? <a href="{% url 'signin' %}">Sign In</a></p>
+</div>
+{% endblock %}
