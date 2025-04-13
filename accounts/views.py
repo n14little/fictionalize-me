@@ -46,3 +46,6 @@ def waitlist_view(request):
         except Exception as e:
             messages.error(request, 'This email is already on the waitlist.')
     return render(request, 'accounts/waitlist.html')
+
+def faq_view(request):
+    return render(request, 'accounts/faq.html')
