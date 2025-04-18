@@ -4,7 +4,10 @@ from .models import Journal, JournalEntry
 class JournalForm(forms.ModelForm):
     class Meta:
         model = Journal
-        fields = ['title', 'description']
+        fields = ['title', 'description', 'public']
+        widgets = {
+            'public': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+        }
 
 class JournalEntryForm(forms.ModelForm):
     class Meta:

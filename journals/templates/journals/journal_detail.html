@@ -3,8 +3,19 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="mb-8">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-3xl font-bold">{{ journal.title }}</h1>
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-bold">{{ journal.title }}</h1>
+                    {% if journal.public %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Public</span>
+                    {% endif %}
+                </div>
+                {% if journal.user != user %}
+                    <p class="text-sm text-gray-500 mt-2">By {{ journal.user.username }}</p>
+                {% endif %}
+            </div>
+            {% if journal.user == user %}
             <div class="space-x-2">
                 <a href="{% url 'journals:entry_create' journal.id %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     New Entry
@@ -13,6 +24,7 @@
                     Edit Journal
                 </a>
             </div>
+            {% endif %}
         </div>
         <p class="text-gray-600">{{ journal.description }}</p>
     </div>
@@ -37,16 +49,20 @@
                         <span>Location: {{ entry.location }}</span>
                         {% endif %}
                     </div>
+                    {% if journal.user == user %}
                     <a href="{% url 'journals:entry_edit' journal.id entry.id %}" 
                        class="text-blue-500 hover:text-blue-700">Edit Entry</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% empty %}
         <div class="text-center py-8">
             <p class="text-gray-600">No entries yet.</p>
+            {% if journal.user == user %}
             <a href="{% url 'journals:entry_create' journal.id %}" 
                class="text-blue-500 hover:text-blue-700">Write your first entry</a>
+            {% endif %}
         </div>
         {% endfor %}
     </div>

@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.urls import reverse_lazy, reverse
+from django.db.models import Q
+from django.http import Http404
 
 from .models import Journal, JournalEntry
 from .forms import JournalForm, JournalEntryForm
@@ -16,15 +18,17 @@ class JournalListView(ListView):
     def get_queryset(self):
         return Journal.objects.filter(user=self.request.user)
 
-@method_decorator(login_required, name='dispatch')
 class JournalDetailView(DetailView):
     model = Journal
     template_name = 'journals/journal_detail.html'
     context_object_name = 'journal'
 
-    def get_queryset(self):
-        return Journal.objects.filter(user=self.request.user)
-
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.public or (self.request.user.is_authenticated and obj.user == self.request.user):
+            return obj
+        raise Http404("Journal not found")
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['entries'] = self.object.entries.all().order_by('-created_at')
@@ -53,7 +57,7 @@ class JournalUpdateView(UpdateView):
     model = Journal
     form_class = JournalForm
     template_name = 'journals/journal_form.html'
-
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form_title'] = 'Edit Journal'
