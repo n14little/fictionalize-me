@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.forms import ModelForm
 from features.decorators import feature_required
 from .models import WaitlistEntry
+from django.utils.http import url_has_allowed_host_and_scheme
 
 class WaitlistForm(ModelForm):
     class Meta:
@@ -23,23 +24,35 @@ def signup_view(request):
             user = form.save()
             login(request, user)
             messages.success(request, 'Account created successfully!')
-            return redirect('landing_page')
+            return redirect('journals:journal_list')
     else:
         form = UserCreationForm()
     return render(request, 'accounts/signup.html', {'form': form})
 
 @feature_required('enable_signin')
 def signin_view(request):
+    next_url = request.GET.get('next', None)
     if request.method == 'POST':
         form = AuthenticationForm(data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
             messages.success(request, 'Successfully signed in!')
-            return redirect('landing_page')
+            
+            # Check if there's a next parameter and it's safe
+            if next_url and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure()
+            ):
+                return redirect(next_url)
+            return redirect('journals:journal_list')
     else:
         form = AuthenticationForm()
-    return render(request, 'accounts/signin.html', {'form': form})
+    return render(request, 'accounts/signin.html', {
+        'form': form,
+        'next': next_url
+    })
 
 def waitlist_view(request):
     if request.method == 'POST':

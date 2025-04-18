@@ -1,0 +1,54 @@
+{% extends "accounts/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-3xl font-bold">{{ journal.title }}</h1>
+            <div class="space-x-2">
+                <a href="{% url 'journals:entry_create' journal.id %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    New Entry
+                </a>
+                <a href="{% url 'journals:journal_edit' journal.id %}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Edit Journal
+                </a>
+            </div>
+        </div>
+        <p class="text-gray-600">{{ journal.description }}</p>
+    </div>
+
+    <div class="space-y-6">
+        {% for entry in entries %}
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">{{ entry.title }}</h2>
+                    <div class="text-sm text-gray-500">
+                        {{ entry.created_at|date:"F j, Y" }}
+                    </div>
+                </div>
+                <p class="text-gray-700 mb-4 whitespace-pre-line">{{ entry.content }}</p>
+                <div class="flex justify-between items-center text-sm text-gray-500">
+                    <div class="space-x-4">
+                        {% if entry.mood %}
+                        <span>Mood: {{ entry.mood }}</span>
+                        {% endif %}
+                        {% if entry.location %}
+                        <span>Location: {{ entry.location }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'journals:entry_edit' journal.id entry.id %}" 
+                       class="text-blue-500 hover:text-blue-700">Edit Entry</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-8">
+            <p class="text-gray-600">No entries yet.</p>
+            <a href="{% url 'journals:entry_create' journal.id %}" 
+               class="text-blue-500 hover:text-blue-700">Write your first entry</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
