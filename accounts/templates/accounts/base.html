@@ -190,6 +190,7 @@
             <a class="navbar-brand" href="{% url 'landing_page' %}">Fictionalize Me</a>
             <div class="nav-links">
                 {% if user.is_authenticated %}
+                    <span class="nav-link">{{ user.username }}</span>
                     <form method="post" action="{% url 'logout' %}" style="margin: 0; display: inline;">
                         {% csrf_token %}
                         <button type="submit" class="nav-link" style="background: none; border: none; padding: 0; cursor: pointer;">Logout</button>
@@ -201,8 +202,8 @@
                     {% if features.enable_signup %}
                         <a class="nav-link" href="{% url 'signup' %}">Sign Up</a>
                     {% endif %}
+                    <a class="nav-link" href="{% url 'waitlist' %}">Join Waitlist</a>
                 {% endif %}
-                <a class="nav-link" href="{% url 'waitlist' %}">Join Waitlist</a>
             </div>
         </div>
     </nav>
