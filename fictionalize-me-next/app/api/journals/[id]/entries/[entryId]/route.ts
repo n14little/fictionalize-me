@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { journalEntryService } from '../../../../lib/services/journalEntryService';
-import { authService } from '../../../../lib/services/authService';
+import { journalEntryService } from '../../../../../../../lib/services/journalEntryService';
+import { authService } from '../../../../../../../lib/services/authService';
 
 interface RouteParams {
   params: {
-    id: string; // entry ID
+    id: string;      // journal ID
+    entryId: string; // entry ID
   };
 }
 
 // Get a specific journal entry by ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params;
+    const { entryId } = params;
     
     // Get user from auth service
     const user = await authService.getCurrentUser();
     
     // Get journal entry (service handles access control)
-    const entry = await journalEntryService.getJournalEntryById(id, user?.id);
+    const entry = await journalEntryService.getJournalEntryById(entryId, user?.id);
     
     if (!entry) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // Update a journal entry
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params;
+    const { id, entryId } = params;
     
     // Get user from auth service
     const user = await authService.getCurrentUser();
@@ -54,7 +55,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { title, content, mood, location } = body;
     
-    const updatedEntry = await journalEntryService.updateJournalEntry(id, user.id, {
+    const updatedEntry = await journalEntryService.updateJournalEntry(entryId, user.id, {
       title,
       content,
       mood,
@@ -65,6 +66,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: 'Entry not found or access denied' },
         { status: 404 }
+      );
+    }
+    
+    // Make sure the entry belongs to the specified journal
+    if (updatedEntry.journal_id !== id) {
+      return NextResponse.json(
+        { error: 'Entry does not belong to the specified journal' },
+        { status: 400 }
       );
     }
     
@@ -84,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // Delete a journal entry
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params;
+    const { entryId } = params;
     
     // Get user from auth service
     const user = await authService.getCurrentUser();
@@ -96,7 +105,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
     
-    const deleted = await journalEntryService.deleteJournalEntry(id, user.id);
+    const deleted = await journalEntryService.deleteJournalEntry(entryId, user.id);
     
     if (!deleted) {
       return NextResponse.json(

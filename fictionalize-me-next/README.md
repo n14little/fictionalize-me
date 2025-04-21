@@ -103,14 +103,14 @@ The following API endpoints are available:
 - `GET /api/journals/:id` - Get a specific journal by ID
 - `PUT /api/journals/:id` - Update a journal
 - `DELETE /api/journals/:id` - Delete a journal
+
+### Journal Entries (Nested under Journals)
+
 - `GET /api/journals/:id/entries` - Get all entries for a journal
 - `POST /api/journals/:id/entries` - Create a new journal entry
-
-### Journal Entries
-
-- `GET /api/entries/:id` - Get a specific journal entry
-- `PUT /api/entries/:id` - Update a journal entry
-- `DELETE /api/entries/:id` - Delete a journal entry
+- `GET /api/journals/:id/entries/:entryId` - Get a specific entry
+- `PUT /api/journals/:id/entries/:entryId` - Update a specific entry
+- `DELETE /api/journals/:id/entries/:entryId` - Delete a specific entry
 
 ## Authentication
 
