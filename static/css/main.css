@@ -121,6 +121,10 @@
   margin-bottom: 1.5rem;
 }
 
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
 .mb-2 {
   margin-bottom: 0.5rem;
 }
@@ -200,14 +204,15 @@
   color: #1d4ed8;
 }
 
-/* Card Rise Effect - Alternative to scale that prevents text blur */
-.card-rise {
+/* Interactive Card Utility Class for any card elements */
+.interactive-card {
   position: relative;
   top: 0;
   transition: top 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
 }
 
-.card-rise:hover {
+.interactive-card:hover {
   top: -8px; /* Move card up slightly instead of scaling */
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }

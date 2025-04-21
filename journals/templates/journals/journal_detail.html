@@ -29,9 +29,9 @@
         <p class="text-gray-600">{{ journal.description }}</p>
     </div>
 
-    <div class="space-y-6">
+    <div>
         {% for entry in entries %}
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="interactive-card bg-white shadow-lg rounded-lg overflow-hidden mb-8">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">{{ entry.title }}</h2>

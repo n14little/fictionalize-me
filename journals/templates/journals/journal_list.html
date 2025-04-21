@@ -11,7 +11,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for journal in journals %}
-        <div class="card-rise bg-white shadow-lg rounded-lg overflow-hidden cursor-pointer" onclick="window.location='{% url 'journals:journal_detail' journal.id %}'">
+        <div class="interactive-card bg-white shadow-lg rounded-lg overflow-hidden cursor-pointer" onclick="window.location='{% url 'journals:journal_detail' journal.id %}'">
             <div class="p-6">
                 <div class="flex justify-between items-start mb-2">
                     <h2 class="text-xl font-semibold">{{ journal.title }}</h2>
