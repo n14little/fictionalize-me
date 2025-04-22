@@ -27,44 +27,33 @@ export async function GET(request: NextRequest) {
 }
 
 // Create a new journal
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Get user from auth service
+    // Get the current user
     const user = await authService.getCurrentUser();
     
     if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const body = await request.json();
-    const { title, description, slug, public: isPublic } = body;
+    // Parse the request body
+    const { title, description } = await request.json();
     
-    if (!title || typeof title !== 'string') {
-      return NextResponse.json(
-        { error: 'Journal title is required' },
-        { status: 400 }
-      );
+    // Validate the required fields
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
     
-    const journal = await journalService.createJournal(user.id, {
+    // Create the journal
+    const journal = await journalService.createJournal({
       title,
       description,
-      slug,
-      public: isPublic
+      user_id: user.id
     });
     
-    return NextResponse.json(
-      { message: 'Journal created successfully', journal },
-      { status: 201 }
-    );
+    return NextResponse.json(journal);
   } catch (error) {
-    console.error('Journal creation error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create journal' },
-      { status: 500 }
-    );
+    console.error('Error creating journal:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
