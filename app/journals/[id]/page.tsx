@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { journalService } from '../../../lib/services/journalService';
 import { journalEntryService } from '../../../lib/services/journalEntryService';
 import { authService } from '../../../lib/services/authService';
+import { RichTextContent } from '../../../components/RichTextEditor/RichTextContent';
 
 // Client component for date formatting
 import { ClientDateFormatter } from './ClientDateFormatter';
@@ -62,10 +63,20 @@ export default async function JournalDetail({ params }: { params: { id: string }
                   <div key={entry.id} className="border border-gray-200 rounded-lg p-5">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-lg font-medium">{entry.title}</h3>
-                      <ClientDateFormatter date={entry.created_at} />
+                      <div className="flex items-center space-x-3">
+                        <ClientDateFormatter date={entry.created_at} />
+                        <Link
+                          href={`/journals/${journalId}/entries/${entry.id}/edit`}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          Edit
+                        </Link>
+                      </div>
                     </div>
                     
-                    <p className="text-gray-700 mb-4 whitespace-pre-line">{entry.content}</p>
+                    <div className="mb-4">
+                      <RichTextContent content={entry.content} />
+                    </div>
                     
                     <div className="flex flex-wrap gap-2 text-sm text-gray-500">
                       {entry.mood && (

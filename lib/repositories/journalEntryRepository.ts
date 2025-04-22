@@ -35,7 +35,7 @@ export const journalEntryRepository = {
       [
         entryData.journal_id,
         entryData.title,
-        entryData.content,
+        entryData.content, // PostgreSQL will handle this as JSONB automatically
         entryData.mood || null,
         entryData.location || null
       ]
@@ -59,7 +59,7 @@ export const journalEntryRepository = {
 
     if (entryData.content !== undefined) {
       sets.push(`content = $${paramIndex}`);
-      values.push(entryData.content);
+      values.push(entryData.content); // PostgreSQL will handle this as JSONB automatically
       paramIndex++;
     }
 

@@ -47,7 +47,7 @@ CREATE TABLE journal_entries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   journal_id UUID NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
-  content TEXT NOT NULL,
+  content JSONB NOT NULL,
   mood TEXT,
   location TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
