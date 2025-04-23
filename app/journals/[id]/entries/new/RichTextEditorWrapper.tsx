@@ -2,35 +2,59 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useFormStatus } from 'react-dom';
 import { TiptapEditor } from '../../../../../components/RichTextEditor/TiptapEditor';
 import { FormButton } from '../../../../../components/FormButton';
 import { createEntry } from '../actions';
+import { JSONContent, DEFAULT_DOCUMENT } from '../../../../../lib/editor/types';
 
 type RichTextEditorWrapperProps = {
   journalId: string;
 };
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
-  return <FormButton disabled={pending}>{pending ? 'Saving...' : 'Save Entry'}</FormButton>;
+  return <FormButton>Save Entry</FormButton>;
 }
 
 export function RichTextEditorWrapper({ journalId }: RichTextEditorWrapperProps) {
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState<JSONContent>(DEFAULT_DOCUMENT);
   const [mood, setMood] = useState('');
   const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
+  
+  // Helper function to parse content into a JSONContent object
+  function parseContent(contentValue: string | object | null | undefined): JSONContent {
+    if (!contentValue) {
+      return DEFAULT_DOCUMENT;
+    }
+    
+    if (typeof contentValue === 'object') {
+      return contentValue as JSONContent;
+    }
+    
+    try {
+      return JSON.parse(contentValue as string) as JSONContent;
+    } catch (e) {
+      console.warn('Invalid content format, using empty document', e);
+      return DEFAULT_DOCUMENT;
+    }
+  }
 
-  // Default empty document JSON structure
-  const emptyDocument = JSON.stringify({
-    type: 'doc',
-    content: [{ type: 'paragraph' }]
-  });
+  // Convert the content object to a string for form submission
+  function contentToString(contentObj: JSONContent): string {
+    return JSON.stringify(contentObj);
+  }
 
-  // Initialize with empty JSON document
-  const initialContent = emptyDocument;
+  // Check if content is empty (only contains an empty paragraph)
+  function isContentEmpty(contentObj: JSONContent): boolean {
+    return (
+      !contentObj.content ||
+      contentObj.content.length === 0 ||
+      (contentObj.content.length === 1 &&
+        contentObj.content[0].type === 'paragraph' &&
+        (!contentObj.content[0].content || contentObj.content[0].content.length === 0))
+    );
+  }
 
   async function clientAction(formData: FormData) {
     try {
@@ -39,7 +63,7 @@ export function RichTextEditorWrapper({ journalId }: RichTextEditorWrapperProps)
       
       // Get the form data values
       const title = formData.get('title') as string;
-      const content = formData.get('content') as string;
+      const contentString = formData.get('content') as string;
       
       // Basic form validation
       if (!title.trim()) {
@@ -47,7 +71,7 @@ export function RichTextEditorWrapper({ journalId }: RichTextEditorWrapperProps)
         return;
       }
 
-      if (!content) {
+      if (!contentString || isContentEmpty(parseContent(contentString))) {
         setError('Content is required');
         return;
       }
@@ -91,12 +115,15 @@ export function RichTextEditorWrapper({ journalId }: RichTextEditorWrapperProps)
           Content
         </label>
         <TiptapEditor 
-          value={content || initialContent}
-          onChange={(json) => {
-            setContent(json);
+          value={content}
+          onChange={(jsonString) => {
+            const jsonContent = parseContent(jsonString);
+            setContent(jsonContent);
+            
+            // Update hidden input field for form submission
             const hiddenInput = document.getElementById('content-hidden') as HTMLInputElement;
             if (hiddenInput) {
-              hiddenInput.value = json;
+              hiddenInput.value = jsonString;
             }
           }} 
         />
@@ -104,7 +131,7 @@ export function RichTextEditorWrapper({ journalId }: RichTextEditorWrapperProps)
           type="hidden" 
           id="content-hidden" 
           name="content" 
-          value={content || initialContent} 
+          value={contentToString(content)} 
         />
       </div>
       

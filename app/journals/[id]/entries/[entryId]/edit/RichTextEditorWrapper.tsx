@@ -2,40 +2,57 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useFormStatus } from 'react-dom';
 import { TiptapEditor } from '../../../../../../components/RichTextEditor/TiptapEditor';
 import { FormButton } from '../../../../../../components/FormButton';
 import { JournalEntry } from '../../../../../../lib/models/JournalEntry';
 import { updateEntry } from '../../actions';
+import { JSONContent, DEFAULT_DOCUMENT } from '../../../../../../lib/editor/types';
 
 type RichTextEditorWrapperProps = {
   journalId: string;
   entry: JournalEntry;
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return <FormButton disabled={pending}>{pending ? 'Saving...' : 'Save Changes'}</FormButton>;
-}
-
 export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrapperProps) {
   const [title, setTitle] = useState(entry.title);
-  const [content, setContent] = useState(entry.content);
+  const [content, setContent] = useState<JSONContent>(parseContent(entry.content));
   const [mood, setMood] = useState(entry.mood || '');
   const [location, setLocation] = useState(entry.location || '');
   const [error, setError] = useState<string | null>(null);
 
-  // Default empty document JSON structure
-  const emptyDocument = JSON.stringify({
-    type: 'doc',
-    content: [{ type: 'paragraph' }]
-  });
+  // Helper function to parse content into a JSONContent object
+  function parseContent(contentValue: string | object | null | undefined): JSONContent {
+    if (!contentValue) {
+      return DEFAULT_DOCUMENT;
+    }
+    
+    if (typeof contentValue === 'object') {
+      return contentValue as JSONContent;
+    }
+    
+    try {
+      return JSON.parse(contentValue as string) as JSONContent;
+    } catch (e) {
+      console.warn('Invalid content format, using empty document', e);
+      return DEFAULT_DOCUMENT;
+    }
+  }
 
-  // Ensure content is a string for the editor
-  // If it's already a JSON object, stringify it
-  const initialContent = typeof entry.content === 'object' 
-    ? JSON.stringify(entry.content) 
-    : entry.content;
+  // Convert the content object to a string for form submission
+  function contentToString(contentObj: JSONContent): string {
+    return JSON.stringify(contentObj);
+  }
+
+  // Check if content is empty (only contains an empty paragraph)
+  function isContentEmpty(contentObj: JSONContent): boolean {
+    return (
+      !contentObj.content ||
+      contentObj.content.length === 0 ||
+      (contentObj.content.length === 1 &&
+        contentObj.content[0].type === 'paragraph' &&
+        (!contentObj.content[0].content || contentObj.content[0].content.length === 0))
+    );
+  }
 
   async function clientAction(formData: FormData) {
     try {
@@ -44,7 +61,7 @@ export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrappe
       
       // Get the form data values
       const title = formData.get('title') as string;
-      const content = formData.get('content') as string;
+      const contentString = formData.get('content') as string;
       
       // Basic form validation
       if (!title.trim()) {
@@ -52,7 +69,7 @@ export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrappe
         return;
       }
 
-      if (!content || content === emptyDocument) {
+      if (!contentString || isContentEmpty(parseContent(contentString))) {
         setError('Content is required');
         return;
       }
@@ -97,24 +114,26 @@ export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrappe
           Content
         </label>
         <TiptapEditor 
-          value={initialContent} 
-          onChange={(json) => {
-            setContent(json);
+          value={content}
+          onChange={(jsonString) => {
+            const jsonContent = parseContent(jsonString);
+            setContent(jsonContent);
+            
             // Update hidden input field for form submission
             const hiddenInput = document.getElementById('content-hidden') as HTMLInputElement;
             if (hiddenInput) {
-              hiddenInput.value = json;
+              hiddenInput.value = jsonString;
             }
           }} 
         />
-        <input 
-          type="hidden" 
-          id="content-hidden" 
-          name="content" 
-          value={content} 
+        <input
+          type="hidden"
+          id="content-hidden"
+          name="content"
+          value={contentToString(content)}
         />
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="mood" className="block text-sm font-medium text-gray-700 mb-1">
@@ -154,7 +173,7 @@ export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrappe
         >
           Cancel
         </Link>
-        <SubmitButton />
+        <FormButton >Save Changes</FormButton>
       </div>
     </form>
   );

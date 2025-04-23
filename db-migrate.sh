@@ -17,6 +17,9 @@ DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
 DB_HOST=${POSTGRES_HOST:-localhost}
 DB_PORT=${POSTGRES_PORT:-5432}
 DB_NAME=${POSTGRES_DB:-fictionalize_me}
+ENVIRONMENT=${NODE_ENV:-local}
+
+echo "Running migrations for environment: $ENVIRONMENT"
 
 echo "Checking database connection..."
 
@@ -78,6 +81,7 @@ docker run --rm \
   -e FLYWAY_PASSWORD=$DB_PASSWORD \
   -e FLYWAY_CONNECT_RETRIES=10 \
   -e FLYWAY_VALIDATE_MIGRATION_NAMING=true \
+  -e FLYWAY_PLACEHOLDERS_ENVIRONMENT=$ENVIRONMENT \
   flyway/flyway:11 \
   migrate
 

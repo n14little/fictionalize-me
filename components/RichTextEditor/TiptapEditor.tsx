@@ -1,9 +1,10 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import { useEffect, useState } from 'react';
+import { DEFAULT_DOCUMENT } from '../../lib/editor/types';
 
 // Custom styles for the editor
 const editorStyles = `
@@ -82,7 +83,7 @@ const editorStyles = `
 `;
 
 type EditorToolbarProps = {
-  editor: any;
+  editor: Editor | null;
 };
 
 const EditorToolbar = ({ editor }: EditorToolbarProps) => {
@@ -229,23 +230,17 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
 };
 
 type TiptapEditorProps = {
-  value: string | object;
+  value: string | JSONContent;
   onChange: (value: string) => void;
 };
 
 export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
 
-  // Default empty document
-  const defaultDocument = {
-    type: 'doc',
-    content: [{ type: 'paragraph' }]
-  };
-
   // Parse JSON content, with fallback to default document
-  const getInitialContent = () => {
+  const getInitialContent = (): JSONContent => {
     if (!value) {
-      return defaultDocument;
+      return DEFAULT_DOCUMENT;
     }
 
     try {
@@ -257,7 +252,7 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
       return JSON.parse(value);
     } catch (e) {
       console.warn('Invalid JSON content, using default document', e);
-      return defaultDocument;
+      return DEFAULT_DOCUMENT;
     }
   };
 
@@ -270,7 +265,7 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
           try {
             const parsedUrl = new URL(url);
             return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-          } catch (e) {
+          } catch {
             return false;
           }
         },
@@ -295,9 +290,9 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
         // If value is already an object, use it directly
         const parsedContent = typeof value === 'object' ? value : JSON.parse(value);
         editor.commands.setContent(parsedContent, false);
-      } catch (e) {
-        console.warn('Failed to update editor with new content', e);
-        editor.commands.setContent(defaultDocument, false);
+      } catch {
+        console.warn('Failed to update editor with new content');
+        editor.commands.setContent(DEFAULT_DOCUMENT, false);
       }
     }
   }, [editor, value]);

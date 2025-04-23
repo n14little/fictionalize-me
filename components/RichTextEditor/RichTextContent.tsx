@@ -1,27 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+import { DEFAULT_DOCUMENT } from '../../lib/editor/types';
 
 type RichTextContentProps = {
-  content: object | string;
+  content: JSONContent | string;
 };
 
 export const RichTextContent = ({ content }: RichTextContentProps) => {
   const [isMounted, setIsMounted] = useState(false);
   
-  // Default document structure
-  const defaultDocument = {
-    type: 'doc',
-    content: [{ type: 'paragraph' }]
-  };
-  
   // Process content based on its type
-  const getContent = () => {
+  const getContent = (): JSONContent => {
     if (!content) {
-      return defaultDocument;
+      return DEFAULT_DOCUMENT;
     }
 
     // If it's already an object (from JSONB column), use directly
@@ -32,9 +27,9 @@ export const RichTextContent = ({ content }: RichTextContentProps) => {
     // Parse string content to JSON
     try {
       return JSON.parse(content as string);
-    } catch (e) {
+    } catch {
       console.warn('Invalid content format, showing default document');
-      return defaultDocument;
+      return DEFAULT_DOCUMENT;
     }
   };
 
@@ -63,8 +58,8 @@ export const RichTextContent = ({ content }: RichTextContentProps) => {
         try {
           const jsonContent = JSON.parse(content as string);
           editor.commands.setContent(jsonContent, false);
-        } catch (e) {
-          editor.commands.setContent(defaultDocument, false);
+        } catch {
+          editor.commands.setContent(DEFAULT_DOCUMENT, false);
         }
       }
     }
