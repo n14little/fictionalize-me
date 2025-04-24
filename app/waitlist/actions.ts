@@ -2,10 +2,19 @@
 
 import { redirect } from 'next/navigation';
 import { waitlistService } from '../../lib/services/waitlistService';
+import { csrfModule } from '../../lib/csrf/csrfModule';
 
 export async function joinWaitlist(formData: FormData) {
   const email = formData.get('email') as string;
   const interest = formData.get('interest') as string;
+  const csrfToken = formData.get('csrf_token') as string;
+  
+  // Validate CSRF token
+  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
+  if (!csrfValidation.valid) {
+    console.error('CSRF validation failed:', csrfValidation.error);
+    redirect('/waitlist/error');
+  }
   
   // Validate form data
   if (!email || typeof email !== 'string' || !email.includes('@')) {

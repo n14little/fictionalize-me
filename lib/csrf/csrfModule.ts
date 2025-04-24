@@ -22,13 +22,13 @@ export class CsrfModule {
   constructor() {
     // Get a secure secret key from environment variables
     // In production, this should be a strong, securely stored key
-    const csrfSecret = process.env.CSRF_SECRET;
+    const secret = process.env.CSRF_SECRET;
 
-    if (!csrfSecret) {
+    if (!secret) {
       throw new Error('CSRF_SECRET is not set');
     }
 
-    this.secret = csrfSecret;
+    this.secret = secret;
   }
   
   /**
@@ -49,8 +49,17 @@ export class CsrfModule {
         .digest('hex');
       sessionId = sessionHash;
     } else {
-      // Fallback when no session is available (anonymous users)
+      // Generate a random session ID for anonymous users
       sessionId = crypto.randomBytes(16).toString('hex');
+      // Store sessionId in a cookie for anonymous users
+      const cookieStore = await cookies();
+      cookieStore.set('anonymous_session_id', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 60 * 60 * 24,
+      });
     }
 
     // Generate a cryptographically random value for anti-collision
@@ -76,7 +85,7 @@ export class CsrfModule {
     const cookieOptions = {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict' as const,
-      httpOnly: true,
+      httpOnly: false, // Allow JavaScript access for double-submit pattern
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
     };
@@ -119,8 +128,12 @@ export class CsrfModule {
           .digest('hex');
         sessionId = sessionHash;
       } else {
-        // If we can't recreate the session ID, the token can't be valid
-        return false;
+        // Retrieve sessionId from cookie for anonymous sessions
+        const cookieStore = await cookies();
+        sessionId = cookieStore.get('anonymous_session_id')?.value || '';
+        if (!sessionId) {
+          return false; // No session ID available
+        }
       }
 
       // Recreate the message

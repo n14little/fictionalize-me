@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FormButton } from '../../components/FormButton';
 import { joinWaitlist } from './actions';
+import { CsrfTokenInput } from './CsrfTokenInput';
 
 export default function Waitlist() {
   return (
@@ -9,6 +10,8 @@ export default function Waitlist() {
         <h1 className="text-3xl font-bold mb-6 text-center">Join the Waitlist</h1>
         
         <form action={joinWaitlist} className="space-y-4">
+          <CsrfTokenInput />
+          
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
               Email address *
