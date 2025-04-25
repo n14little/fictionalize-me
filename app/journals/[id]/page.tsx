@@ -9,7 +9,7 @@ import { RichTextContent } from '../../../components/RichTextEditor/RichTextCont
 import { ClientDateFormatter } from './ClientDateFormatter';
 
 export default async function JournalDetail({ params }: { params: { id: string } }) {
-  const journalId = params.id;
+  const journalId = (await params).id;
   
   // Get the current user (if authenticated)
   const user = await authService.getCurrentUser();

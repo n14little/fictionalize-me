@@ -257,6 +257,7 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
   };
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Link.configure({

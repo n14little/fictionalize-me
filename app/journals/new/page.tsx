@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { authService } from '../../../lib/services/authService';
 import { FormButton } from '../../../components/FormButton';
+import { CsrfTokenInput } from '../../../components/CsrfTokenInput';
 import { createJournal } from './actions';
 
 export default async function CreateJournal() {
@@ -41,6 +42,8 @@ export default async function CreateJournal() {
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               />
             </div>
+            
+            <CsrfTokenInput />
             
             <div>
               <FormButton>Create Journal</FormButton>

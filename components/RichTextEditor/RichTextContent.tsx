@@ -34,6 +34,7 @@ export const RichTextContent = ({ content }: RichTextContentProps) => {
   };
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Link.configure({

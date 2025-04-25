@@ -10,7 +10,7 @@ export default async function EditJournalEntry({
 }: { 
   params: { id: string; entryId: string } 
 }) {
-  const { id: journalId, entryId } = params;
+  const { id: journalId, entryId } = await params;
   
   // Get the current user (if authenticated)
   const user = await authService.getCurrentUser();

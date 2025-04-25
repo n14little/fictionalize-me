@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { authService } from '../../../../lib/services/authService';
 import { journalEntryService } from '../../../../lib/services/journalEntryService';
+import { csrfModule } from '../../../../lib/csrf/csrfModule';
 
 // Helper function to validate JSON structure for Tiptap content
 function isValidTiptapJSON(jsonString: string): boolean {
@@ -22,6 +23,14 @@ function isValidTiptapJSON(jsonString: string): boolean {
 }
 
 export async function createEntry(formData: FormData) {
+  // Validate CSRF token
+  const csrfToken = formData.get('csrf_token') as string;
+  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
+
+  if (!csrfValidation.valid) {
+    throw new Error(csrfValidation.error || 'Invalid CSRF token');
+  }
+
   const journalId = formData.get('journalId') as string;
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
@@ -58,16 +67,26 @@ export async function createEntry(formData: FormData) {
       mood: mood?.trim() || undefined,
       location: location?.trim() || undefined
     });
-
-    // Redirect back to the journal page on success
-    redirect(`/journals/${journalId}`);
   } catch (error) {
     console.error('Error creating journal entry:', error);
     throw error;
   }
+
+  // Redirect back to the journal page on success
+  redirect(`/journals/${journalId}`);
 }
 
-export async function updateEntry(formData: FormData) {
+export async function updateEntry(
+  formData: FormData
+) {
+  // Validate CSRF token
+  const csrfToken = formData.get('csrf_token') as string;
+  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
+
+  if (!csrfValidation.valid) {
+    throw new Error(csrfValidation.error || 'Invalid CSRF token');
+  }
+
   const journalId = formData.get('journalId') as string;
   const entryId = formData.get('entryId') as string;
   const title = formData.get('title') as string;
@@ -104,11 +123,13 @@ export async function updateEntry(formData: FormData) {
       mood: mood?.trim() || undefined,
       location: location?.trim() || undefined
     });
-
-    // Redirect back to the journal page on success
-    redirect(`/journals/${journalId}`);
   } catch (error) {
     console.error('Error updating journal entry:', error);
-    throw error;
+    // Instead of returning an error object, throw the error
+    // This ensures it propagates properly to the client
+    throw new Error('Failed to update journal entry');
   }
+
+  // Redirect outside the try/catch block so Next.js can handle it properly
+  redirect(`/journals/${journalId}`);
 }

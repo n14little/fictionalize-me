@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { TiptapEditor } from '../../../../../../components/RichTextEditor/TiptapEditor';
 import { FormButton } from '../../../../../../components/FormButton';
+import { CsrfTokenInput } from '../../../../../../components/CsrfTokenInput';
 import { JournalEntry } from '../../../../../../lib/models/JournalEntry';
 import { updateEntry } from '../../actions';
 import { JSONContent, DEFAULT_DOCUMENT } from '../../../../../../lib/editor/types';
@@ -55,31 +56,26 @@ export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrappe
   }
 
   async function clientAction(formData: FormData) {
-    try {
-      // Reset error state
-      setError(null);
-      
-      // Get the form data values
-      const title = formData.get('title') as string;
-      const contentString = formData.get('content') as string;
-      
-      // Basic form validation
-      if (!title.trim()) {
-        setError('Title is required');
-        return;
-      }
+    // Reset error state
+    setError(null);
 
-      if (!contentString || isContentEmpty(parseContent(contentString))) {
-        setError('Content is required');
-        return;
-      }
-      
-      // Call the server action with the form data
-      await updateEntry(formData);
-    } catch (err) {
-      // Handle any errors from the server action
-      setError(err instanceof Error ? err.message : 'An error occurred while updating the entry');
+    // Get the form data values
+    const title = formData.get('title') as string;
+    const contentString = formData.get('content') as string;
+
+    // Basic form validation
+    if (!title.trim()) {
+      setError('Title is required');
+      return;
     }
+
+    if (!contentString || isContentEmpty(parseContent(contentString))) {
+      setError('Content is required');
+      return;
+    }
+
+    // Call the server action with the form data
+    await updateEntry(formData);
   }
 
   return (
@@ -92,6 +88,8 @@ export function RichTextEditorWrapper({ journalId, entry }: RichTextEditorWrappe
       
       <input type="hidden" name="journalId" value={journalId} />
       <input type="hidden" name="entryId" value={entry.id} />
+      
+      <CsrfTokenInput />
       
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">

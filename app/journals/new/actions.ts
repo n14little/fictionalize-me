@@ -3,8 +3,17 @@
 import { redirect } from 'next/navigation';
 import { journalService } from '../../../lib/services/journalService';
 import { authService } from '../../../lib/services/authService';
+import { csrfModule } from '../../../lib/csrf/csrfModule';
 
 export async function createJournal(formData: FormData) {
+  // Validate CSRF token
+  const csrfToken = formData.get('csrf_token') as string;
+  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
+  
+  if (!csrfValidation.valid) {
+    throw new Error(csrfValidation.error || 'Invalid CSRF token');
+  }
+  
   // Get the current user
   const user = await authService.getCurrentUser();
   

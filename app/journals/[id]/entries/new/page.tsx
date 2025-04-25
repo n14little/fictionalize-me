@@ -2,13 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { journalService } from '../../../../../lib/services/journalService';
 import { authService } from '../../../../../lib/services/authService';
-import { FormButton } from '../../../../../components/FormButton';
-import { createEntry } from '../actions';
 import { RichTextEditorWrapper } from './RichTextEditorWrapper';
 
 export default async function NewJournalEntry({ params }: { params: { id: string } }) {
-  const journalId = params.id;
-  
+  const journalId = (await params).id;
+
   // Get the current user (if authenticated)
   const user = await authService.getCurrentUser();
   
