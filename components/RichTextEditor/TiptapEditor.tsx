@@ -288,9 +288,25 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
   useEffect(() => {
     if (editor && value) {
       try {
+        // Store current selection before updating content
+        const { from, to } = editor.state.selection;
+
         // If value is already an object, use it directly
         const parsedContent = typeof value === 'object' ? value : JSON.parse(value);
-        editor.commands.setContent(parsedContent, false);
+        
+        // Only update content if it actually changed
+        const currentContent = JSON.stringify(editor.getJSON());
+        const newContent = JSON.stringify(parsedContent);
+        
+        if (currentContent !== newContent) {
+          // Update content without resetting selection
+          editor.commands.setContent(parsedContent, false);
+
+          // Restore cursor position if it was previously set
+          if (from !== undefined && to !== undefined) {
+            editor.commands.setTextSelection({ from, to });
+          }
+        }
       } catch {
         console.warn('Failed to update editor with new content');
         editor.commands.setContent(DEFAULT_DOCUMENT, false);
