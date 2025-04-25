@@ -1,35 +1,7 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { journalService } from '../../../lib/services/journalService';
 import { authService } from '../../../lib/services/authService';
 import { FormButton } from '../../../components/FormButton';
-
-async function createJournal(formData: FormData) {
-  'use server';
-  
-  // Get the current user
-  const user = await authService.getCurrentUser();
-  
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-  
-  const title = formData.get('title') as string;
-  const description = formData.get('description') as string;
-  
-  if (!title) {
-    throw new Error('Title is required');
-  }
-  
-  // Create the journal
-  const journal = await journalService.createJournal(user.id, {
-    title,
-    description,
-  });
-  
-  // Redirect to the new journal
-  redirect(`/journals/${journal.id}`);
-}
+import { createJournal } from './actions';
 
 export default async function CreateJournal() {
   // Ensure user is authenticated
