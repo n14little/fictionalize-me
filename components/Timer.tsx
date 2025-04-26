@@ -20,21 +20,19 @@ const Timer: React.FC = () => {
     setIsActive(true);
   };
 
-  // Pause the timer
-  const pauseTimer = () => {
-    setIsActive(false);
-  };
-
-  // Reset the timer
-  const resetTimer = () => {
-    setIsActive(false);
-    setTimeRemaining(120);
-    setShowNotification(false);
-  };
-
   // Close notification
   const closeNotification = () => {
     setShowNotification(false);
+  };
+
+  // Save the current date and time to local storage in UTC format
+  const saveDateTimeToLocalStorage = () => {
+    const now = new Date();
+
+    // Store the time in ISO format (UTC)
+    const utcTimestamp = now.toISOString();
+
+    localStorage.setItem('timerCompletedUTC', utcTimestamp);
   };
 
   // Timer logic
@@ -46,6 +44,7 @@ const Timer: React.FC = () => {
     } else if (isActive && timeRemaining === 0) {
       setIsActive(false);
       setShowNotification(true);
+      saveDateTimeToLocalStorage();
     }
 
     return () => {
@@ -64,7 +63,7 @@ const Timer: React.FC = () => {
               {formatTime(timeRemaining)} remaining
             </span>
           </div>
-          <div className="flex space-x-2">
+          <div>
             <button
               onClick={startTimer}
               disabled={isActive}
@@ -75,23 +74,6 @@ const Timer: React.FC = () => {
               }`}
             >
               Start
-            </button>
-            <button
-              onClick={pauseTimer}
-              disabled={!isActive}
-              className={`px-3 py-1 rounded text-sm font-medium ${
-                !isActive
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-yellow-500 text-white hover:bg-yellow-600'
-              }`}
-            >
-              Pause
-            </button>
-            <button
-              onClick={resetTimer}
-              className="px-3 py-1 rounded text-sm font-medium bg-gray-300 text-gray-700 hover:bg-gray-400"
-            >
-              Reset
             </button>
           </div>
         </div>
