@@ -4,7 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { AuthProvider } from "./providers";
 import AuthButtons from "@/components/AuthButtons";
-import Timer from "@/components/Timer";
+import { TimerContainer } from "@/components/TimerContainer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,7 +43,7 @@ export default function RootLayout({
           
           {/* Timer component */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <Timer />
+            <TimerContainer />
           </div>
         </AuthProvider>
         <main>

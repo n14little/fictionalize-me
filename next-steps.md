@@ -2,11 +2,6 @@
 
 ## High Priority
 
-### 1. CSRF Protection
-- Add CSRF tokens to all form submissions
-- Implement CSRF middleware for API routes
-- Validate CSRF tokens on server-side actions
-
 ### 2. Rate Limiting
 - Implement rate limiting for authentication attempts
 - Add rate limiting to API endpoints
@@ -52,22 +47,6 @@
 
 ## Implementation Notes
 
-### CSRF Protection
-```typescript
-// Example middleware
-import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-
-export async function csrfMiddleware(req: Request) {
-  const token = await getToken({ req });
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  // Validate CSRF token
-  // ...
-}
-```
-
 ### Rate Limiting
 ```typescript
 // Example rate limiter
@@ -91,4 +70,11 @@ export function securityHeaders(req: Request) {
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
   };
 }
-``` 
+```
+
+# App thoughts
+
+## Timer
+Perhaps the timer from a non-entry page should just take the user to a modal where the timer begins.
+
+Perhaps all editing should happen in this modal?
