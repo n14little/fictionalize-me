@@ -1,26 +1,22 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { TiptapEditor } from '../../../../components/RichTextEditor/TiptapEditor';
 import { CsrfTokenInput } from '../../../../components/CsrfTokenInput';
 import { FormButton } from '../../../../components/FormButton';
 import { createDailyEntry } from './actions';
 
-interface DailyWriteModalProps {
-  searchParams: {
-    journalId?: string;
-  };
-}
-
-export default function DailyWriteModal({ searchParams }: DailyWriteModalProps) {
-  const { journalId } = searchParams;
+export default function DailyWriteModal() {
+  const searchParams = useSearchParams();
+  const journalId = searchParams.get('journalId');
   const [title, setTitle] = useState(`Journal Entry - ${new Date().toLocaleDateString()}`);
   const [content, setContent] = useState('{"type":"doc","content":[{"type":"paragraph"}]}');
   const [timeRemaining, setTimeRemaining] = useState(120); // 2 minutes in seconds
   const [isActive, setIsActive] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
@@ -76,8 +72,9 @@ export default function DailyWriteModal({ searchParams }: DailyWriteModalProps) 
   }
 
   async function clientAction(formData: FormData) {
-    // Reset error state
+    // Reset error state and set submitting state
     setError(null);
+    setIsSubmitting(true);
     
     // Get the form data values
     const titleValue = formData.get('title') as string;
@@ -86,19 +83,34 @@ export default function DailyWriteModal({ searchParams }: DailyWriteModalProps) 
     // Basic form validation
     if (!titleValue.trim()) {
       setError('Title is required');
+      setIsSubmitting(false);
       return;
     }
 
     if (!contentValue || isContentEmpty(contentValue)) {
       setError('Content is required');
+      setIsSubmitting(false);
       return;
     }
 
-    // Call the server action with the form data
     try {
+      // Call the server action - let any NEXT_REDIRECT errors bubble up naturally
       await createDailyEntry(formData);
+      
+      // If execution reaches here without a redirect, use client-side navigation as fallback
+      router.push(`/journals/${journalId}`);
     } catch (err) {
+      // If this is a redirect error, rethrow it to let Next.js handle the redirect
+      if (err instanceof Error && 
+          (err.message.includes("NEXT_REDIRECT") || 
+           err.name === "RedirectError")) {
+        throw err; // Rethrow to allow the redirect to bubble up
+      }
+      
+      // Handle genuine errors
       setError(err instanceof Error ? err.message : 'An error occurred while saving your entry');
+      setIsSubmitting(false);
+      console.error("Error submitting entry:", err);
     }
   }
 
@@ -208,10 +220,13 @@ export default function DailyWriteModal({ searchParams }: DailyWriteModalProps) 
             type="button"
             onClick={() => router.back()}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            disabled={isSubmitting}
           >
             Cancel
           </button>
-          <FormButton>Save Entry</FormButton>
+          <FormButton disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Entry'}
+          </FormButton>
         </div>
       </form>
     </div>

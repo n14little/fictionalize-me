@@ -3,8 +3,8 @@
 import { redirect } from 'next/navigation';
 import { authService } from '../../../../lib/services/authService';
 import { journalEntryService } from '../../../../lib/services/journalEntryService';
-import { journalService } from '../../../../lib/services/journalService';
 import { csrfModule } from '../../../../lib/csrf/csrfModule';
+import { revalidatePath } from 'next/cache';
 
 // Helper function to validate JSON structure for Tiptap content
 function isValidTiptapJSON(jsonString: string): boolean {
@@ -64,6 +64,11 @@ export async function createDailyEntry(formData: FormData) {
     throw error;
   }
 
-  // Redirect back to the journal page on success
+  // Revalidate both paths to ensure fresh data
+  revalidatePath(`/journals/${journalId}`);
+  revalidatePath('/journals');
+  
+  // Use redirect from next/navigation
+  // This throws a NEXT_REDIRECT error which must be allowed to bubble up to work correctly
   redirect(`/journals/${journalId}`);
 }
