@@ -12,8 +12,10 @@ const editorStyles = `
     padding: 1rem;
     border: 1px solid #e5e7eb;
     border-radius: 0.375rem;
-    min-height: 15rem;
+    min-height: 100%;
     outline: none;
+    height: 100%;
+    overflow-y: auto;
   }
   
   .tiptap:focus {
@@ -79,6 +81,19 @@ const editorStyles = `
     font-family: monospace;
     margin-bottom: 1em;
     overflow-x: auto;
+  }
+  
+  /* Make editor content container fill available height */
+  .editor-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .editor-content-wrapper .ProseMirror {
+    flex-grow: 1;
+    height: 100%;
+    overflow-y: auto;
   }
 `;
 
@@ -316,18 +331,18 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
 
   if (!isMounted) {
     return (
-      <div className="border border-gray-300 rounded-md p-4 min-h-[240px]">
+      <div className="border border-gray-300 rounded-md p-4 h-full">
         Loading editor...
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
       <style jsx global>{editorStyles}</style>
       <EditorToolbar editor={editor} />
-      <div className="rounded-b-md overflow-hidden">
-        <EditorContent editor={editor} className="w-full" />
+      <div className="rounded-b-md overflow-hidden flex-grow h-full">
+        <EditorContent editor={editor} className="w-full h-full editor-content-wrapper" />
       </div>
     </div>
   );
