@@ -48,6 +48,7 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 - Log errors to the console in development (`console.error`) but avoid logging sensitive data.
 - Use Next.js error boundaries (`error.tsx`) for UI error states, providing user-friendly messages (e.g., "Something went wrong, please try again").
 - Remember that NextJS throws an error for redirects. Make sure to handle redirect errors gracefully.
+- Do not put NextJS redirects inside of try/catch blocks unless you look and you rethrow Next redirects. Also, do not log error messages for next redirects.
 
 ### 7. Testing and Validation
 

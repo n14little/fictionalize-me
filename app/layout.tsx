@@ -4,7 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { AuthProvider } from "./providers";
 import AuthButtons from "@/components/AuthButtons";
-import { TimerContainer } from "@/components/TimerContainer";
+import { DailyWriteModalButton } from "@/components/DailyWriteModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,33 +21,30 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
           <header className="bg-white shadow-sm border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
                 <div className="flex-shrink-0">
                   <Link href="/" className="font-bold text-xl text-blue-600">Fictionalize Me</Link>
                 </div>
-                <nav className="flex space-x-6">
+                <nav className="flex space-x-6 items-center">
                   <Link href="/waitlist" className="text-gray-700 hover:text-blue-600">
                     Waitlist
                   </Link>
                   <Link href="/journals" className="text-gray-700 hover:text-blue-600">
                     Public Journals
                   </Link>
-                  <AuthButtons />
+                  <DailyWriteModalButton />
+                  <AuthProvider>
+                    <AuthButtons />
+                  </AuthProvider>
                 </nav>
               </div>
             </div>
           </header>
-          
-          {/* Timer component */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <TimerContainer />
-          </div>
-        </AuthProvider>
         <main>
           {children}
+          <div id="modal-root"></div>
         </main>
         <footer className="bg-white border-t border-gray-200 py-6 mt-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

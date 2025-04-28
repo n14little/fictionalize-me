@@ -46,14 +46,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
             <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-semibold">Journal Entries</h2>
               <div className="flex gap-2">
-                <Link 
-                  href={`/journals/daily-write?journalId=${journalId}`}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm flex items-center"
-                >
-                  <span className="mr-1">Daily Write</span>
-                  <span className="text-sm">✍️</span>
-                </Link>
-                <Link 
+                <Link
                   href={`/journals/${journalId}/entries/new`}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
                 >
