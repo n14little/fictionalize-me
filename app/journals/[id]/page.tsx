@@ -24,6 +24,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
   // If journal doesn't exist or user doesn't have access
   if (!journal) {
     notFound();
+    return;
   }
 
   return (

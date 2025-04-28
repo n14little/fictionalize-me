@@ -101,7 +101,7 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
         return true;
       }
       return false;
-    } catch (e) {
+    } catch {
       return true;
     }
   }
@@ -174,7 +174,7 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
           
           {!isActive && !isCompleted && timeRemaining === 120 && (
             <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
-              <p>Click "Start Timer" when you're ready to begin your 2-minute journaling session.</p>
+              <p>Click &quot;Start Timer&quot; when you&apos;re ready to begin your 2-minute journaling session.</p>
             </div>
           )}
           
@@ -246,7 +246,7 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
             >
               Cancel
             </button>
-            <FormButton disabled={isSubmitting}>
+            <FormButton>
               {isSubmitting ? 'Saving...' : 'Save Entry'}
             </FormButton>
           </div>
