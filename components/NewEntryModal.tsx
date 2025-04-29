@@ -170,12 +170,12 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
             />
           </div>
           
-          <div className="flex-grow min-h-0 mb-4">
+          <div className="flex-grow min-h-0 mb-6">
             <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
               Content
             </label>
-            <div className="h-full">
-              <TiptapEditor 
+            <div className="h-full mb-2">
+              <TiptapEditor
                 value={content}
                 onChange={(jsonString) => {
                   setContent(parseContent(jsonString));
@@ -196,7 +196,7 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-none mt-2">
             <div>
               <label htmlFor="mood" className="block text-sm font-medium text-gray-700 mb-1">
                 Mood (optional)

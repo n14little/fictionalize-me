@@ -1,55 +1,55 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
+import { useMemo } from 'react';
+import { generateHTML } from '@tiptap/html';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import { DEFAULT_DOCUMENT } from '../../lib/editor/types';
+import { JSONContent } from '../../lib/editor/types';
+import DOMPurify from 'isomorphic-dompurify';
 
-// Shared styles to ensure consistency between edit and view modes
-const editorStyles = `
-  .tiptap {
+// Shared styles for the content display
+const contentStyles = `
+  .rich-text-content {
     padding: 1rem;
     min-height: 2rem;
-    outline: none;
   }
   
-  .tiptap p {
+  .rich-text-content p {
     margin-bottom: 1em;
   }
   
-  .tiptap h1 {
+  .rich-text-content h1 {
     font-size: 1.75rem;
     font-weight: bold;
     margin-bottom: 0.75em;
   }
   
-  .tiptap h2 {
+  .rich-text-content h2 {
     font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 0.75em;
   }
   
-  .tiptap h3 {
+  .rich-text-content h3 {
     font-size: 1.25rem;
     font-weight: bold;
     margin-bottom: 0.5em;
   }
   
-  .tiptap ul, .tiptap ol {
+  .rich-text-content ul, .rich-text-content ol {
     margin-left: 1.5em;
     margin-bottom: 1em;
   }
   
-  .tiptap ul li {
+  .rich-text-content ul li {
     list-style-type: disc;
   }
   
-  .tiptap ol li {
+  .rich-text-content ol li {
     list-style-type: decimal;
   }
   
-  .tiptap blockquote {
+  .rich-text-content blockquote {
     border-left: 3px solid #e5e7eb;
     padding-left: 1em;
     font-style: italic;
@@ -58,14 +58,14 @@ const editorStyles = `
     margin-bottom: 1em;
   }
   
-  .tiptap code {
+  .rich-text-content code {
     background-color: #f3f4f6;
     padding: 0.2em 0.4em;
     border-radius: 0.25em;
     font-family: monospace;
   }
   
-  .tiptap pre {
+  .rich-text-content pre {
     background-color: #f3f4f6;
     padding: 0.75em 1em;
     border-radius: 0.375rem;
@@ -74,11 +74,34 @@ const editorStyles = `
     overflow-x: auto;
   }
   
-  .tiptap a {
+  .rich-text-content a {
     color: #3b82f6;
     text-decoration: underline;
   }
 `;
+
+// Define the extensions for generating HTML from JSON content
+const extensions = [
+  StarterKit.configure({
+    heading: {
+      levels: [1, 2, 3]
+    },
+    blockquote: true,
+    bold: true,
+    italic: true,
+    bulletList: true,
+    orderedList: true,
+    code: true,
+    codeBlock: true,
+    horizontalRule: true
+  }),
+  Link.configure({
+    HTMLAttributes: {
+      rel: 'noopener noreferrer',
+      target: '_blank'
+    }
+  })
+];
 
 type RichTextContentProps = {
   content: JSONContent | string;
@@ -86,94 +109,45 @@ type RichTextContentProps = {
 };
 
 export const RichTextContent = ({ content, className = '' }: RichTextContentProps) => {
-  const [isMounted, setIsMounted] = useState(false);
-  
-  // Process content based on its type
-  const getContent = (): JSONContent => {
+  // Process content based on its type and generate HTML
+  const htmlContent = useMemo(() => {
     if (!content) {
-      return DEFAULT_DOCUMENT;
+      return '<p></p>';
     }
 
-    // If it's already an object (from JSONB column), use directly
+    let jsonContent: JSONContent;
+
+    // If it's already an object, use directly
     if (typeof content === 'object') {
-      return content;
-    }
-    
-    // Parse string content to JSON
-    try {
-      return JSON.parse(content as string);
-    } catch (e) {
-      console.warn('Invalid content format, showing default document', e);
-      return DEFAULT_DOCUMENT;
-    }
-  };
-
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        // Configure all StarterKit extensions to ensure proper rendering
-        heading: {
-          levels: [1, 2, 3]
-        },
-        blockquote: true,
-        boldMark: true,
-        italicMark: true,
-        bulletList: true,
-        orderedList: true,
-        code: true,
-        codeBlock: true,
-        horizontalRule: true
-      }),
-      Link.configure({
-        openOnClick: true,
-        HTMLAttributes: {
-          rel: 'noopener noreferrer',
-          target: '_blank'
-        }
-      })
-    ],
-    content: getContent(),
-    editable: false, // Read-only mode
-  });
-
-  // Make sure we're running on the client side before rendering
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // When the content prop changes
-  useEffect(() => {
-    if (editor && content) {
+      jsonContent = content;
+    } else {
+      // Parse string content to JSON
       try {
-        const jsonContent = typeof content === 'object' ? content : JSON.parse(content as string);
-        
-        // Check if content has changed to avoid unnecessary re-renders
-        const currentContent = JSON.stringify(editor.getJSON());
-        const newContent = JSON.stringify(jsonContent);
-        
-        if (currentContent !== newContent) {
-          editor.commands.setContent(jsonContent, false);
-        }
+        jsonContent = JSON.parse(content as string);
       } catch (e) {
-        console.warn('Failed to update editor with new content', e);
-        editor.commands.setContent(DEFAULT_DOCUMENT, false);
+        console.warn('Invalid content format, showing empty content', e);
+        return '<p></p>';
       }
     }
-  }, [editor, content]);
-
-  if (!isMounted) {
-    return (
-      <div className="min-h-[32px]">
-        Loading content...
-      </div>
-    );
-  }
+    
+    // Generate HTML from JSON content
+    try {
+      // Generate HTML from JSON and sanitize it
+      const html = generateHTML(jsonContent, extensions);
+      return DOMPurify.sanitize(html);
+    } catch (e) {
+      console.warn('Failed to generate HTML from JSON content', e);
+      return '<p>Error displaying content</p>';
+    }
+  }, [content]);
 
   return (
     <div className={`prose prose-sm max-w-none ${className}`}>
-      <style jsx global>{editorStyles}</style>
-      <EditorContent editor={editor} />
+      <style jsx global>{contentStyles}</style>
+      <div 
+        className="rich-text-content"
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
     </div>
   );
 };

@@ -11,7 +11,7 @@ const editorStyles = `
   .tiptap {
     padding: 1rem;
     border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
+    border-radius: 0 0 0.375rem 0.375rem;
     min-height: 100%;
     outline: none;
     height: 100%;
@@ -341,7 +341,7 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
     <div className="h-full flex flex-col">
       <style jsx global>{editorStyles}</style>
       <EditorToolbar editor={editor} />
-      <div className="rounded-b-md overflow-hidden flex-grow h-full">
+      <div className="border border-gray-300 rounded-b-md overflow-hidden flex-grow h-full">
         <EditorContent editor={editor} className="w-full h-full editor-content-wrapper" />
       </div>
     </div>
