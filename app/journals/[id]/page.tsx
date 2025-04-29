@@ -1,9 +1,11 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { journalService } from '../../../lib/services/journalService';
 import { journalEntryService } from '../../../lib/services/journalEntryService';
 import { authService } from '../../../lib/services/authService';
 import { RichTextContent } from '../../../components/RichTextEditor/RichTextContent';
+import { NewEntryModalButton } from '../../../components/NewEntryModal';
+import { EditEntryModalButton } from '../../../components/EditEntryModal';
 
 // Client component for date formatting
 import { ClientDateFormatter } from './ClientDateFormatter';
@@ -47,12 +49,7 @@ export default async function JournalDetail({ params }: { params: { id: string }
             <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-semibold">Journal Entries</h2>
               <div className="flex gap-2">
-                <Link
-                  href={`/journals/${journalId}/entries/new`}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
-                >
-                  Add New Entry
-                </Link>
+                <NewEntryModalButton journalId={journalId} />
               </div>
             </div>
             
@@ -85,12 +82,10 @@ export default async function JournalDetail({ params }: { params: { id: string }
                           )}
                         </div>
                         <div className="mt-2">
-                          <Link
-                            href={`/journals/${journalId}/entries/${entry.id}/edit`}
-                            className="text-blue-600 hover:text-blue-800 text-xs font-medium no-underline"
-                          >
-                            Edit
-                          </Link>
+                          <EditEntryModalButton 
+                            entry={entry} 
+                            journalId={journalId} 
+                          />
                         </div>
                       </div>
                     </div>
