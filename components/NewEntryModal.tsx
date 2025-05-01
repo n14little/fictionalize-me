@@ -53,7 +53,6 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
   const [mood, setMood] = useState('');
   const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   // Helper function to parse content into a JSONContent object
@@ -91,9 +90,8 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
   }
 
   async function clientAction(formData: FormData) {
-    // Reset error state and set submitting state
+    // Reset error state
     setError(null);
-    setIsSubmitting(true);
     
     // Get the form data values
     const titleValue = formData.get('title') as string;
@@ -102,13 +100,11 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
     // Basic form validation
     if (!titleValue.trim()) {
       setError('Title is required');
-      setIsSubmitting(false);
       return;
     }
 
     if (!contentValue || isContentEmpty(parseContent(contentValue))) {
       setError('Content is required');
-      setIsSubmitting(false);
       return;
     }
 
@@ -131,7 +127,6 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
       // Handle other errors
       console.error("Error submitting entry:", err);
       setError(err instanceof Error ? err.message : 'An error occurred while saving your entry');
-      setIsSubmitting(false);
     }
   }
 
@@ -233,12 +228,11 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
               type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              disabled={isSubmitting}
             >
               Cancel
             </button>
             <FormButton>
-              {isSubmitting ? 'Saving...' : 'Save Entry'}
+              Save Entry
             </FormButton>
           </div>
         </form>

@@ -11,6 +11,7 @@ interface FormButtonProps {
 export function FormButton({ children, className = '' }: FormButtonProps) {
   const { pending } = useFormStatus();
   
+  // We'll use the useFormStatus hook to determine if form is submitting
   return (
     <button
       type="submit"

@@ -1,0 +1,80 @@
+.richTextContent {
+  padding: 1rem;
+  min-height: 2rem;
+}
+
+.richTextContent p {
+  margin-bottom: 1em;
+}
+
+.richTextContent h1 {
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin-bottom: 0.75em;
+}
+
+.richTextContent h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.75em;
+}
+
+.richTextContent h3 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
+
+.richTextContent ul, 
+.richTextContent ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.richTextContent ul li {
+  list-style-type: disc;
+}
+
+.richTextContent ol li {
+  list-style-type: decimal;
+}
+
+.richTextContent blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1em;
+  font-style: italic;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 1em;
+}
+
+.richTextContent code {
+  background-color: #f3f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-family: monospace;
+}
+
+.richTextContent pre {
+  background-color: #f3f4f6;
+  padding: 0.75em 1em;
+  border-radius: 0.375rem;
+  font-family: monospace;
+  margin-bottom: 1em;
+  overflow-x: auto;
+}
+
+.richTextContent a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+/* Added to prevent content layout shifts */
+.contentWrapper {
+  min-height: inherit;
+  transition: opacity 0.1s ease-in;
+}
+
+.contentPlaceholder {
+  opacity: 0;
+}

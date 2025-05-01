@@ -51,7 +51,6 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
   const [isActive, setIsActive] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
@@ -107,9 +106,8 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
   }
 
   async function clientAction(formData: FormData) {
-    // Reset error state and set submitting state
+    // Reset error state
     setError(null);
-    setIsSubmitting(true);
     
     // Get the form data values
     const titleValue = formData.get('title') as string;
@@ -118,13 +116,11 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
     // Basic form validation
     if (!titleValue.trim()) {
       setError('Title is required');
-      setIsSubmitting(false);
       return;
     }
 
     if (!contentValue || isContentEmpty(contentValue)) {
       setError('Content is required');
-      setIsSubmitting(false);
       return;
     }
 
@@ -147,7 +143,6 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
       // Handle other errors
       console.error("Error submitting entry:", err);
       setError(err instanceof Error ? err.message : 'An error occurred while saving your entry');
-      setIsSubmitting(false);
     }
   }
 
@@ -242,12 +237,11 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
               type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              disabled={isSubmitting}
             >
               Cancel
             </button>
             <FormButton>
-              {isSubmitting ? 'Saving...' : 'Save Entry'}
+              Save Entry
             </FormButton>
           </div>
         </form>

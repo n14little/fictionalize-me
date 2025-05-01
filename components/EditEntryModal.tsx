@@ -61,7 +61,6 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
   const [mood, setMood] = useState(entry.mood || '');
   const [location, setLocation] = useState(entry.location || '');
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   // Helper function to parse content into a JSONContent object
@@ -99,9 +98,8 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
   }
 
   async function clientAction(formData: FormData) {
-    // Reset error state and set submitting state
+    // Reset error state
     setError(null);
-    setIsSubmitting(true);
     
     // Get the form data values
     const titleValue = formData.get('title') as string;
@@ -110,13 +108,11 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
     // Basic form validation
     if (!titleValue.trim()) {
       setError('Title is required');
-      setIsSubmitting(false);
       return;
     }
 
     if (!contentValue || isContentEmpty(parseContent(contentValue))) {
       setError('Content is required');
-      setIsSubmitting(false);
       return;
     }
 
@@ -139,7 +135,6 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
       // Handle other errors
       console.error("Error updating entry:", err);
       setError(err instanceof Error ? err.message : 'An error occurred while updating your entry');
-      setIsSubmitting(false);
     }
   }
 
@@ -184,7 +179,7 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
               Content
             </label>
             <div className="h-full mb-2">
-              <TiptapEditor 
+              <TiptapEditor
                 value={content}
                 onChange={(jsonString) => {
                   setContent(parseContent(jsonString));
@@ -242,12 +237,11 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
               type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              disabled={isSubmitting}
             >
               Cancel
             </button>
             <FormButton>
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              Save Changes
             </FormButton>
           </div>
         </form>
