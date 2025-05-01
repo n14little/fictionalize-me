@@ -47,12 +47,6 @@ export default async function MyJournals() {
                   <ClientJournalDate label="Updated" date={journal.updated_at} />
                   <div className="flex items-center space-x-2">
                     <Link
-                      href={`/journals/daily-write?journalId=${journal.id}`}
-                      className="text-green-600 hover:text-green-800 text-sm font-medium"
-                    >
-                      Daily Write
-                    </Link>
-                    <Link
                       href={`/journals/${journal.id}`}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                     >
