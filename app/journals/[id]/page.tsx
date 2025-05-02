@@ -10,7 +10,7 @@ import { EditEntryModalButton } from '../../../components/EditEntryModal';
 // Client component for date formatting
 import { ClientDateFormatter } from './ClientDateFormatter';
 
-export default async function JournalDetail({ params }: { params: { id: string } }) {
+export default async function JournalDetail({ params }: { params: Promise<{ id: string }> }) {
   const journalId = (await params).id;
   
   // Get the current user (if authenticated)

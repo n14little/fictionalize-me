@@ -12,7 +12,7 @@ const pool = new Pool({
 export default pool;
 
 // Helper function to execute SQL queries
-export const query = async (text: string, params?: any[]) => {
+export const query = async (text: string, params?: unknown[]) => {
   const start = Date.now();
   try {
     const result = await pool.query(text, params);

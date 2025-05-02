@@ -118,6 +118,10 @@ export const journalRepository = {
       'DELETE FROM journals WHERE id = $1 RETURNING id',
       [id]
     );
-    return result.rowCount > 0;
+    if (result.rowCount) {
+      return result.rowCount > 0;
+    }
+
+    return false;
   }
 };

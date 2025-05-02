@@ -10,19 +10,7 @@ import styles from './RichTextContent.module.css';
 
 // Define the extensions for generating HTML from JSON content
 const extensions = [
-  StarterKit.configure({
-    heading: {
-      levels: [1, 2, 3]
-    },
-    blockquote: true,
-    bold: true,
-    italic: true,
-    bulletList: true,
-    orderedList: true,
-    code: true,
-    codeBlock: true,
-    horizontalRule: true
-  }),
+  StarterKit,
   Link.configure({
     HTMLAttributes: {
       rel: 'noopener noreferrer',

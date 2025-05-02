@@ -126,7 +126,7 @@ export const journalService = {
     }
 
     // If we're updating the title, update the slug if it wasn't manually set before
-    let updateData: UpdateJournal = { ...data };
+    const updateData: UpdateJournal = { ...data };
     if (data.title && !journal.slug) {
       updateData.slug = slugify(data.title, { lower: true, strict: true });
       

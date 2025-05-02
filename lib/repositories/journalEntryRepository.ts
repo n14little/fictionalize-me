@@ -97,6 +97,10 @@ export const journalEntryRepository = {
       'DELETE FROM journal_entries WHERE id = $1 RETURNING id',
       [id]
     );
-    return result.rowCount > 0;
+    if (result.rowCount) {
+      return result.rowCount > 0;
+    }
+
+    return false;
   }
 };

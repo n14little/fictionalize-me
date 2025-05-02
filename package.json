@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "npm run db:migrate && next dev --turbopack",
-    "build": "npm run db:migrate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "./db-migrate.sh"
+    "db:migrate": "./db-migrate.sh",
+    "type-check": "tsc"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.4.2",

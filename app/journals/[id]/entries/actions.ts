@@ -17,7 +17,7 @@ function isValidTiptapJSON(jsonString: string): boolean {
       parsed.type === 'doc' &&
       Array.isArray(parsed.content)
     );
-  } catch (e) {
+  } catch {
     return false;
   }
 }
