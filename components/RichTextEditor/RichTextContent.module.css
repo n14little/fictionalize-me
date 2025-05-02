@@ -69,10 +69,9 @@
   text-decoration: underline;
 }
 
-/* Added to prevent content layout shifts */
+/* Prevent content layout shifts */
 .contentWrapper {
   min-height: inherit;
-  transition: opacity 0.1s ease-in;
 }
 
 .contentPlaceholder {

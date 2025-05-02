@@ -77,11 +77,14 @@ export const RichTextContent = ({ content, className = '' }: RichTextContentProp
     setIsMounted(true);
   }, []);
 
+  // If not mounted yet, return null to prevent any content flash during hydration
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <div className={`prose prose-sm max-w-none ${className}`}>
-      <div 
-        className={`${styles.contentWrapper} ${!isMounted ? styles.contentPlaceholder : ''}`}
-      >
+      <div className={styles.contentWrapper}>
         <div 
           className={styles.richTextContent}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
