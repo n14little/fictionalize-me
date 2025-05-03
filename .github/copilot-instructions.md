@@ -80,7 +80,8 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 
 - Always generate code that matches the existing app's functionality (e.g., journal entry creation/editing).
 - If unsure about a feature, ask for clarification rather than making assumptions.
-- Provide comments in the code to explain complex logic, especially for server actions and API routes.
+- Do not put comments in the code.
+- Do not type case with the `as` keyword in typescript.
 - Suggest improvements (e.g., adding loading states, optimizing API responses) but do not implement them unless requested.
 
 ## Example Scenarios
