@@ -1,16 +1,16 @@
 import crypto from 'crypto';
-import { getServerSession } from 'next-auth';
+import { authService } from '../services/authService';
 import { cookies } from 'next/headers';
 
-interface CsrfTokenResponse {
+type CsrfTokenResponse = {
   csrfToken: string;
   message: string;
-}
+};
 
-interface CsrfValidationResponse {
+type CsrfValidationResponse = {
   valid: boolean;
   error?: string;
-}
+};
 
 /**
  * CSRF Module that implements the OWASP Double-Submit Cookie pattern with HMAC
@@ -18,10 +18,8 @@ interface CsrfValidationResponse {
  */
 export class CsrfModule {
   private readonly secret: string;
-  
+
   constructor() {
-    // Get a secure secret key from environment variables
-    // In production, this should be a strong, securely stored key
     const secret = process.env.CSRF_SECRET;
 
     if (!secret) {
@@ -30,16 +28,10 @@ export class CsrfModule {
 
     this.secret = secret;
   }
-  
-  /**
-   * Generates a CSRF token using HMAC following the OWASP recommendations for
-   * Signed Double-Submit Cookie pattern
-   * @returns The generated CSRF token
-   */
+
   async generateToken(): Promise<string> {
-    // Get current session ID or generate a session-dependent value
     let sessionId: string;
-    const session = await getServerSession();
+    const session = await authService.getServerSession();
 
     if (session?.user?.email) {
       // Use session information as part of the token generation
@@ -47,12 +39,13 @@ export class CsrfModule {
       const sessionHash = crypto.createHash('sha256')
         .update(`${session.user.email}-${session?.accessToken || ''}`)
         .digest('hex');
-      sessionId = sessionHash;
+
+        sessionId = sessionHash;
     } else {
-      // Generate a random session ID for anonymous users
       sessionId = crypto.randomBytes(16).toString('hex');
-      // Store sessionId in a cookie for anonymous users
+
       const cookieStore = await cookies();
+
       cookieStore.set('anonymous_session_id', sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -119,7 +112,7 @@ export class CsrfModule {
 
       // Get current session ID
       let sessionId: string;
-      const session = await getServerSession();
+      const session = await authService.getServerSession();
 
       if (session?.user?.email) {
         // Recreate the same session hash we used when generating the token

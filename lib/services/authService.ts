@@ -83,6 +83,19 @@ export const authOptions: AuthOptions = {
 };
 
 export const authService = {
+  getServerSession: async (): Promise<CustomSession | null> => {
+    try {
+      const session = await getServerSession<typeof authOptions, CustomSession>(authOptions);
+      if (!session) {
+        return null;
+      }
+      return session;
+    } catch (error) {
+      console.error('Error getting server session:', error);
+      return null;
+    }
+  },
+
   getCurrentUser: async (): Promise<User | null> => {
     try {
       const session = await getServerSession<typeof authOptions, CustomSession>(authOptions);
@@ -117,9 +130,5 @@ export const authService = {
       console.error('Error getting current user:', error);
       return null;
     }
-  },
-
-  checkAccess: async (/*_userId: number, _resourceId?: string*/): Promise<boolean> => {
-    return true;
   },
 };
