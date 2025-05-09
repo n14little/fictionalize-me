@@ -4,6 +4,8 @@ import { FormButton } from '../../../components/FormButton';
 import { CsrfTokenInput } from '../../../components/CsrfTokenInput';
 import { createJournal } from './actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CreateJournal() {
   // Ensure user is authenticated
   await authService.getCurrentUser();

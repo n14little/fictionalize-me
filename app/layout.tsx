@@ -32,7 +32,7 @@ export default function RootLayout({
                     Waitlist
                   </Link>
                   <Link href="/journals" className="text-gray-700 hover:text-blue-600">
-                    Public Journals
+                    Journals
                   </Link>
                   <DailyWriteModalButton />
                   <AuthProvider>

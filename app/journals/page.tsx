@@ -3,6 +3,8 @@ import { journalService } from '../../lib/services/journalService';
 import { authService } from '../../lib/services/authService';
 import { ClientJournalDate } from './ClientJournalDate';
 
+export const dynamic = 'force-dynamic';
+
 export default async function MyJournals() {
   // Get the current user
   const currentUser = await authService.getCurrentUser();
