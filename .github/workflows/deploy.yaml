@@ -7,7 +7,17 @@ on:
     branches:
       - main
 jobs:
+  Run-Migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Flyway Migrations
+        uses: docker://flyway/flyway:11.8.1
+        with:
+          args: -url=${{ secrets.DB_URL }} -user=${{ secrets.DB_USER }} -password=${{ secrets.DB_PASSWORD }} -locations=filesystem:./db/migrations migrate
+
   Deploy-Production:
+    needs: Run-Migrations
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

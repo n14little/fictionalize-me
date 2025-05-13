@@ -82,7 +82,7 @@ docker run --rm \
   -e FLYWAY_CONNECT_RETRIES=10 \
   -e FLYWAY_VALIDATE_MIGRATION_NAMING=true \
   -e FLYWAY_PLACEHOLDERS_ENVIRONMENT=$ENVIRONMENT \
-  flyway/flyway:11 \
+  flyway/flyway:11.8.1 \
   migrate
 
 if [ $? -eq 0 ]; then
