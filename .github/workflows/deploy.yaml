@@ -13,8 +13,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Flyway Migrations
         uses: docker://flyway/flyway:11.8.1
+        env:
+          FLYWAY_URL: ${{ secrets.DB_URL }}
+          FLYWAY_USER: ${{ secrets.DB_USER }}
+          FLYWAY_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          FLYWAY_LOCATIONS: filesystem:./db/migrations
+          FLYWAY_VALIDATE_MIGRATION_NAMING: true
         with:
-          args: -url=${{ secrets.DB_URL }} -user=${{ secrets.DB_USER }} -password=${{ secrets.DB_PASSWORD }} -locations=filesystem:./db/migrations migrate
+          args: migrate
 
   Deploy-Production:
     needs: Run-Migrations
