@@ -8,9 +8,17 @@ interface ModalProps {
   children: React.ReactNode;
   onClose?: () => void;
   className?: string;
+  isFullscreen?: boolean;
+  disableAutoClose?: boolean;
 }
 
-export function Modal({ children, onClose, className = '' }: ModalProps) {
+export function Modal({ 
+  children, 
+  onClose, 
+  className = '', 
+  isFullscreen = false,
+  disableAutoClose = false
+}: ModalProps) {
   const overlay = useRef<HTMLDivElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -25,18 +33,18 @@ export function Modal({ children, onClose, className = '' }: ModalProps) {
 
   const onClick = useCallback(
     (e: React.MouseEvent) => {
-      if (e.target === overlay.current || e.target === wrapper.current) {
+      if (!disableAutoClose && (e.target === overlay.current || e.target === wrapper.current)) {
         handleClose();
       }
     },
-    [handleClose, overlay, wrapper]
+    [disableAutoClose, handleClose, overlay, wrapper]
   );
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+      if (!disableAutoClose && e.key === 'Escape') handleClose();
     },
-    [handleClose]
+    [disableAutoClose, handleClose]
   );
 
   useEffect(() => {
@@ -61,9 +69,10 @@ export function Modal({ children, onClose, className = '' }: ModalProps) {
     >
       <div
         ref={wrapper}
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
-                 w-full max-w-[42rem] h-[90vh] bg-white rounded-lg shadow-lg 
-                 p-6 overflow-y-auto ${className}`}
+        className={`${isFullscreen 
+          ? 'fixed inset-0 w-full h-full max-w-none rounded-none p-6 md:p-8 overflow-y-auto' 
+          : 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[42rem] h-[90vh] rounded-lg p-6 overflow-y-auto'
+        } bg-white shadow-lg ${className}`}
       >
         {children}
       </div>

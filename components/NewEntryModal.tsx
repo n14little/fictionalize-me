@@ -6,6 +6,7 @@ import { TiptapEditor } from './RichTextEditor/TiptapEditor';
 import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 import { Modal } from './Modal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { createEntry } from '../app/journals/[id]/entries/actions';
 import { JSONContent, DEFAULT_DOCUMENT } from '../lib/editor/types';
 
@@ -53,6 +54,8 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
   const [mood, setMood] = useState('');
   const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isConfirmingClose, setIsConfirmingClose] = useState(false);
+  const [isFormChanged, setIsFormChanged] = useState(false);
   const router = useRouter();
 
   // Helper function to parse content into a JSONContent object
@@ -87,6 +90,33 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
         contentObj.content[0].type === 'paragraph' &&
         (!contentObj.content[0].content || contentObj.content[0].content.length === 0))
     );
+  }
+  
+  // Handle confirmation for modal closing
+  function handleRequestClose() {
+    if (isFormChanged) {
+      setIsConfirmingClose(true);
+    } else {
+      onClose();
+    }
+  }
+
+  // Handle content or form changes
+  function handleContentChange(jsonString: string) {
+    setContent(parseContent(jsonString));
+    setIsFormChanged(true);
+    
+    // Update hidden input field for form submission
+    const hiddenInput = document.getElementById('content-hidden') as HTMLInputElement;
+    if (hiddenInput) {
+      hiddenInput.value = jsonString;
+    }
+  }
+
+  // Handle input field changes
+  function handleInputChange(setter: React.Dispatch<React.SetStateAction<string>>, value: string) {
+    setter(value);
+    setIsFormChanged(true);
   }
 
   async function clientAction(formData: FormData) {
@@ -131,112 +161,125 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
   }
 
   return (
-    <Modal onClose={onClose}>
-      <div className="flex flex-col h-full">
-        <div className="flex-none">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Add New Entry</h2>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+    <>
+      <Modal onClose={handleRequestClose} isFullscreen={true} disableAutoClose={true}>
+        <div className="flex flex-col h-full max-w-4xl mx-auto">
+          <div className="flex-none mb-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Add New Entry</h2>
+              <button 
+                onClick={handleRequestClose}
+                className="text-gray-500 hover:text-gray-700 focus:outline-none"
+                aria-label="Close modal"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
             </div>
-          )}
-        </div>
-        
-        <form action={clientAction} className="flex flex-col flex-grow h-0 min-h-0">
-          <input type="hidden" name="journalId" value={journalId} />
-          <CsrfTokenInput />
-          
-          <div className="mb-4 flex-none">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter a title for your entry"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
+
+            {error && (
+              <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mt-4">
+                {error}
+              </div>
+            )}
           </div>
           
-          <div className="flex-grow min-h-0 mb-6">
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-              Content
-            </label>
-            <div className="h-full mb-2">
-              <TiptapEditor
-                value={content}
-                onChange={(jsonString) => {
-                  setContent(parseContent(jsonString));
-                  
-                  // Update hidden input field for form submission
-                  const hiddenInput = document.getElementById('content-hidden') as HTMLInputElement;
-                  if (hiddenInput) {
-                    hiddenInput.value = jsonString;
-                  }
-                }} 
-              />
-            </div>
-            <input
-              type="hidden"
-              id="content-hidden"
-              name="content"
-              value={contentToString(content)}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-none mt-2">
-            <div>
-              <label htmlFor="mood" className="block text-sm font-medium text-gray-700 mb-1">
-                Mood (optional)
+          <form action={clientAction} className="flex flex-col flex-grow h-0 min-h-0">
+            <input type="hidden" name="journalId" value={journalId} />
+            <CsrfTokenInput />
+            
+            <div className="mb-4 flex-none">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Title
               </label>
               <input
-                id="mood"
-                name="mood"
+                id="title"
+                name="title"
                 type="text"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="How are you feeling?"
-                value={mood}
-                onChange={(e) => setMood(e.target.value)}
+                placeholder="Enter a title for your entry"
+                value={title}
+                onChange={(e) => handleInputChange(setTitle, e.target.value)}
+                required
               />
             </div>
             
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location (optional)
+            <div className="flex-grow min-h-0 mb-6">
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                Content
               </label>
+              <div className="h-full mb-2">
+                <TiptapEditor
+                  value={content}
+                  onChange={handleContentChange}
+                />
+              </div>
               <input
-                id="location"
-                name="location"
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Where are you?"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                type="hidden"
+                id="content-hidden"
+                name="content"
+                value={contentToString(content)}
               />
             </div>
-          </div>
-          
-          <div className="flex justify-end space-x-4 mt-4 flex-none">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <FormButton>
-              Save Entry
-            </FormButton>
-          </div>
-        </form>
-      </div>
-    </Modal>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-none mt-2">
+              <div>
+                <label htmlFor="mood" className="block text-sm font-medium text-gray-700 mb-1">
+                  Mood (optional)
+                </label>
+                <input
+                  id="mood"
+                  name="mood"
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="How are you feeling?"
+                  value={mood}
+                  onChange={(e) => handleInputChange(setMood, e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                  Location (optional)
+                </label>
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Where are you?"
+                  value={location}
+                  onChange={(e) => handleInputChange(setLocation, e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4 mt-4 flex-none">
+              <button
+                type="button"
+                onClick={handleRequestClose}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <FormButton>
+                Save Entry
+              </FormButton>
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      <ConfirmationModal
+        isOpen={isConfirmingClose}
+        onClose={() => setIsConfirmingClose(false)}
+        onConfirm={onClose}
+        title="Discard changes?"
+        message="You have unsaved changes that will be lost if you close this editor. Are you sure you want to discard these changes?"
+        confirmButtonText="Discard changes"
+        cancelButtonText="Keep editing"
+      />
+    </>
   );
 }
