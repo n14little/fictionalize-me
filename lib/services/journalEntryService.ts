@@ -1,8 +1,10 @@
+import { CreateJournalEntry, UpdateJournalEntry } from '../models/JournalEntry';
 import { journalEntryRepository } from '../repositories/journalEntryRepository';
 import { journalRepository } from '../repositories/journalRepository';
+import { JSONContent } from '../editor/types';
 
 export const journalEntryService = {
-  getUserEntriesStats: async (userId) => {
+  getUserEntriesStats: async (userId: number) => {
     // Get all entries for all journals owned by the user
     const journals = await journalRepository.findByUserId(userId);
     if (!journals || journals.length === 0) {
@@ -57,7 +59,7 @@ export const journalEntryService = {
     };
   },
 
-  getJournalEntries: async (journalId, userId) => {
+  getJournalEntries: async (journalId: string, userId?: number) => {
     const journal = await journalRepository.findById(journalId);
     
     if (!journal) {
@@ -75,7 +77,7 @@ export const journalEntryService = {
     return [];
   },
 
-  getJournalEntryById: async (id, userId) => {
+  getJournalEntryById: async (id: string, userId?: number) => {
     const entry = await journalEntryRepository.findById(id);
     
     if (!entry) {
@@ -99,7 +101,7 @@ export const journalEntryService = {
     return null;
   },
 
-  createJournalEntry: async (userId, data) => {
+  createJournalEntry: async (userId: number, data: CreateJournalEntry) => {
     const journal = await journalRepository.findById(data.journal_id);
 
     if (!journal) {
@@ -113,7 +115,7 @@ export const journalEntryService = {
     return journalEntryRepository.create(data);
   },
 
-  updateJournalEntry: async (id, userId, data) => {
+  updateJournalEntry: async (id: string, userId: number, data: UpdateJournalEntry) => {
     const entry = await journalEntryRepository.findById(id);
 
     if (!entry) {
@@ -133,7 +135,7 @@ export const journalEntryService = {
     return journalEntryRepository.update(id, data);
   },
 
-  deleteJournalEntry: async (id, userId) => {
+  deleteJournalEntry: async (id: string, userId: number) => {
     const entry = await journalEntryRepository.findById(id);
 
     if (!entry) {
@@ -155,7 +157,7 @@ export const journalEntryService = {
 };
 
 // Helper function to count words in Tiptap JSON content
-function countWordsInTiptapJSON(content) {
+function countWordsInTiptapJSON(content: JSONContent): number {
   // If content is not an object or doesn't have expected structure, return 0
   if (!content || typeof content !== 'object') {
     return 0;
@@ -164,14 +166,14 @@ function countWordsInTiptapJSON(content) {
   let wordCount = 0;
 
   // Process this node if it has text
-  if (content.text) {
+  if ('text' in content && typeof content.text === 'string') {
     // Count words in the text (split by whitespace and filter out empty strings)
     const words = content.text.trim().split(/\s+/).filter(Boolean);
     wordCount += words.length;
   }
 
   // Recursively count words in child content
-  if (Array.isArray(content.content)) {
+  if ('content' in content && Array.isArray(content.content)) {
     for (const child of content.content) {
       wordCount += countWordsInTiptapJSON(child);
     }

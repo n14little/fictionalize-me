@@ -4,7 +4,7 @@ import { journalStreakService } from '../../lib/services/journalStreakService';
 import { journalEntryService } from '../../lib/services/journalEntryService';
 import { JournalStreak } from '../../components/JournalStreak';
 import { JournalStreakCalendar } from '../../components/JournalStreakCalendar';
-import { WritingStats } from '../../components/WritingStats';
+import { WritingStats } from '@/components/WritingStats';
 
 export const dynamic = 'force-dynamic';
 
