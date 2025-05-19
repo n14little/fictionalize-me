@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { authService } from '../../../../lib/services/authService';
 import { journalEntryService } from '../../../../lib/services/journalEntryService';
+import { journalStreakService } from '../../../../lib/services/journalStreakService';
 import { csrfModule } from '../../../../lib/csrf/csrfModule';
 
 // Helper function to validate JSON structure for Tiptap content
@@ -67,6 +68,9 @@ export async function createEntry(formData: FormData) {
       mood: mood?.trim() || undefined,
       location: location?.trim() || undefined
     });
+    
+    // Record streak for today when user creates an entry
+    await journalStreakService.recordJournalStreak(user.id);
   } catch (error) {
     console.error('Error creating journal entry:', error);
     throw error;
@@ -123,6 +127,9 @@ export async function updateEntry(
       mood: mood?.trim() || undefined,
       location: location?.trim() || undefined
     });
+    
+    // Record streak for today when user updates an entry
+    await journalStreakService.recordJournalStreak(user.id);
   } catch (error) {
     console.error('Error updating journal entry:', error);
     // Instead of returning an error object, throw the error

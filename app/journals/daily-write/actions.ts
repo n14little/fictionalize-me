@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { authService } from '../../../lib/services/authService';
 import { journalEntryService } from '../../../lib/services/journalEntryService';
 import { journalService } from '../../../lib/services/journalService';
+import { journalStreakService } from '../../../lib/services/journalStreakService';
 import { csrfModule } from '../../../lib/csrf/csrfModule';
 import { revalidatePath } from 'next/cache';
 
@@ -75,6 +76,9 @@ export async function createDailyEntry(formData: FormData) {
       mood: 'Daily Write',
       location: new Date().toLocaleDateString()
     });
+    
+    // Record streak for today when user creates a daily entry
+    await journalStreakService.recordJournalStreak(user.id);
   } catch (error) {
     console.error('Error creating daily journal entry:', error);
     throw error;

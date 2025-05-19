@@ -105,7 +105,7 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
   function handleContentChange(jsonString: string) {
     setContent(parseContent(jsonString));
     setIsFormChanged(true);
-    
+
     // Update hidden input field for form submission
     const hiddenInput = document.getElementById('content-hidden') as HTMLInputElement;
     if (hiddenInput) {
