@@ -11,9 +11,7 @@ interface JournalStreakWrapperProps {
 
 export function JournalStreakWrapper({ streakStats, children }: JournalStreakWrapperProps) {
   const [showMilestone, setShowMilestone] = useState(false);
-  const [previousStreak, setPreviousStreak] = useState(0);
-  const [previousTotal, setPreviousTotal] = useState(0);
-  
+
   // Check for milestone achievements on component mount and streak updates
   useEffect(() => {
     // Store current stats in local storage to compare on future visits
@@ -23,8 +21,6 @@ export function JournalStreakWrapper({ streakStats, children }: JournalStreakWra
     if (storedStats) {
       try {
         previousStats = JSON.parse(storedStats);
-        setPreviousStreak(previousStats.currentStreak);
-        setPreviousTotal(previousStats.totalDays);
       } catch (e) {
         console.error('Error parsing stored streak stats:', e);
       }

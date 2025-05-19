@@ -1,4 +1,3 @@
-import { JournalEntry, CreateJournalEntry, UpdateJournalEntry } from '../models/JournalEntry';
 import { journalEntryRepository } from '../repositories/journalEntryRepository';
 import { journalRepository } from '../repositories/journalRepository';
 
