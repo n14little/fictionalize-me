@@ -1,21 +1,10 @@
-import { journalStreakService } from '../lib/services/journalStreakService';
-import { authService } from '../lib/services/authService';
+import { UserStreakStats } from '../lib/models/JournalStreak';
 
-// TODO: React Components should not be async functions. Only pages, layouts, and other NextJS specifics
-// just pass the streak stats to the component
+interface JournalStreakProps {
+  streakStats: UserStreakStats;
+}
 
-export async function JournalStreak() {
-  // Get the current user
-  const user = await authService.getCurrentUser();
-  
-  // If not logged in, don't display streak information
-  if (!user) {
-    return null;
-  }
-  
-  // Get the user's streak stats
-  const streakStats = await journalStreakService.getUserStreakStats(user.id);
-  
+export function JournalStreak({ streakStats }: JournalStreakProps) {
   return (
     <div className="bg-white shadow rounded-lg border border-gray-200 p-6 mb-6">
       <h2 className="font-semibold text-lg mb-4">Your Journaling Habit</h2>

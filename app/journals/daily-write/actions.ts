@@ -1,12 +1,12 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { authService } from '../../../lib/services/authService';
 import { journalEntryService } from '../../../lib/services/journalEntryService';
 import { journalService } from '../../../lib/services/journalService';
 import { journalStreakService } from '../../../lib/services/journalStreakService';
 import { csrfModule } from '../../../lib/csrf/csrfModule';
-import { revalidatePath } from 'next/cache';
 
 // Helper function to validate JSON structure for Tiptap content
 function isValidTiptapJSON(jsonString: string): boolean {
@@ -84,10 +84,11 @@ export async function createDailyEntry(formData: FormData) {
     throw error;
   }
 
-    // Revalidate both paths to ensure fresh data
-    revalidatePath(`/journals/${journalId}`);
-    revalidatePath('/journals');
+  // Revalidate all relevant paths to ensure fresh data
+  revalidatePath(`/journals/${journalId}`);
+  revalidatePath('/journals');
+  revalidatePath('/dashboard');
 
-    // Redirect to the journal page
-    redirect(`/journals/${journalId}`);
+  // Redirect to the journal page
+  redirect(`/journals/${journalId}`);
 }

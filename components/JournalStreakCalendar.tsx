@@ -1,15 +1,12 @@
-import { journalStreakService } from '../lib/services/journalStreakService';
+import { UserStreakStats } from '../lib/models/JournalStreak';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalStreakWrapper } from './JournalStreakWrapper';
 
 interface JournalStreakCalendarProps {
-  userId: number;
+  streakStats: UserStreakStats;
 }
 
-export async function JournalStreakCalendar({ userId }: JournalStreakCalendarProps) {
-  // Get the user's streak data
-  const streakStats = await journalStreakService.getUserStreakStats(userId);
-  
+export function JournalStreakCalendar({ streakStats }: JournalStreakCalendarProps) {
   // Format dates to strings for the calendar component
   const formattedDates = streakStats.streakDates.map(date => date.toISOString());
   

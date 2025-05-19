@@ -34,6 +34,9 @@ export default function RootLayout({
                   <Link href="/journals" className="text-gray-700 hover:text-blue-600">
                     Journals
                   </Link>
+                  <Link href="/dashboard" className="text-gray-700 hover:text-blue-600">
+                    Dashboard
+                  </Link>
                   <DailyWriteModalButton />
                   <AuthProvider>
                     <AuthButtons />

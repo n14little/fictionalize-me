@@ -14,6 +14,24 @@ export const journalEntryRepository = {
   },
 
   /**
+   * Find all entries for multiple journals
+   */
+  findByJournalIds: async (journalIds: string[]): Promise<JournalEntry[]> => {
+    if (!journalIds.length) {
+      return [];
+    }
+
+    // Create parameter placeholders ($1, $2, etc.) for the query
+    const placeholders = journalIds.map((_, index) => `$${index + 1}`).join(',');
+    
+    const result = await query(
+      `SELECT * FROM journal_entries WHERE journal_id IN (${placeholders}) ORDER BY created_at DESC`,
+      journalIds
+    );
+    return result.rows;
+  },
+
+  /**
    * Find a journal entry by ID
    */
   findById: async (id: string): Promise<JournalEntry | null> => {

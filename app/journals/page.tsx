@@ -2,8 +2,6 @@ import Link from 'next/link';
 import { journalService } from '../../lib/services/journalService';
 import { authService } from '../../lib/services/authService';
 import { ClientJournalDate } from './ClientJournalDate';
-import { JournalStreak } from '../../components/JournalStreak';
-import { JournalStreakCalendar } from '../../components/JournalStreakCalendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,12 +28,6 @@ export default async function MyJournals() {
             </Link>
           </div>
         </div>
-
-        {/* Journal Streak Component */}
-        {currentUser && <JournalStreak />}
-
-        {/* Journal Streak Calendar */}
-        {currentUser && <JournalStreakCalendar userId={currentUser.id} />}
 
         {journals.length === 0 ? (
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">

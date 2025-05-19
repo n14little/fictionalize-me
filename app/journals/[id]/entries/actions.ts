@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { authService } from '../../../../lib/services/authService';
 import { journalEntryService } from '../../../../lib/services/journalEntryService';
 import { journalStreakService } from '../../../../lib/services/journalStreakService';
@@ -71,6 +72,10 @@ export async function createEntry(formData: FormData) {
     
     // Record streak for today when user creates an entry
     await journalStreakService.recordJournalStreak(user.id);
+    
+    // Revalidate the journal page and dashboard paths
+    revalidatePath(`/journals/${journalId}`);
+    revalidatePath('/dashboard');
   } catch (error) {
     console.error('Error creating journal entry:', error);
     throw error;
@@ -130,6 +135,10 @@ export async function updateEntry(
     
     // Record streak for today when user updates an entry
     await journalStreakService.recordJournalStreak(user.id);
+    
+    // Revalidate the journal page and dashboard paths
+    revalidatePath(`/journals/${journalId}`);
+    revalidatePath('/dashboard');
   } catch (error) {
     console.error('Error updating journal entry:', error);
     // Instead of returning an error object, throw the error
