@@ -46,6 +46,17 @@ export const journalRepository = {
   },
 
   /**
+   * Find a journal by title for a specific user
+   */
+  findByTitle: async (userId: number, title: string): Promise<Journal | null> => {
+    const result = await query(
+      'SELECT * FROM journals WHERE user_id = $1 AND title = $2',
+      [userId, title]
+    );
+    return result.rows[0] || null;
+  },
+
+  /**
    * Create a new journal
    */
   create: async (journalData: CreateJournal): Promise<Journal> => {

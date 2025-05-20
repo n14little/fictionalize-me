@@ -30,47 +30,38 @@ export async function createDailyEntry(formData: FormData) {
   // Get form data values
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
-  // Note: journalId is no longer provided via form data
 
-  let journalId;
+  // Get the current user
+  const user = await authService.getCurrentUser();
 
+  if (!user) {
+    throw new Error('You must be logged in to create a journal entry');
+  }
+
+  // Validate form data
+  if (!title.trim()) {
+    throw new Error('Title is required');
+  }
+
+  if (!content.trim()) {
+    throw new Error('Content is required');
+  }
+
+  // Validate the JSON structure
+  if (!isValidTiptapJSON(content)) {
+    throw new Error('Invalid content format');
+  }
+
+  let journalId: string;
+  
   try {
-    // Get the current user
-    const user = await authService.getCurrentUser();
-
-    if (!user) {
-      throw new Error('You must be logged in to create a journal entry');
-    }
-
-    // Validate form data
-    if (!title.trim()) {
-      throw new Error('Title is required');
-    }
-
-    if (!content.trim()) {
-      throw new Error('Content is required');
-    }
-
-    // Validate the JSON structure
-    if (!isValidTiptapJSON(content)) {
-      throw new Error('Invalid content format');
-    }
-
-    // Get the user's journals and use the first one as default
-    const userJournals = await journalService.getUserJournals(user.id);
-    
-    if (!userJournals || userJournals.length === 0) {
-      // No journals found, create one first
-      throw new Error('Please create a journal first before adding entries');
-    }
-    
-    // Use the first journal as the default
-    const defaultJournal = userJournals[0];
-    journalId = defaultJournal.id;
+    // Get or create the Daily Write journal
+    const journal = await journalService.getOrCreateDailyWriteJournal(user.id);
+    journalId = journal.id;
 
     // Create journal entry with parsed JSON object
     await journalEntryService.createJournalEntry(user.id, {
-      journal_id: journalId,
+      journal_id: journal.id,
       title: title.trim(),
       content: JSON.parse(content), // Parse JSON string into object for JSONB column
       mood: 'Daily Write',
@@ -79,15 +70,15 @@ export async function createDailyEntry(formData: FormData) {
     
     // Record streak for today when user creates a daily entry
     await journalStreakService.recordJournalStreak(user.id);
+
+    // Revalidate all relevant paths to ensure fresh data
+    revalidatePath(`/journals/${journal.id}`);
+    revalidatePath('/journals');
+    revalidatePath('/dashboard');
   } catch (error) {
     console.error('Error creating daily journal entry:', error);
     throw error;
   }
-
-  // Revalidate all relevant paths to ensure fresh data
-  revalidatePath(`/journals/${journalId}`);
-  revalidatePath('/journals');
-  revalidatePath('/dashboard');
 
   // Redirect to the journal page
   redirect(`/journals/${journalId}`);

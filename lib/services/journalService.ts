@@ -47,6 +47,43 @@ export const journalService = {
     return null;
   },
 
+  getOrCreateDailyWriteJournal: async (userId: number): Promise<Journal> => {
+    const title = 'Daily Write';
+    // Try to find an existing Daily Write journal
+    let journal = await journalRepository.findByTitle(userId, title);
+    
+    // If not found, create a new one
+    if (!journal) {
+      // Generate slug from title
+      let slug = slugify(title, { lower: true, strict: true });
+      
+      // Ensure slug is unique for this user
+      let counter = 0;
+      let uniqueSlug = slug;
+      
+      // Find all user's journals with similar slugs
+      const userJournals = await journalRepository.findByUserId(userId);
+      const userSlugs = userJournals.map(j => j.slug);
+      
+      // Check if the slug exists for this user and make it unique if needed
+      while (userSlugs.includes(uniqueSlug)) {
+        counter++;
+        uniqueSlug = `${slug}-${counter}`;
+      }
+      
+      // Create the journal
+      journal = await journalRepository.create({
+        user_id: userId,
+        title,
+        description: 'Journal for daily writing exercises',
+        slug: uniqueSlug,
+        public: false
+      });
+    }
+    
+    return journal;
+  },
+
   createJournal: async (userId: number, data: Omit<CreateJournal, 'user_id'>): Promise<Journal> => {
     let slug = data.slug;
     if (!slug && data.title) {
