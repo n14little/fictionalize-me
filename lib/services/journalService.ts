@@ -55,7 +55,7 @@ export const journalService = {
     // If not found, create a new one
     if (!journal) {
       // Generate slug from title
-      let slug = slugify(title, { lower: true, strict: true });
+      const slug = slugify(title, { lower: true, strict: true });
       
       // Ensure slug is unique for this user
       let counter = 0;
