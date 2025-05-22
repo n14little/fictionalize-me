@@ -55,13 +55,4 @@ export default defineConfig({
       use: { ...devices['iPhone 13'] },
     },
   ],
-
-  // Local web server setup - disabled since we'll use global setup
-  // TODO: run this against a production build rather than dev server
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000, // Allow extra time for Next.js to start
-  },
 });
