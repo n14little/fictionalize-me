@@ -33,7 +33,7 @@ jobs:
           sleep 30
 
       - name: Run E2E tests
-        run: npm run e2e
+        run: npm run e2e:ci
 
       - name: Stop docker services
         if: always()
