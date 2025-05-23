@@ -7,7 +7,7 @@ export const journalEntryRepository = {
    */
   findByJournalId: async (journalId: string): Promise<JournalEntry[]> => {
     const result = await query(
-      'SELECT * FROM journal_entries WHERE journal_id = $1 ORDER BY created_at DESC',
+      'SELECT * FROM journal_entries WHERE journal_id = $1 ORDER BY updated_at DESC',
       [journalId]
     );
     return result.rows;
@@ -25,7 +25,7 @@ export const journalEntryRepository = {
     const placeholders = journalIds.map((_, index) => `$${index + 1}`).join(',');
     
     const result = await query(
-      `SELECT * FROM journal_entries WHERE journal_id IN (${placeholders}) ORDER BY created_at DESC`,
+      `SELECT * FROM journal_entries WHERE journal_id IN (${placeholders}) ORDER BY updated_at DESC`,
       journalIds
     );
     return result.rows;

@@ -20,13 +20,6 @@ export default function Home() {
           >
             Join the Waitlist
           </Link>
-          
-          <Link 
-            href="/journals" 
-            className="px-6 py-3 text-lg font-medium border border-gray-300 hover:border-gray-400 rounded-lg transition-colors"
-          >
-            Browse Public Journals
-          </Link>
         </div>
       </div>
     </main>

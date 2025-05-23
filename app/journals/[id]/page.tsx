@@ -92,7 +92,7 @@ export default async function JournalDetail({ params }: { params: Promise<{ id: 
                     
                     {/* Right side: Content without borders between entries */}
                     <div className="flex-1 pl-4 py-4 prose prose-sm md:prose-base max-w-none">
-                      <h3 className="font-medium text-gray-700 mt-0 mb-2">{entry.title}</h3>
+                      <h3 className="text-2xl font-semibold text-gray-800 mt-0 mb-3 pb-1 border-b-2 border-gray-200">{entry.title}</h3>
                       <div className="journal-entry-content">
                         <RichTextContent content={entry.content} />
                       </div>
