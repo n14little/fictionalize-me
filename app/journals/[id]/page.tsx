@@ -3,12 +3,8 @@ import Link from 'next/link';
 import { journalService } from '../../../lib/services/journalService';
 import { journalEntryService } from '../../../lib/services/journalEntryService';
 import { authService } from '../../../lib/services/authService';
-import { RichTextContent } from '../../../components/RichTextEditor/RichTextContent';
 import { NewEntryModalButton } from '../../../components/NewEntryModal';
-import { EditEntryModalButton } from '../../../components/EditEntryModal';
-
-// Client component for date formatting
-import { ClientDateFormatter } from './ClientDateFormatter';
+import { ClickableEntry } from './ClickableEntry';
 
 export default async function JournalDetail({ params }: { params: Promise<{ id: string }> }) {
   const journalId = (await params).id;
@@ -60,44 +56,12 @@ export default async function JournalDetail({ params }: { params: Promise<{ id: 
             ) : (
               <div className="w-full">
                 {entries.map((entry, index) => (
-                  <div key={entry.id} className="flex w-full">
-                    {/* Left side: Metadata with right border */}
-                    <div className={`w-1/8 flex-shrink-0 pr-4 text-sm text-gray-500 border-r border-gray-100 ${
-                      index < entries.length - 1 ? 'border-b border-gray-100' : ''
-                    }`}>
-                      <div className="py-4">
-                        <div>
-                          <ClientDateFormatter date={entry.created_at} />
-                        </div>
-                        <div className="mt-2 flex flex-col gap-1">
-                          {entry.mood && (
-                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">
-                              {entry.mood}
-                            </span>
-                          )}
-                          {entry.location && (
-                            <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">
-                              {entry.location}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <EditEntryModalButton 
-                            entry={entry} 
-                            journalId={journalId} 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Right side: Content without borders between entries */}
-                    <div className="flex-1 pl-4 py-4 prose prose-sm md:prose-base max-w-none">
-                      <h3 className="text-2xl font-semibold text-gray-800 mt-0 mb-3 pb-1 border-b-2 border-gray-200">{entry.title}</h3>
-                      <div className="journal-entry-content">
-                        <RichTextContent content={entry.content} />
-                      </div>
-                    </div>
-                  </div>
+                  <ClickableEntry
+                    key={entry.id}
+                    entry={entry}
+                    journalId={journalId}
+                    lastEntry={entries.length - index > 0}
+                  />
                 ))}
               </div>
             )}
