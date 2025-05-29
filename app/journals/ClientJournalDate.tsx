@@ -1,7 +1,3 @@
-'use client';
-
-import React from 'react';
-
 interface ClientJournalDateProps {
   label: string;
   date: Date | string;

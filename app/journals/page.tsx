@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { journalService } from '../../lib/services/journalService';
 import { authService } from '../../lib/services/authService';
-import { ClientJournalDate } from './ClientJournalDate';
+import { ClickableJournalCard } from './ClickableJournalCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,26 +37,7 @@ export default async function MyJournals() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {journals.map((journal) => (
-              <div
-                key={journal.id}
-                className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow"
-              >
-                <h2 className="text-xl font-bold mb-2">{journal.title}</h2>
-                {journal.description && (
-                  <p className="text-gray-600 mb-4">{journal.description}</p>
-                )}
-                <div className="flex justify-between items-center">
-                  <ClientJournalDate label="Updated" date={journal.updated_at} />
-                  <div className="flex items-center space-x-2">
-                    <Link
-                      href={`/journals/${journal.id}`}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      View Journal →
-                    </Link>
-                  </div>
-                </div>
-              </div>
+              <ClickableJournalCard key={journal.id} journal={journal} />
             ))}
           </div>
         )}

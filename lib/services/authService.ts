@@ -104,10 +104,6 @@ export const authService = {
         return null;
       }
 
-      const now = new Date();
-      console.log(`${now.getMinutes()}:${now.getSeconds()}.${now.getMilliseconds()}`);
-      console.log('Session:', JSON.stringify(session, null, 2));
-
       const { email } = session.user;
       
       let externalUserId: string;

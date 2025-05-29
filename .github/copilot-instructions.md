@@ -107,4 +107,4 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 
 ## Final Notes
 
-These instructions ensure a consistent, performant, and maintainable Next.js application. Prioritize server-side rendering, server actions, and the App Router in all implementations. Keep dependencies up-to-date, and follow Next.js best practices to deliver a high-quality journaling app. If any clarification is needed, ask before proceeding.
+These instructions ensure a consistent, performant, and maintainable Next.js application. Prioritize server-side rendering, server actions, and the App Router in all implementations. Keep dependencies up-to-date, and follow Next.js best practices to deliver a high-quality journaling app. If any clarification is needed, ask before proceeding. Do not put comments in the code unless explicitly requested.

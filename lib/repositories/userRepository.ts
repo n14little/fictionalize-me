@@ -50,10 +50,8 @@ export const userRepository = {
    * Find a user by external ID, or create if they don't exist
    */
   findOrCreate: async (userData: CreateUser): Promise<User> => {
-    console.log('Finding or creating user with data:', userData);
     const existingUser = await userRepository.findByExternalId(userData.external_user_id);
     if (existingUser) {
-      console.log('found existing user');
       return existingUser;
     }
     return await userRepository.create(userData);
