@@ -46,6 +46,12 @@ export default async function JournalDetail({ params }: { params: Promise<{ id: 
               <h2 className="text-xl font-semibold">Journal Entries</h2>
               <div className="flex gap-2">
                 <NewEntryModalButton journalId={journalId} />
+                <Link 
+                  href={`/journals/${journalId}/tasks`} 
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  View Tasks
+                </Link>
               </div>
             </div>
             

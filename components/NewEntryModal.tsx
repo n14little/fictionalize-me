@@ -213,6 +213,7 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
                 <TiptapEditor
                   value={content}
                   onChange={handleContentChange}
+                  journalId={journalId}
                 />
               </div>
               <input

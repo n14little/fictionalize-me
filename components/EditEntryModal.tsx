@@ -221,7 +221,8 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
               <div className="h-full mb-2">
                 <TiptapEditor
                   value={content}
-                  onChange={handleContentChange} 
+                  onChange={handleContentChange}
+                  journalId={journalId}
                 />
               </div>
               <input

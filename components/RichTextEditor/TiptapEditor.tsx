@@ -6,36 +6,45 @@ import Link from '@tiptap/extension-link';
 import { useEffect, useState } from 'react';
 import { DEFAULT_DOCUMENT } from '../../lib/editor/types';
 import styles from './TiptapEditor.module.css';
+import { QuickTaskButton } from '../QuickTaskButton';
 
 type EditorToolbarProps = {
   editor: Editor | null;
+  journalId?: string;
 };
 
-const EditorToolbar = ({ editor }: EditorToolbarProps) => {
+const EditorToolbar = ({ editor, journalId }: EditorToolbarProps) => {
   if (!editor) {
     return (
-      <div className="border border-gray-300 rounded-t-md border-b-0 bg-gray-50 p-2 flex flex-wrap gap-1">
-        {/* Render disabled toolbar buttons */}
-        <div className="p-1 rounded opacity-50" aria-disabled="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-            <path fill="none" d="M0 0h24v24H0z" />
-            <path d="M8 11h4.5a2.5 2.5 0 1 0 0-5H8v5zm10 4.5a4.5 4.5 0 0 1-4.5 4.5H6V4h6.5a4.5 4.5 0 0 1 3.256 7.606A4.498 4.498 0 0 1 18 15.5zM8 13v5h5.5a2.5 2.5 0 1 0 0-5H8z" />
-          </svg>
+      <div className="border border-gray-300 rounded-t-md border-b-0 bg-gray-50 p-2 flex flex-wrap gap-1 justify-between">
+        <div className="flex flex-wrap gap-1">
+          {/* Render disabled toolbar buttons */}
+          <div className="p-1 rounded opacity-50" aria-disabled="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+              <path fill="none" d="M0 0h24v24H0z" />
+              <path d="M8 11h4.5a2.5 2.5 0 1 0 0-5H8v5zm10 4.5a4.5 4.5 0 0 1-4.5 4.5H6V4h6.5a4.5 4.5 0 0 1 3.256 7.606A4.498 4.498 0 0 1 18 15.5zM8 13v5h5.5a2.5 2.5 0 1 0 0-5H8z" />
+            </svg>
+          </div>
         </div>
-        {/* More placeholder buttons can go here */}
+        {journalId && (
+          <div>
+            <QuickTaskButton journalId={journalId} insideForm={true} />
+          </div>
+        )}
       </div>
     );
   }
 
   // Existing toolbar implementation
   return (
-    <div className="border border-gray-300 rounded-t-md border-b-0 bg-gray-50 p-2 flex flex-wrap gap-1">
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={`p-1 rounded ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
-        title="Bold"
-      >
+    <div className="border border-gray-300 rounded-t-md border-b-0 bg-gray-50 p-2 flex flex-wrap gap-1 justify-between">
+      <div className="flex flex-wrap gap-1">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={`p-1 rounded ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
+          title="Bold"
+        >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
           <path fill="none" d="M0 0h24v24H0z" />
           <path d="M8 11h4.5a2.5 2.5 0 1 0 0-5H8v5zm10 4.5a4.5 4.5 0 0 1-4.5 4.5H6V4h6.5a4.5 4.5 0 0 1 3.256 7.606A4.498 4.498 0 0 1 18 15.5zM8 13v5h5.5a2.5 2.5 0 1 0 0-5H8z" />
@@ -106,7 +115,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
           <path fill="none" d="M0 0h24v24H0z" />
-          <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804 .167 3.226 1.648 3.226 3.489a3.5 3.5 0 0 1-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804 .167 3.226 1.648 3.226 3.489a3.5 3.5 0 0 1-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z" />
+          <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 0 1-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804 .167 3.226 1.648 3.226 3.489a3.5 3.5 0 0 1-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z" />
         </svg>
       </button>
       <button
@@ -162,6 +171,12 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
           <path d="M18.172 7H11a6 6 0 1 0 0 12h9v2h-9a8 8 0 1 1 0-16h7.172l-2.536-2.536L17.05 1.05 22 6l-4.95 4.95-1.414-1.414L18.172 7z" />
         </svg>
       </button>
+      </div>
+      {journalId && (
+        <div>
+          <QuickTaskButton journalId={journalId} insideForm={true} />
+        </div>
+      )}
     </div>
   );
 };
@@ -169,9 +184,10 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
 type TiptapEditorProps = {
   value: string | JSONContent;
   onChange: (value: string) => void;
+  journalId?: string;
 };
 
-export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
+export const TiptapEditor = ({ value, onChange, journalId }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -276,7 +292,7 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
 
   return (
     <div className="h-full flex flex-col">
-      <EditorToolbar editor={editor} />
+      <EditorToolbar editor={editor} journalId={journalId} />
       <div className="border border-gray-300 rounded-b-md overflow-hidden flex-grow h-full">
         <EditorContent 
           editor={editor} 
