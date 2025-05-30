@@ -8,7 +8,7 @@ import { TaskItem } from './TaskItem';
 
 export const dynamic = 'force-dynamic';
 
-export default async function JournalTasks({ params: asyncParams }: { params: { id: string } }) {
+export default async function JournalTasks({ params: asyncParams }: { params: Promise<{ id: string }> }) {
   const params = await asyncParams;
   const journalId = params.id;
   
