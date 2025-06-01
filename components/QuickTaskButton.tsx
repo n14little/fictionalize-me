@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createTask } from '../app/journals/[id]/tasks/actions';
+import { createTask, createTaskWithoutRedirect } from '../app/journals/[id]/tasks/actions';
 import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 
@@ -72,7 +72,8 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false }
     formData.append('journalId', journalId);
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('redirectUrl', window.location.pathname);
+    // Don't add redirectUrl when inside a form to avoid navigation
+    // This will prevent the redirect in the server action
 
     // Fetch CSRF token and then submit
     fetch('/api/csrf')
@@ -81,19 +82,33 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false }
         formData.append('csrf_token', data.csrfToken);
         
         startTransition(async () => {
-          // Don't wrap in try/catch - let Next.js handle redirects naturally
-          // The createTask function will throw a redirect which Next.js will handle
-          await createTask(formData);
-          
-          // This code will only run if no redirect happens
-          handleCloseModal();
-          if (onTaskCreated) {
-            onTaskCreated();
+          try {
+            // Use a separate client-side action to handle task creation 
+            // without redirects when inside a form
+            if (insideForm) {
+              // This will use our wrapper action that doesn't redirect
+              await createTaskWithoutRedirect(formData);
+              handleCloseModal();
+              if (onTaskCreated) {
+                onTaskCreated();
+              }
+            } else {
+              // Let the normal redirect flow happen
+              await createTask(formData);
+              // This code will only run if no redirect happens
+              handleCloseModal();
+              if (onTaskCreated) {
+                onTaskCreated();
+              }
+            }
+          } catch (err) {
+            // Only handle actual errors
+            setError(err instanceof Error ? err.message : 'An error occurred');
           }
         });
       })
       .catch(() => {
-        // This will only catch fetch errors, not redirect errors
+        // This will only catch fetch errors
         setError('Failed to get CSRF token');
       });
   };

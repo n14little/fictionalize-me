@@ -124,3 +124,49 @@ export async function deleteTask(formData: FormData) {
   // Return success status for client-side update
   return { success: true };
 }
+
+export async function createTaskWithoutRedirect(formData: FormData) {
+  // Validate CSRF token
+  const csrfToken = formData.get('csrf_token') as string;
+  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
+
+  if (!csrfValidation.valid) {
+    throw new Error(csrfValidation.error || 'Invalid CSRF token');
+  }
+
+  const journalId = formData.get('journalId') as string;
+  const title = formData.get('title') as string;
+  const description = formData.get('description') as string;
+
+  // Get the current user
+  const user = await authService.getCurrentUser();
+
+  if (!user) {
+    throw new Error('You must be logged in to create a task');
+  }
+
+  // Validate form data
+  if (!title.trim()) {
+    throw new Error('Title is required');
+  }
+
+  // Verify that the journal exists and the user has access
+  const journal = await journalService.getJournalById(journalId, user.id);
+  if (!journal) {
+    throw new Error('Journal not found or you do not have access');
+  }
+
+  // Create task
+  await taskService.createTask(user.id, {
+    journal_id: journalId,
+    title: title.trim(),
+    description: description?.trim() || undefined
+  });
+  
+  // Revalidate the journal page and tasks paths
+  revalidatePath(`/journals/${journalId}`);
+  revalidatePath(`/journals/${journalId}/tasks`);
+
+  // Return success object instead of redirecting
+  return { success: true };
+}
