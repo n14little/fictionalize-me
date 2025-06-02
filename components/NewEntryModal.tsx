@@ -7,8 +7,10 @@ import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { EntrySuccessModal } from './EntrySuccessModal';
 import { createEntry } from '../app/journals/[id]/entries/actions';
 import { JSONContent, DEFAULT_DOCUMENT } from '../lib/editor/types';
+import { UserStreakStats } from '../lib/models/JournalStreak';
 
 // Separate button component that handles its own modal state
 export function NewEntryModalButton({ journalId }: { journalId: string }) {
@@ -43,6 +45,18 @@ export function NewEntryModalButton({ journalId }: { journalId: string }) {
   );
 }
 
+interface StatsData {
+  entriesStats: {
+    totalEntries: number;
+    totalWords: number;
+    firstEntryDate: Date | null;
+    mostRecentEntryDate: Date | null;
+  };
+  streakStats: UserStreakStats;
+  journalId: string;
+  isNewEntry: boolean;
+}
+
 interface NewEntryModalProps {
   journalId: string;
   onClose: () => void;
@@ -56,6 +70,8 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [isConfirmingClose, setIsConfirmingClose] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const router = useRouter();
 
   // Helper function to parse content into a JSONContent object
@@ -139,12 +155,23 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
     }
 
     try {
-      // Call the server action - let any redirect errors bubble up naturally
-      await createEntry(formData);
+      // Call the server action which will return stats data instead of redirecting
+      const result = await createEntry(formData);
       
-      // If execution reaches here without a redirect, use client-side navigation as fallback
-      onClose();
-      router.refresh(); // Refresh the current page data
+      if (result?.success) {
+        // Show stats modal
+        setStats({
+          entriesStats: result.entriesStats,
+          streakStats: result.streakStats,
+          journalId: result.journalId,
+          isNewEntry: true
+        });
+        setShowStatsModal(true);
+      } else {
+        // Fall back to closing modal and refreshing page
+        onClose();
+        router.refresh();
+      }
     } catch (err) {
       // If this is a redirect error from Next.js, let it propagate
       if (err instanceof Error && 
@@ -162,6 +189,19 @@ export function NewEntryModal({ journalId, onClose }: NewEntryModalProps) {
 
   return (
     <>
+      {showStatsModal && stats && (
+        <EntrySuccessModal
+          onClose={() => {
+            setShowStatsModal(false);
+            onClose();
+          }}
+          entriesStats={stats.entriesStats}
+          streakStats={stats.streakStats}
+          journalId={stats.journalId}
+          isNewEntry={stats.isNewEntry}
+        />
+      )}
+
       <Modal onClose={handleRequestClose} isFullscreen={true} disableAutoClose={true}>
         <div className="flex flex-col h-full max-w-4xl mx-auto">
           <div className="flex-none mb-4">

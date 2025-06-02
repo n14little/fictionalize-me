@@ -7,7 +7,9 @@ import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { EntrySuccessModal } from './EntrySuccessModal';
 import { createDailyEntry } from '../app/journals/daily-write/actions';
+import { UserStreakStats } from '../lib/models/JournalStreak';
 
 // Separate button component that handles its own modal state
 export function DailyWriteModalButton() {
@@ -45,10 +47,24 @@ interface DailyWriteModalProps {
   onClose: () => void;
 }
 
+interface StatsData {
+  entriesStats: {
+    totalEntries: number;
+    totalWords: number;
+    firstEntryDate: Date | null;
+    mostRecentEntryDate: Date | null;
+  };
+  streakStats: UserStreakStats;
+  journalId: string;
+  isNewEntry: boolean;
+}
+
 export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
   const [title, setTitle] = useState(`Journal Entry - ${new Date().toLocaleDateString()}`);
   const [content, setContent] = useState('{"type":"doc","content":[{"type":"paragraph"}]}');
   const [timeRemaining, setTimeRemaining] = useState(120); // 2 minutes in seconds
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,12 +172,23 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
     }
 
     try {
-      // Call the server action - let any redirect errors bubble up naturally
-      await createDailyEntry(formData);
+      // Call the server action which will return stats data instead of redirecting
+      const result = await createDailyEntry(formData);
       
-      // If execution reaches here without a redirect, use client-side navigation as fallback
-      onClose();
-      router.refresh(); // Refresh the current page data
+      if (result?.success) {
+        // Show stats modal
+        setStats({
+          entriesStats: result.entriesStats,
+          streakStats: result.streakStats,
+          journalId: result.journalId,
+          isNewEntry: true
+        });
+        setShowStatsModal(true);
+      } else {
+        // Fall back to closing modal and refreshing page
+        onClose();
+        router.refresh();
+      }
     } catch (err) {
       // If this is a redirect error from Next.js, let it propagate
       if (err instanceof Error && 
@@ -179,6 +206,19 @@ export function DailyWriteModal({ onClose }: DailyWriteModalProps) {
 
   return (
     <>
+      {showStatsModal && stats && (
+        <EntrySuccessModal
+          onClose={() => {
+            setShowStatsModal(false);
+            onClose();
+          }}
+          entriesStats={stats.entriesStats}
+          streakStats={stats.streakStats}
+          journalId={stats.journalId}
+          isNewEntry={stats.isNewEntry}
+        />
+      )}
+      
       <Modal onClose={handleRequestClose} isFullscreen={true} disableAutoClose={true}>
         <div className="flex flex-col h-full max-w-4xl mx-auto">
           <div className="flex-none">

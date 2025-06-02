@@ -24,6 +24,7 @@ export async function createDailyEntry(formData: FormData) {
   // Get form data values
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
+  const skipStats = formData.get('skipStats') === 'true';
 
   // Get the current user
   const user = await authService.getCurrentUser();
@@ -69,11 +70,24 @@ export async function createDailyEntry(formData: FormData) {
     revalidatePath(`/journals/${journal.id}`);
     revalidatePath('/journals');
     revalidatePath('/dashboard');
+
+    // If skipStats is true, just redirect without returning stats
+    if (skipStats) {
+      redirect(`/journals/${journalId}`);
+    }
+
+    // Get updated stats to return to the client
+    const streakStats = await journalStreakService.getUserStreakStats(user.id);
+    const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
+
+    return { 
+      success: true, 
+      journalId, 
+      streakStats,
+      entriesStats
+    };
   } catch (error) {
     console.error('Error creating daily journal entry:', error);
     throw error;
   }
-
-  // Redirect to the journal page
-  redirect(`/journals/${journalId}`);
 }

@@ -32,6 +32,7 @@ export async function createEntry(formData: FormData) {
   const content = formData.get('content') as string;
   const mood = formData.get('mood') as string;
   const location = formData.get('location') as string;
+  const skipStats = formData.get('skipStats') === 'true';
 
   try {
     // Get the current user
@@ -70,13 +71,27 @@ export async function createEntry(formData: FormData) {
     // Revalidate the journal page and dashboard paths
     revalidatePath(`/journals/${journalId}`);
     revalidatePath('/dashboard');
+
+    // If skipStats is true, just redirect without returning stats
+    if (skipStats) {
+      redirect(`/journals/${journalId}`);
+    }
+
+    // Get updated stats to return to the client
+    const streakStats = await journalStreakService.getUserStreakStats(user.id);
+    const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
+
+    return { 
+      success: true,
+      journalId, 
+      streakStats,
+      entriesStats
+    };
+    
   } catch (error) {
     console.error('Error creating journal entry:', error);
     throw error;
   }
-
-  // Redirect back to the journal page on success
-  redirect(`/journals/${journalId}`);
 }
 
 export async function updateEntry(
@@ -90,6 +105,7 @@ export async function updateEntry(
   const content = formData.get('content') as string;
   const mood = formData.get('mood') as string;
   const location = formData.get('location') as string;
+  const skipStats = formData.get('skipStats') === 'true';
 
   try {
     // Get the current user
@@ -127,13 +143,26 @@ export async function updateEntry(
     // Revalidate the journal page and dashboard paths
     revalidatePath(`/journals/${journalId}`);
     revalidatePath('/dashboard');
+
+    // If skipStats is true, just redirect without returning stats
+    if (skipStats) {
+      redirect(`/journals/${journalId}`);
+    }
+
+    // Get updated stats to return to the client
+    const streakStats = await journalStreakService.getUserStreakStats(user.id);
+    const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
+
+    return { 
+      success: true, 
+      journalId, 
+      streakStats,
+      entriesStats
+    };
   } catch (error) {
     console.error('Error updating journal entry:', error);
     // Instead of returning an error object, throw the error
     // This ensures it propagates properly to the client
     throw new Error('Failed to update journal entry');
   }
-
-  // Redirect outside the try/catch block so Next.js can handle it properly
-  redirect(`/journals/${journalId}`);
 }

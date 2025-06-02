@@ -7,9 +7,11 @@ import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { EntrySuccessModal } from './EntrySuccessModal';
 import { updateEntry } from '../app/journals/[id]/entries/actions';
 import { JournalEntry } from '../lib/models/JournalEntry';
 import { JSONContent, DEFAULT_DOCUMENT } from '../lib/editor/types';
+import { UserStreakStats } from '../lib/models/JournalStreak';
 
 // Button component that opens the edit modal
 export function EditEntryModalButton({ 
@@ -50,6 +52,18 @@ export function EditEntryModalButton({
   );
 }
 
+interface StatsData {
+  entriesStats: {
+    totalEntries: number;
+    totalWords: number;
+    firstEntryDate: Date | null;
+    mostRecentEntryDate: Date | null;
+  };
+  streakStats: UserStreakStats;
+  journalId: string;
+  isNewEntry: boolean;
+}
+
 interface EditEntryModalProps {
   entry: JournalEntry;
   journalId: string;
@@ -64,6 +78,8 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
   const [error, setError] = useState<string | null>(null);
   const [isConfirmingClose, setIsConfirmingClose] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const router = useRouter();
 
   // Helper function to parse content into a JSONContent object
@@ -147,12 +163,23 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
     }
 
     try {
-      // Call the server action - let any redirect errors bubble up naturally
-      await updateEntry(formData);
+      // Call the server action which will return stats data instead of redirecting
+      const result = await updateEntry(formData);
       
-      // If execution reaches here without a redirect, use client-side navigation as fallback
-      onClose();
-      router.refresh(); // Refresh the current page data
+      if (result?.success) {
+        // Show stats modal
+        setStats({
+          entriesStats: result.entriesStats,
+          streakStats: result.streakStats,
+          journalId: result.journalId,
+          isNewEntry: false
+        });
+        setShowStatsModal(true);
+      } else {
+        // Fall back to closing modal and refreshing page
+        onClose();
+        router.refresh();
+      }
     } catch (err) {
       // If this is a redirect error from Next.js, let it propagate
       if (err instanceof Error && 
@@ -170,6 +197,19 @@ export function EditEntryModal({ entry, journalId, onClose }: EditEntryModalProp
 
   return (
     <>
+      {showStatsModal && stats && (
+        <EntrySuccessModal
+          onClose={() => {
+            setShowStatsModal(false);
+            onClose();
+          }}
+          entriesStats={stats.entriesStats}
+          streakStats={stats.streakStats}
+          journalId={stats.journalId}
+          isNewEntry={stats.isNewEntry}
+        />
+      )}
+      
       <Modal onClose={handleRequestClose} isFullscreen={true} disableAutoClose={true}>
         <div className="flex flex-col h-full max-w-4xl mx-auto">
           <div className="flex-none mb-4">
