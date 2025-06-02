@@ -19,13 +19,7 @@ function isValidTiptapJSON(jsonString: string): boolean {
 }
 
 export async function createDailyEntry(formData: FormData) {
-  // Validate CSRF token
-  const csrfToken = formData.get('csrf_token') as string;
-  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
-
-  if (!csrfValidation.valid) {
-    throw new Error(csrfValidation.error || 'Invalid CSRF token');
-  }
+  await csrfModule.validateFormData(formData);
 
   // Get form data values
   const title = formData.get('title') as string;

@@ -8,13 +8,7 @@ import { csrfModule } from '@/lib/csrf/csrfModule';
 import { journalService } from '@/lib/services/journalService';
 
 export async function createTask(formData: FormData) {
-  // Validate CSRF token
-  const csrfToken = formData.get('csrf_token') as string;
-  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
-
-  if (!csrfValidation.valid) {
-    throw new Error(csrfValidation.error || 'Invalid CSRF token');
-  }
+  await csrfModule.validateFormData(formData);
 
   const journalId = formData.get('journalId') as string;
   const title = formData.get('title') as string;
@@ -56,13 +50,7 @@ export async function createTask(formData: FormData) {
 }
 
 export async function toggleTaskCompletion(formData: FormData) {
-  // Validate CSRF token
-  const csrfToken = formData.get('csrf_token') as string;
-  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
-
-  if (!csrfValidation.valid) {
-    throw new Error(csrfValidation.error || 'Invalid CSRF token');
-  }
+  await csrfModule.validateFormData(formData);
 
   const taskId = formData.get('taskId') as string;
   const journalId = formData.get('journalId') as string;
@@ -91,13 +79,7 @@ export async function toggleTaskCompletion(formData: FormData) {
 }
 
 export async function deleteTask(formData: FormData) {
-  // Validate CSRF token
-  const csrfToken = formData.get('csrf_token') as string;
-  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
-
-  if (!csrfValidation.valid) {
-    throw new Error(csrfValidation.error || 'Invalid CSRF token');
-  }
+  await csrfModule.validateFormData(formData);
 
   const taskId = formData.get('taskId') as string;
   const journalId = formData.get('journalId') as string;
@@ -126,13 +108,7 @@ export async function deleteTask(formData: FormData) {
 }
 
 export async function createTaskWithoutRedirect(formData: FormData) {
-  // Validate CSRF token
-  const csrfToken = formData.get('csrf_token') as string;
-  const csrfValidation = await csrfModule.validateTokenResponse(csrfToken);
-
-  if (!csrfValidation.valid) {
-    throw new Error(csrfValidation.error || 'Invalid CSRF token');
-  }
+  await csrfModule.validateFormData(formData);
 
   const journalId = formData.get('journalId') as string;
   const title = formData.get('title') as string;

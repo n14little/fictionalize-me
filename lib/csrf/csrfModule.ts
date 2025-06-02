@@ -186,6 +186,16 @@ export class CsrfModule {
       };
     }
   }
+
+  async validateFormData(formData: FormData): Promise<void> {
+    const csrfToken = formData.get('csrf_token') as string;
+
+    const validationResponse = await this.validateTokenResponse(csrfToken);
+
+    if (!validationResponse.valid) {
+      throw new Error(validationResponse.error || 'Error validating CSRF token');
+    }
+  }
 }
 
 // Export a singleton instance
