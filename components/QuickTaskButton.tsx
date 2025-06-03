@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createTask, createTaskWithoutRedirect } from '../app/journals/[id]/tasks/actions';
+import { createTask, createTaskWithoutRedirect } from '../app/journals/[id]/@tasks/actions';
 import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 

@@ -3,7 +3,7 @@ import { journalService } from '../../../../lib/services/journalService';
 import { taskService } from '../../../../lib/services/taskService';
 import { authService } from '../../../../lib/services/authService';
 import { QuickTaskButton } from '../../../../components/QuickTaskButton';
-import { TaskItem } from '../tasks/TaskItem';
+import { TaskItem } from './TaskItem';
 
 export const dynamic = 'force-dynamic';
 

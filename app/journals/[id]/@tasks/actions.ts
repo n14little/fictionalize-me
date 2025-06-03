@@ -13,7 +13,7 @@ export async function createTask(formData: FormData) {
   const journalId = formData.get('journalId') as string;
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
-  const redirectUrl = formData.get('redirectUrl') as string || `/journals/${journalId}/tasks`;
+  const redirectUrl = formData.get('redirectUrl') as string || `/journals/${journalId}`;
 
   // Get the current user
   const user = await authService.getCurrentUser();
@@ -40,9 +40,8 @@ export async function createTask(formData: FormData) {
     description: description?.trim() || undefined
   });
   
-  // Revalidate the journal page and tasks paths
+  // Revalidate the journal page
   revalidatePath(`/journals/${journalId}`);
-  revalidatePath(`/journals/${journalId}/tasks`);
 
   // Redirect to the specified URL or tasks page
   // Next.js throws this as an error and will handle it automatically
@@ -66,8 +65,7 @@ export async function toggleTaskCompletion(formData: FormData) {
     // Toggle task completion
     await taskService.toggleTaskCompletion(taskId, user.id);
     
-    // Revalidate the journal page and tasks paths
-    revalidatePath(`/journals/${journalId}/tasks`);
+    // Revalidate the journal page
     revalidatePath(`/journals/${journalId}`);
   } catch (error) {
     console.error('Error toggling task completion:', error);
@@ -95,8 +93,7 @@ export async function deleteTask(formData: FormData) {
     // Delete task
     await taskService.deleteTask(taskId, user.id);
     
-    // Revalidate the journal page and tasks paths
-    revalidatePath(`/journals/${journalId}/tasks`);
+    // Revalidate the journal page
     revalidatePath(`/journals/${journalId}`);
   } catch (error) {
     console.error('Error deleting task:', error);
@@ -141,7 +138,6 @@ export async function createTaskWithoutRedirect(formData: FormData) {
   
   // Revalidate the journal page and tasks paths
   revalidatePath(`/journals/${journalId}`);
-  revalidatePath(`/journals/${journalId}/tasks`);
 
   // Return success object instead of redirecting
   return { success: true };

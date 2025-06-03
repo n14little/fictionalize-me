@@ -8,7 +8,7 @@ import { FormButton } from './FormButton';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { EntrySuccessModal } from './EntrySuccessModal';
-import { createEntry } from '../app/journals/[id]/entries/actions';
+import { createEntry } from '../app/journals/[id]/@entries/actions';
 import { JSONContent, DEFAULT_DOCUMENT } from '../lib/editor/types';
 import { UserStreakStats } from '../lib/models/JournalStreak';
 
