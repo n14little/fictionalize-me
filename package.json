@@ -20,7 +20,7 @@
     "e2e:ci": "npx playwright install --with-deps && npm run e2e"
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^4.4.2",
+    "@auth0/nextjs-auth0": "^4.6.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tiptap/extension-image": "^2.11.7",
     "@tiptap/extension-link": "^2.11.7",
