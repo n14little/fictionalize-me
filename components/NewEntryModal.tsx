@@ -28,11 +28,11 @@ export function NewEntryModalButton({ journalId }: { journalId: string }) {
     <>
       <button
         onClick={handleOpenModal}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2"
+        className="w-full bg-gray-100 hover:bg-gray-200 hover:cursor-pointer text-gray-500 text-2xl px-4 py-2 rounded font-medium flex justify-center items-center gap-2"
         aria-label="Add new journal entry"
       >
         <span>+</span>
-        <span>New Entry</span>
+        <span className="sr-only">New Entry</span>
       </button>
 
       {isOpen && (
