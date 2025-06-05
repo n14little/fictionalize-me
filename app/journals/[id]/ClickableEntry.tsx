@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { JournalEntry } from '../../../lib/models/JournalEntry';
 import { RichTextContent } from '../../../components/RichTextEditor/RichTextContent';
-import { EditEntryModal } from '../../../components/EditEntryModal';
+import { JournalEntryModal } from '@/components/JournalEntryModal';
+import { updateEntry } from './@entries/actions';
 
 interface ClickableEntryProps {
   entry: JournalEntry;
@@ -44,10 +45,20 @@ export function ClickableEntry({ entry, journalId, lastEntry = false }: Clickabl
       </div>
       
       {isModalOpen && (
-        <EditEntryModal
-          entry={entry}
+        <JournalEntryModal
+          modalType="edit"
           journalId={journalId}
+          entryId={entry.id}
           onClose={handleCloseModal}
+          onSubmit={updateEntry}
+          showMoodField={true}
+          showLocationField={true}
+          initialContent={{
+            title: entry.title,
+            content: entry.content,
+            mood: entry.mood || '',
+            location: entry.location || ''
+          }}
         />
       )}
     </>
