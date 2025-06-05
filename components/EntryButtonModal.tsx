@@ -1,39 +1,16 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
-import { JournalEntryModal, EntryContent } from './JournalEntryModal';
+import { 
+  JournalEntryModal, 
+  JournalEntrySharedProps
+} from './JournalEntryModal';
 
-export type ButtonVariant = 'new' | 'edit' | 'daily';
-
-interface EntryButtonModalProps {
+export interface EntryButtonModalProps extends JournalEntrySharedProps {
   // Button props
   buttonClassName: string;
   buttonAriaLabel: string;
   buttonContent: ReactNode;
-  
-  // Modal props
-  modalType: ButtonVariant;
-  journalId?: string;
-  entryId?: string;
-  onSubmit: (formData: FormData) => Promise<{
-    success?: boolean;
-    entriesStats?: {
-      totalEntries: number;
-      totalWords: number;
-      firstEntryDate: Date | null;
-      mostRecentEntryDate: Date | null;
-    };
-    streakStats?: {
-      currentStreak: number;
-      longestStreak: number;
-    };
-    journalId?: string;
-    error?: string;
-  } | undefined>;
-  showMoodField?: boolean;
-  showLocationField?: boolean;
-  showTimer?: boolean;
-  initialContent?: EntryContent;
 }
 
 /**
@@ -46,7 +23,7 @@ export function EntryButtonModal({
   buttonAriaLabel,
   buttonContent,
   
-  // Modal props
+  // Modal props - inherited from JournalEntrySharedProps
   modalType,
   journalId,
   entryId,

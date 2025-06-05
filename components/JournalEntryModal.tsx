@@ -32,22 +32,29 @@ export interface EntryContent {
   location?: string;
 }
 
-export interface JournalEntryModalProps {
-  modalType: 'new' | 'edit' | 'daily';
+export type ButtonVariant = 'new' | 'edit' | 'daily';
+
+export interface EntrySubmitResult {
+  success?: boolean;
+  entriesStats?: EntryStats;
+  streakStats?: UserStreakStats;
+  journalId?: string;
+  error?: string;
+}
+
+export interface JournalEntrySharedProps {
+  modalType: ButtonVariant;
   journalId?: string;
   entryId?: string;
   initialContent?: EntryContent;
-  onClose: () => void;
-  onSubmit: (formData: FormData) => Promise<{
-    success?: boolean;
-    entriesStats?: EntryStats;
-    streakStats?: UserStreakStats;
-    journalId?: string;
-    error?: string;
-  } | undefined>;
+  onSubmit: (formData: FormData) => Promise<EntrySubmitResult | undefined>;
   showMoodField?: boolean;
   showLocationField?: boolean;
   showTimer?: boolean;
+}
+
+export interface JournalEntryModalProps extends JournalEntrySharedProps {
+  onClose: () => void;
 }
 
 export function JournalEntryModal({
