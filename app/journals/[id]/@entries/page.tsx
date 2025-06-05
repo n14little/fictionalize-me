@@ -1,7 +1,7 @@
 import { journalEntryService } from '../../../../lib/services/journalEntryService';
 import { authService } from '../../../../lib/services/authService';
 import { ClickableEntry } from '../ClickableEntry';
-import { NewEntryModalButton } from '@/components/NewEntryModal';
+import { NewEntryModalButton } from '@/components/EntryButtonAliases';
 
 export const dynamic = 'force-dynamic';
 

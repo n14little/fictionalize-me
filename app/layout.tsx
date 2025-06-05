@@ -4,7 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { AuthProvider } from "./providers";
 import AuthButtons from "@/components/AuthButtons";
-import { DailyWriteModalButton } from "@/components/DailyWriteModal";
+import { DailyWriteModalButton } from "@/components/EntryButtonAliases";
 
 const inter = Inter({ subsets: ["latin"] });
 
