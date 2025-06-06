@@ -17,7 +17,7 @@ export default async function JournalTasksSidebar({ params }: { params: { id: st
   // Separate completed and pending tasks
   const sortedTasks = [...tasks.sort((a, b) => {
     if (a.completed_at && b.completed_at) {
-      return new Date(b.completed_at).getTime() - new Date(a.created_at).getTime();
+      return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
     }
     return a.completed ? 1 : -1; // Completed tasks go to the end
   })]
