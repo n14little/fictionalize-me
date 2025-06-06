@@ -11,9 +11,10 @@ import { QuickTaskButton } from '../QuickTaskButton';
 type EditorToolbarProps = {
   editor: Editor | null;
   journalId?: string;
+  selectedText: string | null;
 };
 
-const EditorToolbar = ({ editor, journalId }: EditorToolbarProps) => {
+const EditorToolbar = ({ editor, journalId, selectedText }: EditorToolbarProps) => {
   if (!editor) {
     return (
       <div className="border border-gray-300 rounded-t-md border-b-0 bg-gray-50 p-2 flex flex-wrap gap-1 justify-between">
@@ -28,7 +29,7 @@ const EditorToolbar = ({ editor, journalId }: EditorToolbarProps) => {
         </div>
         {journalId && (
           <div>
-            <QuickTaskButton journalId={journalId} insideForm={true} />
+            <QuickTaskButton journalId={journalId} insideForm={true} selectedText={selectedText} />
           </div>
         )}
       </div>
@@ -174,7 +175,7 @@ const EditorToolbar = ({ editor, journalId }: EditorToolbarProps) => {
       </div>
       {journalId && (
         <div>
-          <QuickTaskButton journalId={journalId} insideForm={true} />
+          <QuickTaskButton journalId={journalId} insideForm={true} selectedText={selectedText} />
         </div>
       )}
     </div>
@@ -190,6 +191,7 @@ type TiptapEditorProps = {
 export const TiptapEditor = ({ value, onChange, journalId }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
 
   // Parse JSON content, with fallback to default document
   const getInitialContent = (): JSONContent => {
@@ -234,6 +236,16 @@ export const TiptapEditor = ({ value, onChange, journalId }: TiptapEditorProps) 
     onCreate: () => {
       // Mark editor as initialized to remove loading state
       setIsInitialized(true);
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Update selected text when selection changes
+      const { from, to } = editor.state.selection;
+      if (from === to || editor.isActive('link')) {
+        setSelectedText(null);
+      } else {
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        setSelectedText(text.trim() || null);
+      }
     }
   });
 
@@ -292,7 +304,7 @@ export const TiptapEditor = ({ value, onChange, journalId }: TiptapEditorProps) 
 
   return (
     <div className="h-full flex flex-col">
-      <EditorToolbar editor={editor} journalId={journalId} />
+      <EditorToolbar editor={editor} journalId={journalId} selectedText={selectedText} />
       <div className="border border-gray-300 rounded-b-md overflow-hidden flex-grow h-full">
         <EditorContent 
           editor={editor} 

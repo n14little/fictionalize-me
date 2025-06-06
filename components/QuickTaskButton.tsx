@@ -9,16 +9,24 @@ interface QuickTaskButtonProps {
   journalId: string;
   onTaskCreated?: () => void;
   insideForm?: boolean;
+  selectedText?: string | null;
 }
 
-export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false }: QuickTaskButtonProps) {
+export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, selectedText }: QuickTaskButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  
+  const hasSelection = Boolean(selectedText && selectedText.trim().length > 0);
 
   const handleOpenModal = () => {
+    // If selectedText is provided, use it as the task title
+    if (selectedText && selectedText.trim()) {
+      setTitle(selectedText.trim());
+    }
+    
     setIsModalOpen(true);
   };
 
@@ -118,8 +126,16 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false }
       <button
         type="button"
         onClick={handleOpenModal}
-        className="flex items-center gap-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1 rounded transition-colors"
-        title="Create a task from this journal"
+        className={`flex items-center gap-1 text-sm ${
+          hasSelection
+            ? 'bg-blue-100 hover:bg-blue-200' 
+            : 'bg-blue-50 hover:bg-blue-100'
+        } text-blue-700 px-2 py-1 rounded transition-colors`}
+        title={
+          hasSelection
+            ? "Create a task from selected text"
+            : "Create a task from this journal"
+        }
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2v10M2 12h20M12 22v-8M19 15l-7 7-7-7" />
@@ -131,7 +147,9 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false }
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Create Quick Task</h2>
+              <h2 className="text-xl font-bold">
+                {hasSelection ? "Create Task from Selection" : "Create Quick Task"}
+              </h2>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
