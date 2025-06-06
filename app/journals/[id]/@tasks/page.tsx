@@ -15,37 +15,27 @@ export default async function JournalTasksSidebar({ params }: { params: { id: st
   const tasks = await taskService.getJournalTasks(journalId, user?.id);
 
   // Separate completed and pending tasks
-  const completedTasks = tasks.filter(task => task.completed);
-  const pendingTasks = tasks.filter(task => !task.completed);
+  const sortedTasks = [...tasks.sort((a, b) => {
+    if (a.completed_at && b.completed_at) {
+      return new Date(b.completed_at).getTime() - new Date(a.created_at).getTime();
+    }
+    return a.completed ? 1 : -1; // Completed tasks go to the end
+  })]
 
   return (
-    <div className="bg-white p-4 rounded-lg">
+    <div className="bg-white p-4 rounded-lg text-gray-600">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">TODO</h2>
+        <h2 className="text-xl font-semibold">Tasks</h2>
         <QuickTaskButton journalId={journalId} />
       </div>
       
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-2">PENDING</h3>
-          {pendingTasks.length === 0 ? (
-            <div className="text-gray-400 text-sm">No pending tasks</div>
+          {sortedTasks.length === 0 ? (
+            <div className="text-gray-400 text-sm">No tasks</div>
           ) : (
             <div className="space-y-2">
-              {pendingTasks.map((task) => (
-                <TaskItem key={task.id} task={task} journalId={journalId} />
-              ))}
-            </div>
-          )}
-        </div>
-        
-        <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-2">COMPLETED</h3>
-          {completedTasks.length === 0 ? (
-            <div className="text-gray-400 text-sm">No completed tasks</div>
-          ) : (
-            <div className="space-y-2 opacity-80">
-              {completedTasks.map((task) => (
+              {sortedTasks.map((task) => (
                 <TaskItem key={task.id} task={task} journalId={journalId} />
               ))}
             </div>

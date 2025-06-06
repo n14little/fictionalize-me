@@ -38,7 +38,7 @@ export function TaskItem({ task, journalId }: TaskItemProps) {
   }
 
   return (
-    <div className={`p-4 rounded-lg border ${task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300'}`}>
+    <div className={`p-4 border-t border-gray-400`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <form action={handleToggleCompletion}>
@@ -62,7 +62,7 @@ export function TaskItem({ task, journalId }: TaskItemProps) {
             </button>
           </form>
           <div>
-            <h3 className={`font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+            <h3 className={`font-medium ${task.completed ? 'line-through text-gray-400' : 'text-gray-600'}`}>
               {task.title}
             </h3>
             {task.description && (
