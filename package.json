@@ -10,6 +10,7 @@
     "db:start": "docker compose up -d postgres",
     "db:migrate": "./db-migrate.sh",
     "type-check": "tsc",
+    "check": "npm run lint && npm run type-check",
     "e2e": "playwright test tests/e2e/home.spec.ts tests/e2e/journal.spec.ts",
     "e2e:chromium": "playwright test --project=chromium",
     "e2e:firefox": "playwright test --project=firefox",
