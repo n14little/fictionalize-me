@@ -3,7 +3,6 @@ import { authService } from '../../lib/services/authService';
 import { journalStreakService } from '../../lib/services/journalStreakService';
 import { journalEntryService } from '../../lib/services/journalEntryService';
 import { JournalStreak } from '../../components/JournalStreak';
-import { JournalStreakCalendar } from '../../components/JournalStreakCalendar';
 import { WritingStats } from '@/components/WritingStats';
 
 export const dynamic = 'force-dynamic';
@@ -36,9 +35,6 @@ export default async function Dashboard() {
         
         {/* Writing Statistics */}
         <WritingStats entriesStats={entriesStats} streakStats={streakStats} />
-        
-        {/* Journal Streak Calendar */}
-        <JournalStreakCalendar streakStats={streakStats} />
       </div>
     </main>
   );
