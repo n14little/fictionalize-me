@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 interface CalendarDay {
   date: Date;
@@ -14,32 +14,44 @@ interface JournalCalendarProps {
 }
 
 export function JournalCalendar({ streakDates }: JournalCalendarProps) {
-  const [displayMonth, setDisplayMonth] = useState(new Date());
+  const [centerDate, setCenterDate] = useState<Date>(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  const [dateRange, setDateRange] = useState<string>('');
   
   // Convert string dates to Date objects
-  const activeDates = streakDates.map(dateStr => new Date(dateStr));
+  const activeDates = useMemo(() => {
+    return streakDates.map(dateStr => new Date(dateStr));
+  }, [streakDates]);
+  
+  // Navigate forward 35 days
+  const goForward = () => {
+    const newDate = new Date(centerDate);
+    newDate.setDate(centerDate.getDate() + 35);
+    setCenterDate(newDate);
+  };
+  
+  // Navigate backward 35 days
+  const goBackward = () => {
+    const newDate = new Date(centerDate);
+    newDate.setDate(centerDate.getDate() - 35);
+    setCenterDate(newDate);
+  };
+  
+  // Reset to today
+  const goToToday = () => {
+    setCenterDate(new Date());
+  };
   
   useEffect(() => {
-    // Generate calendar days for the current display month
-    const days = generateCalendarDays(displayMonth, activeDates);
+    // Generate centered calendar days using the center date
+    const days = generateCenteredCalendarDays(centerDate, activeDates);
     setCalendarDays(days);
-  }, [displayMonth, streakDates]);
-  
-  const previousMonth = () => {
-    const newDate = new Date(displayMonth);
-    newDate.setMonth(newDate.getMonth() - 1);
-    setDisplayMonth(newDate);
-  };
-  
-  const nextMonth = () => {
-    const newDate = new Date(displayMonth);
-    newDate.setMonth(newDate.getMonth() + 1);
-    setDisplayMonth(newDate);
-  };
-  
-  const monthName = displayMonth.toLocaleString('default', { month: 'long' });
-  const year = displayMonth.getFullYear();
+    
+    // Calculate date range only when days change
+    if (days.length > 0) {
+      setDateRange(getDateRangeLabel(days));
+    }
+  }, [centerDate, activeDates]);
   
   return (
     <div className="bg-white shadow rounded-lg border border-gray-200 p-6">
@@ -47,23 +59,30 @@ export function JournalCalendar({ streakDates }: JournalCalendarProps) {
         <h2 className="font-semibold text-lg">Journaling Calendar</h2>
         <div className="flex items-center space-x-4">
           <button 
-            onClick={previousMonth}
+            onClick={goBackward}
             className="text-gray-500 hover:text-gray-700"
-            aria-label="Previous month"
+            aria-label="Previous 35 days"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
           
+          <button
+            onClick={goToToday}
+            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+          >
+            Today
+          </button>
+          
           <div className="font-medium text-gray-700">
-            {monthName} {year}
+            {dateRange}
           </div>
           
           <button 
-            onClick={nextMonth}
+            onClick={goForward}
             className="text-gray-500 hover:text-gray-700"
-            aria-label="Next month"
+            aria-label="Next 35 days"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
@@ -85,9 +104,9 @@ export function JournalCalendar({ streakDates }: JournalCalendarProps) {
             className={`
               aspect-square flex items-center justify-center text-sm rounded-md
               ${!day.isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}
-              ${day.isToday ? 'ring-2 ring-blue-500' : ''}
-              ${day.isActive && day.isCurrentMonth ? 'bg-blue-500 text-white' : ''}
-              ${!day.isActive && day.isCurrentMonth ? 'hover:bg-gray-100' : ''}
+              ${day.isToday ? 'ring-2 ring-blue-500 font-bold' : ''}
+              ${day.isActive ? 'bg-blue-500 text-white' : ''}
+              ${!day.isActive ? 'hover:bg-gray-100' : ''}
             `}
           >
             {day.date.getDate()}
@@ -96,62 +115,85 @@ export function JournalCalendar({ streakDates }: JournalCalendarProps) {
       </div>
       
       <div className="mt-4 text-center text-sm text-gray-500">
-        Blue dates indicate days you journaled
+        Blue dates indicate days you journaled • Today is highlighted with a blue ring
       </div>
     </div>
   );
 }
 
-// Helper function to generate calendar days for a specific month
-function generateCalendarDays(month: Date, activeDates: Date[]): CalendarDay[] {
+// Helper function to generate a date range label
+function getDateRangeLabel(days: CalendarDay[]): string {
+  if (days.length === 0) return '';
+  
+  const firstDate = days[0].date;
+  const lastDate = days[days.length - 1].date;
+  
+  const firstMonth = firstDate.toLocaleString('default', { month: 'short' });
+  const lastMonth = lastDate.toLocaleString('default', { month: 'short' });
+  
+  const firstDay = firstDate.getDate();
+  const lastDay = lastDate.getDate();
+  const year = lastDate.getFullYear();
+  
+  if (firstMonth === lastMonth) {
+    return `${firstMonth} ${firstDay}-${lastDay}, ${year}`;
+  } else {
+    return `${firstMonth} ${firstDay} - ${lastMonth} ${lastDay}, ${year}`;
+  }
+}
+
+// Helper function to generate centered calendar days with today in the middle
+function generateCenteredCalendarDays(centerDate: Date, activeDates: Date[]): CalendarDay[] {
   const days: CalendarDay[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   
-  // Get the first day of the month
-  const firstDayOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+  // Clone and normalize the center date to avoid time-based discrepancies
+  const center = new Date(centerDate);
+  center.setHours(0, 0, 0, 0);
   
-  // Get the last day of the month
-  const lastDayOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  // Get the real today for "isToday" comparison
+  const realToday = new Date();
+  realToday.setHours(0, 0, 0, 0);
   
-  // Get day of the week for the first day (0 = Sunday, 6 = Saturday)
-  const firstDayOfWeek = firstDayOfMonth.getDay();
+  // Get day of week (0-6, where 0 is Sunday)
+  const dayOfWeek = center.getDay();
   
-  // Add days from previous month to fill the first week
-  const prevMonth = new Date(month);
-  prevMonth.setMonth(prevMonth.getMonth() - 1);
-  const daysInPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
+  // For a 5x7 calendar (35 days), we need to position the center date in the middle row (3rd row)
+  // and in the correct weekday position within that row.
   
-  for (let i = 0; i < firstDayOfWeek; i++) {
-    const date = new Date(month.getFullYear(), month.getMonth() - 1, daysInPrevMonth - firstDayOfWeek + i + 1);
+  // Here's our approach for perfect positioning:
+  // 1. We know the center date falls on a specific day of week (0-6)
+  // 2. The middle row (3rd row) of our 5-row calendar is row 2 (0-indexed)
+  // 3. For the center date to be in the middle row, we need the first day of our calendar
+  //    to be exactly 2 weeks + dayOfWeek days before the center date
+  
+  // Calculate days to start date:
+  // - 2 full weeks (14 days) to get to the beginning of the middle week
+  // - Plus the day of week offset (0-6) to position the center date correctly in that week
+  const daysToGoBack = 14 + dayOfWeek;
+  
+  // Create the start date by going back the calculated number of days
+  const startDate = new Date(center);
+  startDate.setDate(center.getDate() - daysToGoBack);
+  
+  // Generate 35 days (5 rows of 7 days)
+  for (let i = 0; i < 35; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    
+    // Determine if this date is in the "current" month (the month containing the center date)
+    const isCurrentMonth = currentDate.getMonth() === center.getMonth() && 
+                         currentDate.getFullYear() === center.getFullYear();
+    
+    // Compare dates without time components to determine if this is today
+    const isToday = currentDate.getDate() === realToday.getDate() && 
+                   currentDate.getMonth() === realToday.getMonth() && 
+                   currentDate.getFullYear() === realToday.getFullYear();
+    
     days.push({
-      date,
-      isActive: isDateInArray(date, activeDates),
-      isToday: date.getTime() === today.getTime(),
-      isCurrentMonth: false
-    });
-  }
-  
-  // Add days for the current month
-  for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
-    const date = new Date(month.getFullYear(), month.getMonth(), i);
-    days.push({
-      date,
-      isActive: isDateInArray(date, activeDates),
-      isToday: date.getTime() === today.getTime(),
-      isCurrentMonth: true
-    });
-  }
-  
-  // Add days from next month to fill out the last week
-  const remainingDays = 42 - days.length; // 6 rows of 7 days = 42 total spots
-  for (let i = 1; i <= remainingDays; i++) {
-    const date = new Date(month.getFullYear(), month.getMonth() + 1, i);
-    days.push({
-      date,
-      isActive: isDateInArray(date, activeDates),
-      isToday: date.getTime() === today.getTime(),
-      isCurrentMonth: false
+      date: currentDate,
+      isActive: isDateInArray(currentDate, activeDates),
+      isToday,
+      isCurrentMonth
     });
   }
   
@@ -160,6 +202,15 @@ function generateCalendarDays(month: Date, activeDates: Date[]): CalendarDay[] {
 
 // Helper function to check if a date is in an array of dates (ignoring time)
 function isDateInArray(date: Date, dateArray: Date[]): boolean {
-  const dateString = date.toISOString().split('T')[0];
-  return dateArray.some(d => d.toISOString().split('T')[0] === dateString);
+  // Extract year, month, and day for comparison
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Check if any date in the array matches year, month, and day
+  return dateArray.some(d => 
+    d.getFullYear() === year && 
+    d.getMonth() === month && 
+    d.getDate() === day
+  );
 }
