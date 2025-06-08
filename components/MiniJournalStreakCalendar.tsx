@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserStreakStats } from '../lib/models/JournalStreak';
 import { Modal } from './Modal';
 import { JournalCalendar } from './JournalCalendar';
@@ -12,24 +12,31 @@ interface MiniJournalStreakCalendarProps {
 
 export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCalendarProps) {
   const [showFullCalendar, setShowFullCalendar] = useState(false);
-
-  const today = new Date();
-  const last30Days: { date: Date; hasJournaled: boolean }[] = [];
+  const [last30Days, setLast30Days] = useState<{ date: Date; hasJournaled: boolean }[]>([]);
   
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    date.setHours(0, 0, 0, 0);
+  // Move date calculations to useEffect to avoid hydration mismatches
+  useEffect(() => {
+    const today = new Date();
+    const calculatedDays: { date: Date; hasJournaled: boolean }[] = [];
     
-    const hasJournaled = streakStats.streakDates.some(streakDate => {
-      const streakDay = new Date(streakDate);
-      streakDay.setHours(0, 0, 0, 0);
-      return streakDay.getTime() === date.getTime();
-    });
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      
+      const hasJournaled = streakStats.streakDates.some(streakDate => {
+        const streakDay = new Date(streakDate);
+        streakDay.setHours(0, 0, 0, 0);
+        return streakDay.getTime() === date.getTime();
+      });
 
-    last30Days.push({ date, hasJournaled });
-  }
+      calculatedDays.push({ date, hasJournaled });
+    }
+    
+    setLast30Days(calculatedDays);
+  }, [streakStats.streakDates]);
 
+  // Safe to format dates here since we're rendering on client after hydration
   const formattedDates = streakStats.streakDates.map(date => date.toISOString());
 
   return (
@@ -46,7 +53,7 @@ export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCale
         </div>
         
         <div className="flex w-full">
-          {last30Days.map((day) => (
+          {last30Days.length > 0 && last30Days.map((day) => (
             <div key={day.date.toISOString()} className={`h-8 flex-grow rounded-sm
                   ${day.hasJournaled
                     ? 'bg-blue-500'

@@ -14,6 +14,11 @@ export function JournalStreakWrapper({ streakStats, children }: JournalStreakWra
 
   // Check for milestone achievements on component mount and streak updates
   useEffect(() => {
+    // Avoid localStorage during SSR/hydration
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     // Store current stats in local storage to compare on future visits
     const storedStats = localStorage.getItem('journalStreakStats');
     let previousStats = { currentStreak: 0, totalDays: 0 };
@@ -50,6 +55,7 @@ export function JournalStreakWrapper({ streakStats, children }: JournalStreakWra
     }
     
     // Save current stats for future comparison
+    // Safe to use localStorage here since we've already checked for window
     localStorage.setItem('journalStreakStats', JSON.stringify({
       currentStreak: streakStats.currentStreak,
       totalDays: streakStats.totalDays
