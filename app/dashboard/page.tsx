@@ -18,7 +18,7 @@ export default async function Dashboard() {
   
   // Fetch streak stats for the user
   const streakStats = await journalStreakService.getUserStreakStats(user.id);
-  
+
   // Fetch entry stats for the user
   const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
   

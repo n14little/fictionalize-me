@@ -5,6 +5,7 @@ import { UserStreakStats } from '../lib/models/JournalStreak';
 import { Modal } from './Modal';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalStreakWrapper } from './JournalStreakWrapper';
+import { getUtcToday, getUtcMidnight, isSameUtcDay } from '../lib/utils/dateUtils';
 
 interface MiniJournalStreakCalendarProps {
   streakStats: UserStreakStats;
@@ -16,21 +17,22 @@ export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCale
   
   // Move date calculations to useEffect to avoid hydration mismatches
   useEffect(() => {
-    const today = new Date();
+    const today = getUtcToday();
     const calculatedDays: { date: Date; hasJournaled: boolean }[] = [];
     
     for (let i = 29; i >= 0; i--) {
+      // Create date for this position in the 30-day window
       const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      date.setHours(0, 0, 0, 0);
+      date.setUTCDate(today.getUTCDate() - i);
+      // Ensure we use UTC midnight
+      const utcDate = getUtcMidnight(date);
       
       const hasJournaled = streakStats.streakDates.some(streakDate => {
-        const streakDay = new Date(streakDate);
-        streakDay.setHours(0, 0, 0, 0);
-        return streakDay.getTime() === date.getTime();
+        const streakDay = getUtcMidnight(new Date(streakDate));
+        return isSameUtcDay(streakDay, utcDate);
       });
 
-      calculatedDays.push({ date, hasJournaled });
+      calculatedDays.push({ date: utcDate, hasJournaled });
     }
     
     setLast30Days(calculatedDays);

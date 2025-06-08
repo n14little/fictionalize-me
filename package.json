@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run db:start && npm run db:migrate && next dev --turbopack",
+    "dev": " TZ=UTC npm run db:start && TZ=UTC npm run db:migrate && TZ=UTC next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

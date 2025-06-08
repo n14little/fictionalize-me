@@ -1,5 +1,6 @@
 import { query } from '../db';
 import { JournalStreak, CreateJournalStreak, UserStreakStats } from '../models/JournalStreak';
+import { formatUtcDate, getUtcToday, getUtcYesterday, isSameUtcDay, isConsecutiveUtcDay, getUtcMidnight } from '../utils/dateUtils';
 
 export const journalStreakRepository = {
   /**
@@ -17,7 +18,8 @@ export const journalStreakRepository = {
    * Find a streak record by date and user
    */
   findByUserIdAndDate: async (userId: number, date: Date): Promise<JournalStreak | null> => {
-    const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    // Always convert to UTC date string for database operations
+    const dateStr = formatUtcDate(date);
     const result = await query(
       'SELECT * FROM journal_streaks WHERE user_id = $1 AND streak_date::date = $2::date',
       [userId, dateStr]
@@ -40,8 +42,10 @@ export const journalStreakRepository = {
    * Create a streak record if it doesn't exist for today
    */
   createIfNotExists: async (userId: number, date: Date = new Date()): Promise<JournalStreak> => {
-    // Format date to YYYY-MM-DD to ignore time
-    const dateStr = date.toISOString().split('T')[0];
+    // Ensure we're working with UTC midnight
+    const utcDate = getUtcMidnight(date);
+    // Format date to YYYY-MM-DD in UTC
+    const dateStr = formatUtcDate(utcDate);
     
     // Use an upsert to handle the "create if not exists" logic
     const result = await query(
@@ -94,31 +98,25 @@ export const journalStreakRepository = {
     
     // Calculate current streak
     let currentStreak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const today = getUtcToday();
+    const yesterday = getUtcYesterday();
     
     // Check if the last streak date is today or yesterday to maintain streak
-    const lastDateObj = new Date(lastStreakDate);
-    lastDateObj.setHours(0, 0, 0, 0);
+    const lastDateUtc = getUtcMidnight(new Date(lastStreakDate));
     
     // Start counting the current streak from the most recent date
-    if (lastDateObj.getTime() === today.getTime() || lastDateObj.getTime() === yesterday.getTime()) {
+    if (isSameUtcDay(lastDateUtc, today) || isSameUtcDay(lastDateUtc, yesterday)) {
       currentStreak = 1;
       
       // Go backwards from second-most-recent date
       for (let i = streakDates.length - 2; i >= 0; i--) {
-        const currentDate = new Date(streakDates[i]);
-        currentDate.setHours(0, 0, 0, 0);
+        const currentDate = getUtcMidnight(new Date(streakDates[i]));
         
-        const expectedPrevDate = new Date(streakDates[i + 1]);
-        expectedPrevDate.setHours(0, 0, 0, 0);
-        expectedPrevDate.setDate(expectedPrevDate.getDate() - 1);
+        const expectedPrevDate = getUtcMidnight(new Date(streakDates[i + 1]));
+        expectedPrevDate.setUTCDate(expectedPrevDate.getUTCDate() - 1);
         
-        // Check if days are consecutive
-        if (currentDate.getTime() === expectedPrevDate.getTime()) {
+        // Check if days are consecutive using UTC-based comparison
+        if (isSameUtcDay(currentDate, expectedPrevDate)) {
           currentStreak++;
         } else {
           break;
@@ -134,20 +132,15 @@ export const journalStreakRepository = {
     const sortedDates = [...streakDates].sort((a, b) => a.getTime() - b.getTime());
     
     for (let i = 1; i < sortedDates.length; i++) {
-      const currentDate = new Date(sortedDates[i]);
-      currentDate.setHours(0, 0, 0, 0);
+      const currentDate = getUtcMidnight(new Date(sortedDates[i]));
+      const prevDate = getUtcMidnight(new Date(sortedDates[i - 1]));
       
-      const prevDate = new Date(sortedDates[i - 1]);
-      prevDate.setHours(0, 0, 0, 0);
-      
-      // Check if days are consecutive
-      const dayDiff = Math.floor((currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (dayDiff === 1) {
+      // Check if days are consecutive using our UTC helper
+      if (isConsecutiveUtcDay(prevDate, currentDate)) {
         // Consecutive day
         currentRun++;
         longestStreak = Math.max(longestStreak, currentRun);
-      } else if (dayDiff > 1) {
+      } else {
         // Break in the streak
         currentRun = 1;
       }

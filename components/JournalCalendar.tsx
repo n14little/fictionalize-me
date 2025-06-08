@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { getUtcToday, getUtcMidnight, isSameUtcDay } from '../lib/utils/dateUtils';
 
 interface CalendarDay {
   date: Date;
@@ -18,28 +19,28 @@ export function JournalCalendar({ streakDates }: JournalCalendarProps) {
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [dateRange, setDateRange] = useState<string>('');
   
-  // Convert string dates to Date objects
+  // Convert string dates to UTC Date objects
   const activeDates = useMemo(() => {
-    return streakDates.map(dateStr => new Date(dateStr));
+    return streakDates.map(dateStr => getUtcMidnight(new Date(dateStr)));
   }, [streakDates]);
   
   // Navigate forward 35 days
   const goForward = () => {
     const newDate = new Date(centerDate);
-    newDate.setDate(centerDate.getDate() + 35);
+    newDate.setUTCDate(centerDate.getUTCDate() + 35);
     setCenterDate(newDate);
   };
   
   // Navigate backward 35 days
   const goBackward = () => {
     const newDate = new Date(centerDate);
-    newDate.setDate(centerDate.getDate() - 35);
+    newDate.setUTCDate(centerDate.getUTCDate() - 35);
     setCenterDate(newDate);
   };
   
   // Reset to today
   const goToToday = () => {
-    setCenterDate(new Date());
+    setCenterDate(getUtcToday());
   };
   
   useEffect(() => {
@@ -109,7 +110,7 @@ export function JournalCalendar({ streakDates }: JournalCalendarProps) {
               ${!day.isActive ? 'hover:bg-gray-100' : ''}
             `}
           >
-            {day.date.getDate()}
+            {day.date.getUTCDate()}
           </div>
         ))}
       </div>
@@ -128,12 +129,15 @@ function getDateRangeLabel(days: CalendarDay[]): string {
   const firstDate = days[0].date;
   const lastDate = days[days.length - 1].date;
   
-  const firstMonth = firstDate.toLocaleString('default', { month: 'short' });
-  const lastMonth = lastDate.toLocaleString('default', { month: 'short' });
+  // For display purposes only, we need to format the dates using locale
+  // This is one of the few places where we need to intentionally display local time
+  const options = { month: 'short', timeZone: 'UTC' } as Intl.DateTimeFormatOptions;
+  const firstMonth = firstDate.toLocaleString('default', options);
+  const lastMonth = lastDate.toLocaleString('default', options);
   
-  const firstDay = firstDate.getDate();
-  const lastDay = lastDate.getDate();
-  const year = lastDate.getFullYear();
+  const firstDay = firstDate.getUTCDate();
+  const lastDay = lastDate.getUTCDate();
+  const year = lastDate.getUTCFullYear();
   
   if (firstMonth === lastMonth) {
     return `${firstMonth} ${firstDay}-${lastDay}, ${year}`;
@@ -146,16 +150,14 @@ function getDateRangeLabel(days: CalendarDay[]): string {
 function generateCenteredCalendarDays(centerDate: Date, activeDates: Date[]): CalendarDay[] {
   const days: CalendarDay[] = [];
   
-  // Clone and normalize the center date to avoid time-based discrepancies
-  const center = new Date(centerDate);
-  center.setHours(0, 0, 0, 0);
+  // Clone and normalize the center date to UTC midnight to avoid time-based discrepancies
+  const center = getUtcMidnight(centerDate);
   
-  // Get the real today for "isToday" comparison
-  const realToday = new Date();
-  realToday.setHours(0, 0, 0, 0);
+  // Get the real today for "isToday" comparison, also in UTC
+  const realToday = getUtcToday();
   
   // Get day of week (0-6, where 0 is Sunday)
-  const dayOfWeek = center.getDay();
+  const dayOfWeek = center.getUTCDay();
   
   // For a 5x7 calendar (35 days), we need to position the center date in the middle row (3rd row)
   // and in the correct weekday position within that row.
@@ -171,23 +173,21 @@ function generateCenteredCalendarDays(centerDate: Date, activeDates: Date[]): Ca
   // - Plus the day of week offset (0-6) to position the center date correctly in that week
   const daysToGoBack = 14 + dayOfWeek;
   
-  // Create the start date by going back the calculated number of days
+  // Create the start date by going back the calculated number of days (using UTC)
   const startDate = new Date(center);
-  startDate.setDate(center.getDate() - daysToGoBack);
+  startDate.setUTCDate(center.getUTCDate() - daysToGoBack);
   
   // Generate 35 days (5 rows of 7 days)
   for (let i = 0; i < 35; i++) {
     const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
+    currentDate.setUTCDate(startDate.getUTCDate() + i);
     
     // Determine if this date is in the "current" month (the month containing the center date)
-    const isCurrentMonth = currentDate.getMonth() === center.getMonth() && 
-                         currentDate.getFullYear() === center.getFullYear();
+    const isCurrentMonth = currentDate.getUTCMonth() === center.getUTCMonth() && 
+                         currentDate.getUTCFullYear() === center.getUTCFullYear();
     
-    // Compare dates without time components to determine if this is today
-    const isToday = currentDate.getDate() === realToday.getDate() && 
-                   currentDate.getMonth() === realToday.getMonth() && 
-                   currentDate.getFullYear() === realToday.getFullYear();
+    // Compare dates using our UTC-based helper
+    const isToday = isSameUtcDay(currentDate, realToday);
     
     days.push({
       date: currentDate,
@@ -200,17 +200,8 @@ function generateCenteredCalendarDays(centerDate: Date, activeDates: Date[]): Ca
   return days;
 }
 
-// Helper function to check if a date is in an array of dates (ignoring time)
+// Helper function to check if a date is in an array of dates using UTC
 function isDateInArray(date: Date, dateArray: Date[]): boolean {
-  // Extract year, month, and day for comparison
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  
-  // Check if any date in the array matches year, month, and day
-  return dateArray.some(d => 
-    d.getFullYear() === year && 
-    d.getMonth() === month && 
-    d.getDate() === day
-  );
+  // Use our UTC comparison helper that compares dates without time components
+  return dateArray.some(d => isSameUtcDay(date, d));
 }
