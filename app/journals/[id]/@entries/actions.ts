@@ -71,6 +71,7 @@ export async function createEntry(formData: FormData) {
     // Revalidate the journal page and dashboard paths
     revalidatePath(`/journals/${journalId}`);
     revalidatePath('/dashboard');
+    revalidatePath('/', 'layout');
 
     // If skipStats is true, just redirect without returning stats
     if (skipStats) {
@@ -143,6 +144,7 @@ export async function updateEntry(
     // Revalidate the journal page and dashboard paths
     revalidatePath(`/journals/${journalId}`);
     revalidatePath('/dashboard');
+    revalidatePath('/', 'layout');
 
     // If skipStats is true, just redirect without returning stats
     if (skipStats) {

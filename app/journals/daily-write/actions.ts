@@ -70,6 +70,7 @@ export async function createDailyEntry(formData: FormData) {
     revalidatePath(`/journals/${journal.id}`);
     revalidatePath('/journals');
     revalidatePath('/dashboard');
+    revalidatePath('/', 'layout');
 
     // If skipStats is true, just redirect without returning stats
     if (skipStats) {
