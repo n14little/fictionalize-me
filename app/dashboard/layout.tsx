@@ -1,14 +1,12 @@
-import { ReactNode } from 'react';
-
 export default function DashboardLayout({
   streaks,
   writingstats,
   taskstats,
 }: {
-  children: ReactNode;
-  streaks: ReactNode;
-  writingstats: ReactNode;
-  taskstats: ReactNode;
+  children: React.ReactNode;
+  streaks: React.ReactNode;
+  writingstats: React.ReactNode;
+  taskstats: React.ReactNode;
 }) {
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-12">

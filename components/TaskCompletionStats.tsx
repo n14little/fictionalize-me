@@ -4,23 +4,8 @@ import { useState } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveLine } from '@nivo/line';
-
-interface TaskStats {
-  completedTasks: number;
-  pendingTasks: number;
-  totalTasks: number;
-  completionRate: number;
-  streakDays: number;
-  weeklyCompletion: {
-    day: string;
-    count: number;
-  }[];
-  dailyCompletion: {
-    date: string;
-    completed: number;
-  }[];
-  averageCompletionTime: number; // in minutes
-}
+import { TaskStats } from '../types/taskStats';
+import { getDefaultTaskStats, getProgressData, getDailyCompletionData } from '../lib/utils/taskStatsUtils';
 
 interface TaskCompletionStatsProps {
   stats?: TaskStats;
@@ -29,66 +14,8 @@ interface TaskCompletionStatsProps {
 export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
   
-  // Use mock data if no stats are provided
-  const defaultStats: TaskStats = {
-    completedTasks: 24,
-    pendingTasks: 7,
-    totalTasks: 31,
-    completionRate: 77.42,
-    streakDays: 5,
-    weeklyCompletion: [
-      { day: 'Mon', count: 5 },
-      { day: 'Tue', count: 4 },
-      { day: 'Wed', count: 6 },
-      { day: 'Thu', count: 3 },
-      { day: 'Fri', count: 2 },
-      { day: 'Sat', count: 3 },
-      { day: 'Sun', count: 1 }
-    ],
-    dailyCompletion: Array.from({ length: 30 }, (_, i) => ({
-      date: `2025-05-${String(i + 1).padStart(2, '0')}`,
-      completed: Math.floor(Math.random() * 8)
-    })),
-    averageCompletionTime: 45
-  };
-  
-  const taskData = stats || defaultStats;
-  
-  const progressData = [
-    { id: 'completed', label: 'Completed', value: taskData.completedTasks, color: '#4CAF50' },
-    { id: 'pending', label: 'Pending', value: taskData.pendingTasks, color: '#FFC107' }
-  ];
-  
-  // Filter daily completion data based on selected time range
-  const getDailyCompletionData = () => {
-    const today = new Date();
-    const filtered = taskData.dailyCompletion.filter(item => {
-      const date = new Date(item.date);
-      if (timeRange === 'week') {
-        const weekAgo = new Date(today);
-        weekAgo.setDate(today.getDate() - 7);
-        return date >= weekAgo;
-      } else if (timeRange === 'month') {
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(today.getMonth() - 1);
-        return date >= monthAgo;
-      } else {
-        const yearAgo = new Date(today);
-        yearAgo.setFullYear(today.getFullYear() - 1);
-        return date >= yearAgo;
-      }
-    });
-    
-    return [
-      {
-        id: 'completed tasks',
-        data: filtered.map(item => ({
-          x: item.date,
-          y: item.completed
-        }))
-      }
-    ];
-  };
+  const taskData = stats || getDefaultTaskStats();
+  const progressData = getProgressData(taskData);
   
   return (
     <div className="task-completion-stats">
@@ -230,7 +157,7 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
           <h3 className="text-lg font-medium text-gray-600 mb-4">Daily Task Completion</h3>
           <div className="h-64">
             <ResponsiveLine
-              data={getDailyCompletionData()}
+              data={getDailyCompletionData(taskData, timeRange)}
               margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
               xScale={{
                 type: 'time',
