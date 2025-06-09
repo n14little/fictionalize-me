@@ -1,5 +1,5 @@
 import { UserStreakStats } from '../lib/models/JournalStreak';
-import { MiniJournalStreakCalendar } from './MiniJournalStreakCalendar';
+import { MiniJournalStreakCalendarServer } from './MiniJournalStreakCalendarServer';
 
 interface JournalStreakProps {
   streakStats: UserStreakStats;
@@ -10,7 +10,7 @@ export function JournalStreak({ streakStats }: JournalStreakProps) {
     <div className="bg-white shadow rounded-lg border border-gray-200 p-6 mb-6">
       <h2 className="font-semibold text-lg mb-4">Your Journaling Habit</h2>
 
-      <MiniJournalStreakCalendar streakStats={streakStats} />
+      <MiniJournalStreakCalendarServer streakStats={streakStats} />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 p-4 rounded-md text-center">

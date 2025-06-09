@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { UserStreakStats } from '../lib/models/JournalStreak';
 import { Modal } from './Modal';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalStreakWrapper } from './JournalStreakWrapper';
-import { getUtcToday, getUtcMidnight, isSameUtcDay } from '../lib/utils/dateUtils';
+import { getUtcToday, getUtcMidnight, formatUtcDate } from '../lib/utils/dateUtils';
 
 interface MiniJournalStreakCalendarProps {
   streakStats: UserStreakStats;
@@ -13,33 +13,37 @@ interface MiniJournalStreakCalendarProps {
 
 export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCalendarProps) {
   const [showFullCalendar, setShowFullCalendar] = useState(false);
-  const [last30Days, setLast30Days] = useState<{ date: Date; hasJournaled: boolean }[]>([]);
-  
-  // Move date calculations to useEffect to avoid hydration mismatches
-  useEffect(() => {
+
+  // Use useMemo to calculate the calendar data only once per streakStats change
+  // Optimized calculation with O(n+m) complexity instead of O(n*m)
+  const last30Days = useMemo(() => {
     const today = getUtcToday();
-    const calculatedDays: { date: Date; hasJournaled: boolean }[] = [];
+    const days: { date: Date; hasJournaled: boolean }[] = [];
     
+    // Pre-compute a lookup set of streak dates for O(1) lookups
+    const streakDateSet = new Set<string>();
+    streakStats.streakDates.forEach(date => {
+      const utcDate = getUtcMidnight(new Date(date));
+      streakDateSet.add(formatUtcDate(utcDate));
+    });
+    
+    // Generate the last 30 days
     for (let i = 29; i >= 0; i--) {
-      // Create date for this position in the 30-day window
       const date = new Date(today);
       date.setUTCDate(today.getUTCDate() - i);
-      // Ensure we use UTC midnight
       const utcDate = getUtcMidnight(date);
       
-      const hasJournaled = streakStats.streakDates.some(streakDate => {
-        const streakDay = getUtcMidnight(new Date(streakDate));
-        return isSameUtcDay(streakDay, utcDate);
-      });
-
-      calculatedDays.push({ date: utcDate, hasJournaled });
+      // O(1) lookup instead of O(n) search
+      const hasJournaled = streakDateSet.has(formatUtcDate(utcDate));
+      days.push({ date: utcDate, hasJournaled });
     }
-    
-    setLast30Days(calculatedDays);
+    return days;
   }, [streakStats.streakDates]);
-
-  // Safe to format dates here since we're rendering on client after hydration
-  const formattedDates = streakStats.streakDates.map(date => date.toISOString());
+  
+  // Safe to format dates here since we're rendering on client
+  const formattedDates = useMemo(() => {
+    return streakStats.streakDates.map(date => date.toISOString());
+  }, [streakStats.streakDates]);
 
   return (
     <div className="mb-4">
@@ -55,12 +59,11 @@ export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCale
         </div>
         
         <div className="flex w-full">
-          {last30Days.length > 0 && last30Days.map((day) => (
-            <div key={day.date.toISOString()} className={`h-8 flex-grow rounded-sm
-                  ${day.hasJournaled
-                    ? 'bg-blue-500'
-                    : 'bg-gray-100'}`}>
-            </div>
+          {last30Days.map((day) => (
+            <div 
+              key={day.date.toISOString()} 
+              className={`h-8 flex-grow rounded-sm ${day.hasJournaled ? 'bg-blue-500' : 'bg-gray-100'}`}
+            />
           ))}
         </div>
       </div>

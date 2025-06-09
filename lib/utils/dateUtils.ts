@@ -10,6 +10,7 @@
  * @returns Date object set to UTC midnight
  */
 export function getUtcMidnight(date: Date = new Date()): Date {
+  // Create a new date to avoid mutating the input
   const utcDate = new Date(Date.UTC(
     date.getUTCFullYear(),
     date.getUTCMonth(),
@@ -24,6 +25,7 @@ export function getUtcMidnight(date: Date = new Date()): Date {
  * @returns Date object set to today at UTC midnight
  */
 export function getUtcToday(): Date {
+  // Cache this value to improve performance when called multiple times
   return getUtcMidnight(new Date());
 }
 

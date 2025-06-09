@@ -1,19 +1,22 @@
-import { redirect } from 'next/navigation';
-import { authService } from '@/lib/services/authService';
 import { journalEntryService } from '@/lib/services/journalEntryService';
 import { WritingStats } from '@/components/WritingStats';
+import { getCurrentUserId } from '../utils';
 
 export default async function WritingStatsSection() {
-  // Get the current user
-  const user = await authService.getCurrentUser();
+  const userId = await getCurrentUserId();
   
-  // If not logged in, redirect to sign-in
-  if (!user) {
-    redirect('/auth/signin');
-  }
+  // Fetch entry stats for the user if authenticated
+  // If not authenticated, main page will handle redirect
+  const defaultStats = {
+    totalEntries: 0,
+    totalWords: 0,
+    firstEntryDate: null,
+    mostRecentEntryDate: null
+  };
   
-  // Fetch entry stats for the user
-  const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
+  const entriesStats = userId 
+    ? await journalEntryService.getUserEntriesStats(userId)
+    : defaultStats;
   
   return <WritingStats entriesStats={entriesStats} />;
 }

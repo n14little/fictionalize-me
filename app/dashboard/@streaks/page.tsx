@@ -1,19 +1,17 @@
-import { redirect } from 'next/navigation';
-import { authService } from '@/lib/services/authService';
 import { journalStreakService } from '@/lib/services/journalStreakService';
 import { JournalStreak } from '@/components/JournalStreak';
+import { getCurrentUserId } from '../utils';
 
 export default async function StreaksSection() {
-  // Get the current user
-  const user = await authService.getCurrentUser();
+  const userId = await getCurrentUserId();
   
-  // If not logged in, redirect to sign-in
-  if (!user) {
-    redirect('/auth/signin');
-  }
+  // Fetch streak stats for the user if authenticated
+  // If not authenticated, main page will handle redirect
+  const streakStats = userId 
+    ? await journalStreakService.getUserStreakStats(userId) 
+    : { currentStreak: 0, longestStreak: 0, totalDays: 0, lastStreakDate: null, streakDates: [] };
   
-  // Fetch streak stats for the user
-  const streakStats = await journalStreakService.getUserStreakStats(user.id);
-  
-  return <JournalStreak streakStats={streakStats} />;
+  // Force fresh rendering by adding a key with current timestamp
+  // This ensures the component is completely re-rendered when data changes
+  return <JournalStreak key={`streak-${Date.now()}`} streakStats={streakStats} />;
 }
