@@ -1,5 +1,3 @@
-import { UserStreakStats } from '../lib/models/JournalStreak';
-
 interface EntriesStats {
   totalEntries: number;
   totalWords: number;
@@ -9,10 +7,9 @@ interface EntriesStats {
 
 interface WritingStatsProps {
   entriesStats: EntriesStats;
-  streakStats: UserStreakStats;
 }
 
-export function WritingStats({ entriesStats, streakStats }: WritingStatsProps) {
+export function WritingStats({ entriesStats }: WritingStatsProps) {
   // Calculate average words per entry
   const averageWords = entriesStats.totalEntries > 0 
     ? Math.round(entriesStats.totalWords / entriesStats.totalEntries) 
@@ -69,24 +66,6 @@ export function WritingStats({ entriesStats, streakStats }: WritingStatsProps) {
             <div className="flex justify-between">
               <span className="text-gray-600">Weekly Average</span>
               <span className="text-gray-800">{weeklyAverage} entries/week</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-4 border border-gray-100 rounded-md">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Streak Stats</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Current Streak</span>
-              <span className="text-gray-800">{streakStats.currentStreak} days</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Longest Streak</span>
-              <span className="text-gray-800">{streakStats.longestStreak} days</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Days Journaled</span>
-              <span className="text-gray-800">{streakStats.totalDays} days</span>
             </div>
           </div>
         </div>
