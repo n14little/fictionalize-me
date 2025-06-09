@@ -4,6 +4,7 @@ import { journalStreakService } from '../../lib/services/journalStreakService';
 import { journalEntryService } from '../../lib/services/journalEntryService';
 import { JournalStreak } from '../../components/JournalStreak';
 import { WritingStats } from '@/components/WritingStats';
+import { TaskCompletionStats } from '@/components/TaskCompletionStats';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,11 @@ export default async function Dashboard() {
         
         {/* Writing Statistics */}
         <WritingStats entriesStats={entriesStats} streakStats={streakStats} />
+
+        {/* Task Completion Statistics */}
+        <div className="mt-8">
+          <TaskCompletionStats />
+        </div>
       </div>
     </main>
   );
