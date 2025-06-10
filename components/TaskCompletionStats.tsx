@@ -42,17 +42,11 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
         </button>
       </div>
       
-      <div className="stats-summary-grid grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="stats-summary-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="stat-card p-4 bg-white rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-600">Completion Rate</h3>
           <div className="text-3xl font-bold">{taskData.completionRate}%</div>
           <div className="text-sm text-gray-500">{taskData.completedTasks} of {taskData.totalTasks} tasks</div>
-        </div>
-        
-        <div className="stat-card p-4 bg-white rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-600">Current Streak</h3>
-          <div className="text-3xl font-bold">{taskData.streakDays} days</div>
-          <div className="text-sm text-gray-500">Keep it going!</div>
         </div>
         
         <div className="stat-card p-4 bg-white rounded-lg shadow">
@@ -126,7 +120,7 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
         </div>
         
         <div className="chart-container bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-600 mb-4">Weekly Completion</h3>
+          <h3 className="text-lg font-medium text-gray-600 mb-4">Tasks by Day of Week</h3>
           <div className="h-64">
             <ResponsiveBar
               data={taskData.weeklyCompletion}
@@ -169,8 +163,9 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
                 type: 'time',
                 format: '%Y-%m-%d',
                 precision: 'day',
+                useUTC: false
               }}
-              xFormat="time:%Y-%m-%d"
+              xFormat="time:%b %d"
               yScale={{
                 type: 'linear',
                 min: 0,
@@ -178,10 +173,14 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
                 stacked: false,
                 reverse: false
               }}
-              curve="natural"
+              curve="monotoneX"
               axisBottom={{
                 format: '%b %d',
-                tickValues: 'every 2 days',
+                tickValues: timeRange === 'week' 
+                  ? 'every day' 
+                  : timeRange === 'month' 
+                  ? 'every 5 days' 
+                  : 'every month',
                 legend: 'Date',
                 legendOffset: 36,
                 legendPosition: 'middle'
@@ -192,14 +191,16 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
                 legendPosition: 'middle'
               }}
               colors="#3182CE"
-              pointSize={10}
+              pointSize={6}
               pointColor={{ theme: 'background' }}
               pointBorderWidth={2}
               pointBorderColor={{ from: 'serieColor' }}
               pointLabel="y"
               pointLabelYOffset={-12}
+              enableArea={true}
               areaOpacity={0.15}
               useMesh={true}
+              enableSlices="x"
             />
           </div>
         </div>

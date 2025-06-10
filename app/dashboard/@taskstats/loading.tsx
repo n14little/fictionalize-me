@@ -17,17 +17,11 @@ export default function Loading() {
       </div>
       
       {/* Stats cards - exact match for dimensions */}
-      <div className="stats-summary-grid grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="stats-summary-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="stat-card p-4 bg-white rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-300">Completion Rate</h3>
           <div className="text-3xl font-bold text-gray-200">--.--%</div>
           <div className="text-sm text-gray-300">-- of -- tasks</div>
-        </div>
-        
-        <div className="stat-card p-4 bg-white rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-300">Current Streak</h3>
-          <div className="text-3xl font-bold text-gray-200">-- days</div>
-          <div className="text-sm text-gray-300">Keep it going!</div>
         </div>
         
         <div className="stat-card p-4 bg-white rounded-lg shadow">
@@ -47,7 +41,7 @@ export default function Loading() {
         </div>
         
         <div className="chart-container bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-300 mb-4">Weekly Completion</h3>
+          <h3 className="text-lg font-medium text-gray-300 mb-4">Tasks by Day of Week</h3>
           <div className="h-64 bg-gray-50 rounded flex items-end px-10">
             {Array.from({ length: 7 }).map((_, i) => (
               <div key={i} className="flex-1 mx-1">

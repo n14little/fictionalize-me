@@ -127,11 +127,13 @@ describe('Task Stats Utils', () => {
       });
     }
 
-    it('should filter data for the past week', () => {
+    it('should fill in all dates for the past week', () => {
       const results = getDailyCompletionData(mockStats, 'week');
       
-      expect(results).toHaveLength(5);
+      // Should contain 8 days (today + 7 previous days)
+      expect(results).toHaveLength(8);
 
+      // Should contain the dates with data
       expectResultsToContainDates(results, [
         '2025-06-15',
         '2025-06-14',
@@ -139,6 +141,15 @@ describe('Task Stats Utils', () => {
         '2025-06-12',
         '2025-06-10'
       ]);
+      
+      // Should also contain days with no completions (filled with zeros)
+      expectResultsToContainDates(results, [
+        '2025-06-11',
+        '2025-06-09',
+        '2025-06-08'
+      ]);
+      
+      // Should not contain dates outside the range
       expectResultsNotToContainDates(results, [
         '2025-06-05',
         '2025-06-01',
@@ -147,12 +158,19 @@ describe('Task Stats Utils', () => {
         '2024-06-30',
         '2024-06-15'
       ]);
+      
+      // Days with no completions should have a completed count of 0
+      const june11Data = results.find(item => item.date === '2025-06-11');
+      expect(june11Data?.completed).toBe(0);
     });
     
-    it('should filter data for the past month', () => {
+    it('should fill in all dates for the past month', () => {
       const results = getDailyCompletionData(mockStats, 'month');
 
-      expect(results).toHaveLength(8);
+      // Should have data for roughly 30-31 days depending on the month
+      expect(results.length).toBeGreaterThanOrEqual(30);
+      
+      // Should contain the dates with data
       expectResultsToContainDates(results, [
         '2025-06-15',
         '2025-06-14',
@@ -163,18 +181,27 @@ describe('Task Stats Utils', () => {
         '2025-06-01',
         '2025-05-20'
       ]);
+      
+      // Should not contain dates outside the range
       expectResultsNotToContainDates(results, [
         '2025-05-01',
         '2024-06-30',
         '2024-06-15'
       ]);
+      
+      // Check that dates with no entries are filled with zeros
+      const june07Data = results.find(item => item.date === '2025-06-07');
+      expect(june07Data?.completed).toBe(0);
     });
     
-    it('should filter data for the past year', () => {
+    it('should fill in all dates for the past year', () => {
       const results = getDailyCompletionData(mockStats, 'year');
 
-      expect(results).toHaveLength(10);
+      // A year should have roughly 365 days
+      expect(results.length).toBeGreaterThanOrEqual(364);
+      expect(results.length).toBeLessThanOrEqual(366);
 
+      // Should contain the dates with data
       expectResultsToContainDates(results, [
         '2025-06-15',
         '2025-06-14',
@@ -187,10 +214,15 @@ describe('Task Stats Utils', () => {
         '2025-05-01',
         '2024-06-30'
       ]);
-
-      expectResultsNotToContainDates(results, [
-        '2024-06-15'
-      ]);
+      
+      // Check that a random date in the middle with no entries is filled with zero
+      const jan15Data = results.find(item => item.date === '2025-01-15');
+      expect(jan15Data?.completed).toBe(0);
+      
+      // The test data includes 2024-06-15 but our filter start date 
+      // should exclude it because it's exactly one day older than the cutoff
+      const shouldBeExcluded = results.find(item => item.date === '2024-06-15');
+      expect(shouldBeExcluded).toBeUndefined();
     });
   });
 });

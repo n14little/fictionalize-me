@@ -1,12 +1,19 @@
 import { TaskCompletionStats } from '@/components/TaskCompletionStats';
+import { taskStatsService } from '@/lib/services/taskStatsService';
+import { getCurrentUserId } from '../utils';
 
-export default function TaskStatsSection() {
-  // No need to fetch user data as TaskCompletionStats uses mock data
-  // Later when real task data is implemented, you can use getCurrentUserId() here
+export default async function TaskStatsSection() {
+  const userId = await getCurrentUserId();
+  
+  // Fetch task stats for the user if authenticated
+  // If not authenticated, main page will handle redirect
+  const taskStats = userId
+    ? await taskStatsService.getUserTaskStats(userId)
+    : undefined;
   
   return (
     <div className="mt-8">
-      <TaskCompletionStats />
+      <TaskCompletionStats stats={taskStats} />
     </div>
   );
 }
