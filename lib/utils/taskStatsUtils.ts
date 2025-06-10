@@ -31,7 +31,7 @@ export const getProgressData = (taskData: TaskStats) => {
   ];
 };
 
-export const getDailyCompletionData = (taskData: TaskStats, timeRange: 'week' | 'month' | 'year') => {
+export const getDailyCompletionData = (taskData: TaskStats, timeRange: 'week' | 'month' | 'year'): TaskStats['dailyCompletion'] => {
   const today = new Date();
   const filtered = taskData.dailyCompletion.filter(item => {
     const date = new Date(item.date);
@@ -50,13 +50,5 @@ export const getDailyCompletionData = (taskData: TaskStats, timeRange: 'week' | 
     }
   });
   
-  return [
-    {
-      id: 'completed tasks',
-      data: filtered.map(item => ({
-        x: item.date,
-        y: item.completed
-      }))
-    }
-  ];
+  return filtered;
 };

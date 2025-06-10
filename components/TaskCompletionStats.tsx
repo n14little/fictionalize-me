@@ -157,7 +157,13 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
           <h3 className="text-lg font-medium text-gray-600 mb-4">Daily Task Completion</h3>
           <div className="h-64">
             <ResponsiveLine
-              data={getDailyCompletionData(taskData, timeRange)}
+              data={[{
+                id: 'completed_tasks',
+                data: getDailyCompletionData(taskData, timeRange).map(item => ({
+                  x: item.date,
+                  y: item.completed
+                }))
+              }]}
               margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
               xScale={{
                 type: 'time',
