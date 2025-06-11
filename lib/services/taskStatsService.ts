@@ -1,5 +1,6 @@
 import { TaskStats } from '../../types/taskStats';
 import { taskStatsRepository } from '../repositories/taskStatsRepository';
+import { getWeeklyCompletionData, getDefaultTaskStats } from '../utils/taskStatsUtils';
 
 export const taskStatsService = {
   /**
@@ -23,6 +24,9 @@ export const taskStatsService = {
       // Use the raw data as is - the utility function will handle filling in missing dates
       const dailyCompletions = rawStats.dailyCompletions;
 
+      // Calculate weekly completion data from raw timestamps in client timezone
+      const weeklyCompletion = getWeeklyCompletionData(rawStats.weeklyCompletionTimes);
+      
       // Transform data into the expected TaskStats format
       const taskStats: TaskStats = {
         completedTasks: rawStats.completedCount,
@@ -31,7 +35,7 @@ export const taskStatsService = {
         completionRate,
         streakDays: 0, // Streak calculation removed as requested
         averageCompletionTime: rawStats.averageCompletionTime || 0,
-        weeklyCompletion: rawStats.weeklyCompletions,
+        weeklyCompletion, // Now using client-side day calculation
         dailyCompletion: dailyCompletions
       };
 
@@ -43,25 +47,3 @@ export const taskStatsService = {
     }
   }
 };
-
-// Fallback function that provides default stats if needed
-function getDefaultTaskStats(): TaskStats {
-  return {
-    completedTasks: 0,
-    pendingTasks: 0,
-    totalTasks: 0,
-    completionRate: 0,
-    streakDays: 0,
-    weeklyCompletion: [
-      { day: 'Mon', count: 0 },
-      { day: 'Tue', count: 0 },
-      { day: 'Wed', count: 0 },
-      { day: 'Thu', count: 0 },
-      { day: 'Fri', count: 0 },
-      { day: 'Sat', count: 0 },
-      { day: 'Sun', count: 0 }
-    ],
-    dailyCompletion: [], // Empty array instead of mock data for real implementation
-    averageCompletionTime: 0
-  };
-}

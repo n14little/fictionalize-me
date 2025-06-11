@@ -11,7 +11,7 @@ export const taskStatsRepository = {
     totalCount: number;
     averageCompletionTime: number;
     dailyCompletions: { date: string; completed: number }[];
-    weeklyCompletions: { day: string; count: number }[];
+    weeklyCompletionTimes: string[]; // Raw completion timestamps for all completed tasks
   }> => {
     // Get completed and pending task counts
     const taskCountsResult = await query(
@@ -36,46 +36,36 @@ export const taskStatsRepository = {
     // Get daily task completion data for the last 30 days
     const dailyCompletionResult = await query(
       `SELECT 
-        TO_CHAR(DATE_TRUNC('day', completed_at), 'YYYY-MM-DD') as date,
+        completed_at,
         COUNT(*) as completed
       FROM tasks
-      WHERE 
+      WHERE
         user_id = $1 
         AND completed = true 
         AND completed_at IS NOT NULL
         AND completed_at >= NOW() - INTERVAL '30 days'
-      GROUP BY DATE_TRUNC('day', completed_at), TO_CHAR(DATE_TRUNC('day', completed_at), 'YYYY-MM-DD')
-      ORDER BY date ASC`,
+      GROUP BY completed_at
+      ORDER BY completed_at ASC`,
       [userId]
     );
 
-    // Get weekly completion data (by day of week)
+    // Get raw completion timestamps for all completed tasks
+    // We'll calculate days in the frontend to respect user's timezone
     const weeklyCompletionResult = await query(
-      `SELECT 
-        TO_CHAR(DATE_TRUNC('day', completed_at), 'Dy') as day,
-        COUNT(*) as count
+      `SELECT
+        completed_at
       FROM tasks
-      WHERE 
+      WHERE
         user_id = $1 
-        AND completed = true 
+        AND completed = true
         AND completed_at IS NOT NULL
-        AND completed_at > NOW() - INTERVAL '7 days'
-      GROUP BY day
-      ORDER BY MIN(completed_at)`,
+      ORDER BY completed_at`,
       [userId]
     );
 
-    // Define day order and ensure all days are present
-    const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    
-    // Ensure all days of the week are represented in weekly completion
-    const weeklyCompletions = dayOrder.map(day => {
-      const found = weeklyCompletionResult.rows.find(r => r.day === day);
-      return {
-        day,
-        count: found ? parseInt(found.count) : 0
-      };
-    });
+    // Return raw completion timestamps for all completed tasks
+    // The service layer will handle formatting based on user's timezone
+    const weeklyCompletionTimes = weeklyCompletionResult.rows.map(row => row.completed_at);
 
     return {
       completedCount: parseInt(taskCountsResult.rows[0]?.completed_count || '0'),
@@ -83,10 +73,10 @@ export const taskStatsRepository = {
       totalCount: parseInt(taskCountsResult.rows[0]?.total_count || '0'),
       averageCompletionTime: Math.round(parseFloat(avgCompletionResult.rows[0]?.avg_completion_time || '0')),
       dailyCompletions: dailyCompletionResult.rows.map(row => ({
-        date: row.date,
+        date: row.completed_at,
         completed: parseInt(row.completed)
       })),
-      weeklyCompletions
+      weeklyCompletionTimes // Return timestamps for all completed tasks
     };
   }
 };

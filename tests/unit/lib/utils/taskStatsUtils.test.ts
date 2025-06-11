@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getDefaultTaskStats, getProgressData, getDailyCompletionData } from '@/lib/utils/taskStatsUtils';
 import { TaskStats } from '@/types/taskStats';
+import { format, subDays } from 'date-fns';
 
 describe('Task Stats Utils', () => {
   describe('getDefaultTaskStats', () => {
@@ -113,116 +114,72 @@ describe('Task Stats Utils', () => {
       vi.useRealTimers();
     });
 
-    function expectResultsToContainDates(results: TaskStats['dailyCompletion'], expectedDates: string[]) {
-      const dates = results.map(item => item.date);
-      expectedDates.forEach(date => {
-        expect(dates).toContain(date);
-      });
-    }
+    function expectSequentialDatesFromToday(results: TaskStats['dailyCompletion'], n: number, expectedCounts: Record<string, number>) {
+      expect(results.length).toBe(n);
 
-    function expectResultsNotToContainDates(results: TaskStats['dailyCompletion'], unexpectedDates: string[]) {
-      const dates = results.map(item => item.date);
-      unexpectedDates.forEach(date => {
-        expect(dates).not.toContain(date);
-      });
+      const today = new Date();
+
+      for (let i = 0; i < n; i++) {
+        const date = subDays(today, i);
+        const expectedDate = format(date, 'yyyy-MM-dd');
+        const foundItem = results.find(item => item.date === expectedDate);
+
+        expect(foundItem).toBeDefined();
+        expect(foundItem!.completed).toBe(expectedCounts[expectedDate] || 0);
+      }
     }
 
     it('should fill in all dates for the past week', () => {
       const results = getDailyCompletionData(mockStats, 'week');
       
-      // Should contain 8 days (today + 7 previous days)
-      expect(results).toHaveLength(8);
+      const expectedDays = 7;
 
-      // Should contain the dates with data
-      expectResultsToContainDates(results, [
-        '2025-06-15',
-        '2025-06-14',
-        '2025-06-13',
-        '2025-06-12',
-        '2025-06-10'
-      ]);
+      const expectedCounts: Record<string, number> = {
+        '2025-06-15': 3,
+        '2025-06-14': 4,
+        '2025-06-13': 2,
+        '2025-06-12': 1,
+        '2025-06-10': 5
+      };
       
-      // Should also contain days with no completions (filled with zeros)
-      expectResultsToContainDates(results, [
-        '2025-06-11',
-        '2025-06-09',
-        '2025-06-08'
-      ]);
-      
-      // Should not contain dates outside the range
-      expectResultsNotToContainDates(results, [
-        '2025-06-05',
-        '2025-06-01',
-        '2025-05-20',
-        '2025-05-01',
-        '2024-06-30',
-        '2024-06-15'
-      ]);
-      
-      // Days with no completions should have a completed count of 0
-      const june11Data = results.find(item => item.date === '2025-06-11');
-      expect(june11Data?.completed).toBe(0);
+      expectSequentialDatesFromToday(results, expectedDays, expectedCounts);
     });
-    
+
     it('should fill in all dates for the past month', () => {
       const results = getDailyCompletionData(mockStats, 'month');
 
-      // Should have data for roughly 30-31 days depending on the month
-      expect(results.length).toBeGreaterThanOrEqual(30);
-      
-      // Should contain the dates with data
-      expectResultsToContainDates(results, [
-        '2025-06-15',
-        '2025-06-14',
-        '2025-06-13',
-        '2025-06-12',
-        '2025-06-10',
-        '2025-06-05',
-        '2025-06-01',
-        '2025-05-20'
-      ]);
-      
-      // Should not contain dates outside the range
-      expectResultsNotToContainDates(results, [
-        '2025-05-01',
-        '2024-06-30',
-        '2024-06-15'
-      ]);
-      
-      // Check that dates with no entries are filled with zeros
-      const june07Data = results.find(item => item.date === '2025-06-07');
-      expect(june07Data?.completed).toBe(0);
+      const expectedDays = 30;
+      const expectedCounts: Record<string, number> = {
+        '2025-06-15': 3,
+        '2025-06-14': 4,
+        '2025-06-13': 2,
+        '2025-06-12': 1,
+        '2025-06-10': 5,
+        '2025-06-05': 6,
+        '2025-06-01': 3,
+        '2025-05-20': 2
+      };
+
+      expectSequentialDatesFromToday(results, expectedDays, expectedCounts);
     });
-    
+
     it('should fill in all dates for the past year', () => {
       const results = getDailyCompletionData(mockStats, 'year');
+      const expectedDays = 365;
+      const expectedCounts: Record<string, number> = {
+        '2025-06-15': 3,
+        '2025-06-14': 4,
+        '2025-06-13': 2,
+        '2025-06-12': 1,
+        '2025-06-10': 5,
+        '2025-06-05': 6,
+        '2025-06-01': 3,
+        '2025-05-20': 2,
+        '2025-05-01': 1,
+        '2024-06-30': 4
+      };
 
-      // A year should have roughly 365 days
-      expect(results.length).toBeGreaterThanOrEqual(364);
-      expect(results.length).toBeLessThanOrEqual(366);
-
-      // Should contain the dates with data
-      expectResultsToContainDates(results, [
-        '2025-06-15',
-        '2025-06-14',
-        '2025-06-13',
-        '2025-06-12',
-        '2025-06-10',
-        '2025-06-05',
-        '2025-06-01',
-        '2025-05-20',
-        '2025-05-01',
-        '2024-06-30'
-      ]);
-      
-      // Check that a random date in the middle with no entries is filled with zero
-      const jan15Data = results.find(item => item.date === '2025-01-15');
-      expect(jan15Data?.completed).toBe(0);
-      
-      // The test data includes 2024-06-15 but our filter start date 
-      // should exclude it because it's exactly one day older than the cutoff
-      const shouldBeExcluded = results.find(item => item.date === '2024-06-15');
-      expect(shouldBeExcluded).toBeUndefined();
+      expectSequentialDatesFromToday(results, expectedDays, expectedCounts);
     });
   });
 });

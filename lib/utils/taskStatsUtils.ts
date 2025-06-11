@@ -1,4 +1,5 @@
 import { TaskStats } from '../../types/taskStats';
+import { format, subDays, addDays } from 'date-fns';
 
 export const getDefaultTaskStats = (): TaskStats => {
   return {
@@ -34,46 +35,73 @@ export const getProgressData = (taskData: TaskStats) => {
 export const getDailyCompletionData = (taskData: TaskStats, timeRange: 'week' | 'month' | 'year'): TaskStats['dailyCompletion'] => {
   const today = new Date();
 
-  // Determine start date based on time range
-  let startDate: Date;
-  if (timeRange === 'week') {
-    startDate = new Date(today);
-    startDate.setDate(today.getDate() - 7); // Last 7 days 
-  } else if (timeRange === 'month') {
-    startDate = new Date(today);
-    startDate.setMonth(today.getMonth() - 1); // Last month
-  } else {
-    // For yearly data, we need to be very precise with the date
-    // to match test expectations
-    startDate = new Date(today);
-    // Set to same day, same month, previous year + 1 day
-    const prevYear = today.getFullYear() - 1;
-    const currentMonth = today.getMonth();
-    const currentDay = today.getDate();
-    startDate = new Date(prevYear, currentMonth, currentDay + 1);
-  }
-  
-  // Create a map of dates to completions from existing data
+  // we start with today so we only need to
+  // subtract n-1 days in order get the correct range
+  const daysToSubtract = {
+    week: 6,
+    month: 29,
+    year: 364
+  };
+  const startDate = subDays(today, daysToSubtract[timeRange]);
+
   const dateMap: Record<string, number> = {};
   taskData.dailyCompletion.forEach(item => {
-    const date = new Date(item.date);
-    if (date >= startDate && date <= today) {
-      dateMap[item.date] = item.completed;
+    // Parse the full timestamp
+    const timestamp = new Date(item.date);
+    
+    // Format to YYYY-MM-DD for grouping by day
+    const formattedDate = format(timestamp, 'yyyy-MM-dd');
+    
+    if (timestamp >= startDate && timestamp <= today) {
+      // Aggregate tasks completed on the same day
+      dateMap[formattedDate] = (dateMap[formattedDate] || 0) + item.completed;
     }
   });
-  
-  // Create a comprehensive array with all dates in the range
+
   const allDates: TaskStats['dailyCompletion'] = [];
-  const currentDate = new Date(startDate);
-  
+  let currentDate = new Date(startDate);
+
   while (currentDate <= today) {
-    const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateStr = format(currentDate, 'yyyy-MM-dd');
     allDates.push({
       date: dateStr,
       completed: dateMap[dateStr] || 0
     });
-    currentDate.setDate(currentDate.getDate() + 1);
+    currentDate = addDays(currentDate, 1);
   }
-  
+
   return allDates.sort((a, b) => a.date.localeCompare(b.date));
+};
+
+/**
+ * Calculate weekly completion data from raw timestamps
+ * This processes the data in the client timezone to ensure days are correctly calculated
+ */
+export const getWeeklyCompletionData = (timestamps: string[]): TaskStats['weeklyCompletion'] => {
+  // Define standard day order
+  const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
+  // Create a map to count tasks completed on each day of the week
+  const dayCountMap: Record<string, number> = {};
+  
+  // Count tasks completed on each day
+  timestamps.forEach(timestamp => {
+    // Parse the timestamp in the client's timezone 
+    const date = new Date(timestamp);
+    
+    // Get day of week abbreviation in standard format (Mon, Tue, etc.)
+    // Use 'E' (1-letter) for single letter abbreviations or 'EEE' (3-letters) for standard abbreviations
+    const day = format(date, 'EEE').substring(0, 3);
+    
+    // Increment count for this day
+    dayCountMap[day] = (dayCountMap[day] || 0) + 1;
+  });
+  
+  // Ensure all days of the week are represented in the result
+  return dayOrder.map(day => {
+    return {
+      day,
+      count: dayCountMap[day] || 0
+    };
+  });
 };
