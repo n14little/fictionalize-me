@@ -39,23 +39,20 @@ export function NewEntryModalButton({
   );
 }
 
-export function DailyWriteModalButton({ 
-  children 
-}: { 
+export function DailyWriteModalButton({
+  children,
+  buttonClassName = "",
+}: {
   children?: ReactNode;
+  buttonClassName?: string;
 } = {}) {
   return (
     <EntryButtonModal
       // Button props
-      buttonClassName="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium flex items-center gap-1"
+      buttonClassName={buttonClassName}
       buttonAriaLabel="Quick daily write"
-      buttonContent={children || (
-        <>
-          <span>✍️</span>
-          <span>Daily Write</span>
-        </>
-      )}
-      
+      buttonContent={children}
+
       // Modal props
       modalType="daily"
       onSubmit={createDailyEntry}
