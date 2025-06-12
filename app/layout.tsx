@@ -4,7 +4,6 @@ import "./globals.css";
 import Link from "next/link";
 import { AuthProvider } from "./providers";
 import AuthButtons from "@/components/AuthButtons";
-import { DailyWriteModalButton } from "@/components/EntryButtonAliases";
 import DynamicDashboardLink from "@/components/DynamicDashboardLink";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -36,7 +35,6 @@ export default function RootLayout({
                     Journals
                   </Link>
                   <DynamicDashboardLink />
-                  <DailyWriteModalButton />
                   <AuthProvider>
                     <AuthButtons />
                   </AuthProvider>

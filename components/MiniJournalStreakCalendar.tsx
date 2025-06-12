@@ -6,6 +6,7 @@ import { Modal } from './Modal';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalStreakWrapper } from './JournalStreakWrapper';
 import { getUtcToday, getUtcMidnight, formatUtcDate } from '../lib/utils/dateUtils';
+import { DailyWriteModalButton } from "@/components/EntryButtonAliases";
 
 interface MiniJournalStreakCalendarProps {
   streakStats: UserStreakStats;
@@ -59,12 +60,12 @@ export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCale
         </div>
         
         <div className="flex w-full">
-          {last30Days.map((day) => (
-            <div 
-              key={day.date.toISOString()} 
+          {last30Days.map((day, index) => (
+            index !== 29 || day.hasJournaled ? (<div
+              key={day.date.toISOString()}
               className={`h-8 flex-grow rounded-sm ${day.hasJournaled ? 'bg-blue-500' : 'bg-gray-100'}`}
-            />
-          ))}
+            >
+            </div>) : (<DailyWriteModalButton key={day.date.toISOString()} buttonClassName="h-8 flex-grow rounded-sm hover:bg-gray-300 hover:cursor-pointer bg-gray-200 animate-bounce" />)))}
         </div>
       </div>
 
