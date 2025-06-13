@@ -13,9 +13,6 @@ import { UserStreakStats } from '../lib/models/JournalStreak';
 
 export interface EntryStats {
   totalEntries: number;
-  totalWords: number;
-  firstEntryDate: Date | null;
-  mostRecentEntryDate: Date | null;
 }
 
 export interface StatsData {
