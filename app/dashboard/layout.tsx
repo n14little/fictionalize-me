@@ -1,11 +1,9 @@
 export default function DashboardLayout({
   streaks,
-  writingstats,
   taskstats,
 }: {
   children: React.ReactNode;
   streaks: React.ReactNode;
-  writingstats: React.ReactNode;
   taskstats: React.ReactNode;
 }) {
   return (
@@ -16,7 +14,6 @@ export default function DashboardLayout({
           <p className="text-gray-600 mt-2">Track your journaling progress and build your writing habit</p>
         </div>
         {streaks}
-        {writingstats}
         {taskstats}
       </div>
     </main>

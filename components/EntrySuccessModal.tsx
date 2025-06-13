@@ -6,9 +6,6 @@ import { UserStreakStats } from '../lib/models/JournalStreak';
 
 interface EntriesStats {
   totalEntries: number;
-  totalWords: number;
-  firstEntryDate: Date | null;
-  mostRecentEntryDate: Date | null;
 }
 
 interface EntrySuccessModalProps {
@@ -32,11 +29,6 @@ export function EntrySuccessModal({
     onClose();
     router.push(`/journals/${journalId}`);
   };
-
-  // Calculate average words per entry
-  const averageWords = entriesStats.totalEntries > 0 
-    ? Math.round(entriesStats.totalWords / entriesStats.totalEntries) 
-    : 0;
 
   return (
     <Modal onClose={handleClose}>
@@ -74,11 +66,7 @@ export function EntrySuccessModal({
             <div className="text-2xl font-bold text-teal-600">{entriesStats.totalEntries}</div>
             <div className="text-sm text-gray-600">Total Entries</div>
           </div>
-          
-          <div className="bg-amber-50 p-4 rounded-md text-center">
-            <div className="text-2xl font-bold text-amber-600">{averageWords}</div>
-            <div className="text-sm text-gray-600">Avg Words/Entry</div>
-          </div>
+
         </div>
         
         <div className="flex justify-center">

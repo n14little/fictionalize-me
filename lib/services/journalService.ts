@@ -7,10 +7,6 @@ export const journalService = {
     return journalRepository.findByUserId(userId);
   },
 
-  getPublicJournals: async (): Promise<Journal[]> => {
-    return journalRepository.findPublic();
-  },
-
   getJournalById: async (id: string, userId?: number): Promise<Journal | null> => {
     const journal = await journalRepository.findById(id);
 

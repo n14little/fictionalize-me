@@ -14,16 +14,6 @@ export const journalRepository = {
   },
 
   /**
-   * Find all public journals
-   */
-  findPublic: async (): Promise<Journal[]> => {
-    const result = await query(
-      'SELECT * FROM journals WHERE public = true ORDER BY updated_at DESC'
-    );
-    return result.rows;
-  },
-
-  /**
    * Find a journal by ID
    */
   findById: async (id: string): Promise<Journal | null> => {

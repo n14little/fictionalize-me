@@ -80,7 +80,7 @@ export async function createEntry(formData: FormData) {
 
     // Get updated stats to return to the client
     const streakStats = await journalStreakService.getUserStreakStats(user.id);
-    const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
+    const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
 
     return { 
       success: true,
@@ -153,7 +153,7 @@ export async function updateEntry(
 
     // Get updated stats to return to the client
     const streakStats = await journalStreakService.getUserStreakStats(user.id);
-    const entriesStats = await journalEntryService.getUserEntriesStats(user.id);
+    const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
 
     return { 
       success: true, 
