@@ -19,47 +19,47 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
   
   return (
     <div className="task-completion-stats">
-      <h2 className="text-2xl font-bold mb-4">Task Completion Statistics</h2>
+      <h2 className="text-lg font-bold mb-4">Task Completion Statistics</h2>
       
-      <div className="stats-time-filter flex gap-2 mb-6">
+      <div className="stats-time-filter flex gap-1 mb-4 text-sm">
         <button 
-          className={`px-4 py-2 rounded ${timeRange === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-2 py-1 rounded ${timeRange === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           onClick={() => setTimeRange('week')}
         >
           This Week
         </button>
         <button 
-          className={`px-4 py-2 rounded ${timeRange === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-2 py-1 rounded ${timeRange === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           onClick={() => setTimeRange('month')}
         >
           This Month
         </button>
         <button 
-          className={`px-4 py-2 rounded ${timeRange === 'year' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-2 py-1 rounded ${timeRange === 'year' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           onClick={() => setTimeRange('year')}
         >
           This Year
         </button>
       </div>
       
-      <div className="stats-summary-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="stat-card p-4 bg-white rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-600">Completion Rate</h3>
-          <div className="text-3xl font-bold">{taskData.completionRate}%</div>
-          <div className="text-sm text-gray-500">{taskData.completedTasks} of {taskData.totalTasks} tasks</div>
+      <div className="stats-summary-grid grid grid-cols-1 gap-4 mb-6">
+        <div className="stat-card p-3 bg-white rounded-lg border border-gray-100">
+          <h3 className="text-sm font-medium text-gray-600">Completion Rate</h3>
+          <div className="text-2xl font-bold">{taskData.completionRate}%</div>
+          <div className="text-xs text-gray-500">{taskData.completedTasks} of {taskData.totalTasks} tasks</div>
         </div>
         
-        <div className="stat-card p-4 bg-white rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-600">Avg. Completion Time</h3>
-          <div className="text-3xl font-bold">{taskData.averageCompletionTime} min</div>
-          <div className="text-sm text-gray-500">Per task</div>
+        <div className="stat-card p-3 bg-white rounded-lg border border-gray-100">
+          <h3 className="text-sm font-medium text-gray-600">Avg. Completion Time</h3>
+          <div className="text-2xl font-bold">{taskData.averageCompletionTime} min</div>
+          <div className="text-xs text-gray-500">Per task</div>
         </div>
       </div>
       
-      <div className="stats-charts-grid grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="chart-container bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-600 mb-4">Task Progress</h3>
-          <div className="h-64">
+      <div className="stats-charts-grid grid grid-cols-1 gap-4">
+        <div className="chart-container bg-white p-3 rounded-lg border border-gray-100">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Task Progress</h3>
+          <div className="h-48">
             <ResponsivePie
               data={progressData}
               margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
@@ -119,9 +119,9 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
           </div>
         </div>
         
-        <div className="chart-container bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-600 mb-4">Tasks by Day of Week</h3>
-          <div className="h-64">
+        <div className="chart-container bg-white p-3 rounded-lg border border-gray-100">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Tasks by Day of Week</h3>
+          <div className="h-48">
             <ResponsiveBar
               data={taskData.weeklyCompletion}
               keys={['count']}
@@ -147,9 +147,9 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
           </div>
         </div>
         
-        <div className="chart-container bg-white p-4 rounded-lg shadow col-span-1 md:col-span-2">
-          <h3 className="text-lg font-medium text-gray-600 mb-4">Daily Task Completion</h3>
-          <div className="h-64">
+        <div className="chart-container bg-white p-3 rounded-lg border border-gray-100 col-span-1">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Daily Task Completion</h3>
+          <div className="h-48">
             <ResponsiveLine
               data={[{
                 id: 'completed_tasks',
