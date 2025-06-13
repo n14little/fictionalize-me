@@ -3,27 +3,8 @@ import { journalEntryRepository } from '../repositories/journalEntryRepository';
 import { journalRepository } from '../repositories/journalRepository';
 
 export const journalEntryService = {
-  getUserEntriesStats: async (userId: number) => {
-    // Get all entries for all journals owned by the user
-    const journals = await journalRepository.findByUserId(userId);
-    if (!journals || journals.length === 0) {
-      return {
-        totalEntries: 0,
-      };
-    }
-
-    // Get entries for all user's journals
-    const journalIds = journals.map(journal => journal.id);
-    const allEntries = await journalEntryRepository.findByJournalIds(journalIds);
-
-    if (!allEntries || allEntries.length === 0) {
-      return {
-        totalEntries: 0,
-      };
-    }
-
-    // Calculate total entries
-    const totalEntries = allEntries.length;
+  getTotalEntriesForUser: async (userId: number) => {
+    const totalEntries = await journalEntryRepository.findTotalEntryCountByUserId(userId);
 
     return {
       totalEntries,

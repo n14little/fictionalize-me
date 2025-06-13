@@ -31,6 +31,20 @@ export const journalEntryRepository = {
     return result.rows;
   },
 
+  findTotalEntryCountByUserId: async (userId: number): Promise<number> => {
+    const result = await query(
+      `
+        with user_journals as (
+          SELECT id FROM journals WHERE user_id = $1
+        )
+        SELECT COUNT(*) FROM journal_entries WHERE journal_id IN (SELECT id FROM user_journals)
+      `,
+      [userId]
+    );
+
+    return result?.rows[0]?.count || 0;
+  },
+
   /**
    * Find a journal entry by ID
    */
