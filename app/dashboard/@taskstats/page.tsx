@@ -12,7 +12,7 @@ export default async function TaskStatsSection() {
     : undefined;
   
   return (
-    <div className="mt-8">
+    <div className="bg-white shadow rounded-lg border border-gray-200 p-6">
       <TaskCompletionStats stats={taskStats} />
     </div>
   );
