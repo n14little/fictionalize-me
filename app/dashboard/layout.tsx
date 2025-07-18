@@ -10,12 +10,12 @@ export default function DashboardLayout({
     <main className="flex min-h-screen flex-col p-4 md:p-12">
       <div className="w-full mx-auto">
         {/* Three column layout with header and content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-y-6 gap-x-6">
           {/* Left gutter - header row */}
           <div className="lg:col-span-2">
             <div className="hidden lg:block"></div>
           </div>
-          
+
           {/* Header aligned with main content */}
           <div className="lg:col-span-8 mb-4">
             <h1 className="text-3xl font-bold">Journaling Dashboard</h1>
