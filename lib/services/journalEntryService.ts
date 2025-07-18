@@ -11,6 +11,10 @@ export const journalEntryService = {
     };
   },
 
+  getRecentEntriesForUser: async (userId: number, limit: number = 5) => {
+    return journalEntryRepository.findRecentByUserId(userId, limit);
+  },
+
   getJournalEntries: async (journalId: string, userId?: number) => {
     const journal = await journalRepository.findById(journalId);
     

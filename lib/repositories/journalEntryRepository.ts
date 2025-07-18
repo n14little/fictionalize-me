@@ -31,6 +31,24 @@ export const journalEntryRepository = {
     return result.rows;
   },
 
+  /**
+   * Find recent journal entries for a user across all their journals
+   */
+  findRecentByUserId: async (userId: number, limit: number = 5): Promise<JournalEntry[]> => {
+    const result = await query(
+      `
+        SELECT je.* 
+        FROM journal_entries je
+        JOIN journals j ON je.journal_id = j.id
+        WHERE j.user_id = $1
+        ORDER BY je.updated_at DESC
+        LIMIT $2
+      `,
+      [userId, limit]
+    );
+    return result.rows;
+  },
+
   findTotalEntryCountByUserId: async (userId: number): Promise<number> => {
     const result = await query(
       `

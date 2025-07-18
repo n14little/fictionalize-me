@@ -27,8 +27,15 @@ export function EntrySuccessModal({
 
   const handleClose = () => {
     onClose();
-    router.push(`/journals/${journalId}`);
+    // If journalId is 'dashboard', redirect to dashboard, otherwise to journal
+    if (journalId === 'dashboard') {
+      router.push('/dashboard');
+    } else {
+      router.push(`/journals/${journalId}`);
+    }
   };
+
+  const isFromDashboard = journalId === 'dashboard';
 
   return (
     <Modal onClose={handleClose}>
@@ -74,7 +81,7 @@ export function EntrySuccessModal({
             onClick={handleClose}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            Continue to Journal
+            {isFromDashboard ? 'Return to Dashboard' : 'Continue to Journal'}
           </button>
         </div>
       </div>

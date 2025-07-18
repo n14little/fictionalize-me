@@ -1,10 +1,12 @@
 export default function DashboardLayout({
   streaks,
   taskstats,
+  recententries,
 }: {
   children: React.ReactNode;
   streaks: React.ReactNode;
   taskstats: React.ReactNode;
+  recententries: React.ReactNode;
 }) {
   return (
     <main className="flex min-h-screen flex-col p-4 md:p-12">
@@ -32,9 +34,10 @@ export default function DashboardLayout({
             <div className="hidden lg:block h-full"></div>
           </div>
 
-          {/* Main content area - about 2/3 of the width */}
-          <div className="lg:col-span-8">
+          {/* Main content area - streaks and recent entries */}
+          <div className="lg:col-span-8 space-y-6">
             {streaks}
+            {recententries}
           </div>
 
           {/* Right sidebar for task stats */}
