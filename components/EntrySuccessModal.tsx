@@ -12,7 +12,7 @@ interface EntrySuccessModalProps {
   onClose: () => void;
   entriesStats: EntriesStats;
   streakStats: UserStreakStats;
-  journalId: string;
+  journalId?: string; // Optional - if missing, redirect to dashboard
   isNewEntry: boolean;
 }
 
@@ -27,15 +27,15 @@ export function EntrySuccessModal({
 
   const handleClose = () => {
     onClose();
-    // If journalId is 'dashboard', redirect to dashboard, otherwise to journal
-    if (journalId === 'dashboard') {
+    // If journalId is missing, redirect to dashboard, otherwise to journal
+    if (!journalId) {
       router.push('/dashboard');
     } else {
       router.push(`/journals/${journalId}`);
     }
   };
 
-  const isFromDashboard = journalId === 'dashboard';
+  const isFromDashboard = !journalId;
 
   return (
     <Modal onClose={handleClose}>

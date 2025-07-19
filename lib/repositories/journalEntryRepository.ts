@@ -35,6 +35,7 @@ export const journalEntryRepository = {
    * Find recent journal entries for a user across all their journals
    */
   findRecentByUserId: async (userId: number, limit: number = 5): Promise<JournalEntry[]> => {
+    // TODO: needs better pagination
     const result = await query(
       `
         SELECT je.* 

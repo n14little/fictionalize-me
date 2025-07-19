@@ -76,13 +76,37 @@ export async function updateEntryFromDashboard(formData: FormData) {
     const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
 
     return { 
-      success: true, 
-      journalId: 'dashboard', // Signal that we should redirect to dashboard
+      success: true,
       streakStats,
       entriesStats
     };
   } catch (error) {
     console.error('Error updating journal entry from dashboard:', error);
     throw new Error('Failed to update journal entry');
+  }
+}
+
+export async function getMoreEntriesForUser(currentCount: number) {
+  try {
+    const user = await authService.getCurrentUser();
+    
+    if (!user) {
+      throw new Error('You must be logged in to view entries');
+    }
+
+    // Fetch more entries (next batch)
+    const moreEntries = await journalEntryService.getRecentEntriesForUser(user.id, currentCount + 3);
+    
+    // Return only the new entries (slice off the ones we already have)
+    return {
+      success: true,
+      entries: moreEntries.slice(currentCount)
+    };
+  } catch (error) {
+    console.error('Error fetching more entries:', error);
+    return {
+      success: false,
+      entries: []
+    };
   }
 }

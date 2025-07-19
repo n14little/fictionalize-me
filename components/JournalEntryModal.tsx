@@ -18,7 +18,7 @@ export interface EntryStats {
 export interface StatsData {
   entriesStats: EntryStats;
   streakStats: UserStreakStats;
-  journalId: string;
+  journalId?: string; // Optional - if missing, redirect to dashboard
   isNewEntry: boolean;
 }
 
