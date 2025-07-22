@@ -19,6 +19,13 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
     try {
       await toggleTaskCompletion(formData);
     } catch (error) {
+      // Check if this is a Next.js redirect error - if so, let it propagate
+      if (error instanceof Error && 
+          (error.message.includes('NEXT_REDIRECT') || 
+           error.toString().includes('NEXT_REDIRECT') ||
+           error.name === 'RedirectError')) {
+        throw error;
+      }
       console.error('Error toggling task completion:', error);
     } finally {
       setIsToggling(false);
@@ -31,6 +38,13 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
       try {
         await deleteTask(formData);
       } catch (error) {
+        // Check if this is a Next.js redirect error - if so, let it propagate
+        if (error instanceof Error && 
+            (error.message.includes('NEXT_REDIRECT') || 
+             error.toString().includes('NEXT_REDIRECT') ||
+             error.name === 'RedirectError')) {
+          throw error;
+        }
         console.error('Error deleting task:', error);
         setIsDeleting(false);
       }
