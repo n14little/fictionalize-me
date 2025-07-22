@@ -41,21 +41,7 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
           This Year
         </button>
       </div>
-      
-      <div className="stats-summary-grid grid grid-cols-1 gap-4 mb-6">
-        <div className="stat-card p-3 bg-white rounded-lg border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600">Completion Rate</h3>
-          <div className="text-2xl font-bold">{taskData.completionRate}%</div>
-          <div className="text-xs text-gray-500">{taskData.completedTasks} of {taskData.totalTasks} tasks</div>
-        </div>
-        
-        <div className="stat-card p-3 bg-white rounded-lg border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600">Avg. Completion Time</h3>
-          <div className="text-2xl font-bold">{taskData.averageCompletionTime} min</div>
-          <div className="text-xs text-gray-500">Per task</div>
-        </div>
-      </div>
-      
+
       <div className="stats-charts-grid grid grid-cols-1 gap-4">
         <div className="chart-container bg-white p-3 rounded-lg border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Task Progress</h3>
@@ -115,92 +101,6 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
                   symbolShape: 'circle'
                 }
               ]}
-            />
-          </div>
-        </div>
-        
-        <div className="chart-container bg-white p-3 rounded-lg border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Tasks by Day of Week</h3>
-          <div className="h-48">
-            <ResponsiveBar
-              data={taskData.weeklyCompletion}
-              keys={['count']}
-              indexBy="day"
-              margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
-              padding={0.3}
-              colors="#2196F3"
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              animate={true}
-              motionConfig="gentle"
-            />
-          </div>
-        </div>
-        
-        <div className="chart-container bg-white p-3 rounded-lg border border-gray-100 col-span-1">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Daily Task Completion</h3>
-          <div className="h-48">
-            <ResponsiveLine
-              data={[{
-                id: 'completed_tasks',
-                data: getDailyCompletionData(taskData, timeRange).map(item => ({
-                  x: item.date,
-                  y: item.completed
-                }))
-              }]}
-              margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
-              xScale={{
-                type: 'time',
-                format: '%Y-%m-%d',
-                precision: 'day',
-                useUTC: false
-              }}
-              xFormat="time:%b %d"
-              yScale={{
-                type: 'linear',
-                min: 0,
-                max: 'auto',
-                stacked: false,
-                reverse: false
-              }}
-              curve="monotoneX"
-              axisBottom={{
-                format: '%b %d',
-                tickValues: timeRange === 'week' 
-                  ? 'every day' 
-                  : timeRange === 'month' 
-                  ? 'every 5 days' 
-                  : 'every month',
-                legend: 'Date',
-                legendOffset: 36,
-                legendPosition: 'middle'
-              }}
-              axisLeft={{
-                legend: 'Tasks',
-                legendOffset: -40,
-                legendPosition: 'middle'
-              }}
-              colors="#3182CE"
-              pointSize={6}
-              pointColor={{ theme: 'background' }}
-              pointBorderWidth={2}
-              pointBorderColor={{ from: 'serieColor' }}
-              pointLabel="y"
-              pointLabelYOffset={-12}
-              enableArea={true}
-              areaOpacity={0.15}
-              useMesh={true}
-              enableSlices="x"
             />
           </div>
         </div>
