@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
-import { ResponsiveLine } from '@nivo/line';
 import { TaskStats } from '../types/taskStats';
-import { getDefaultTaskStats, getProgressData, getDailyCompletionData } from '../lib/utils/taskStatsUtils';
+import { getDefaultTaskStats, getProgressData } from '../lib/utils/taskStatsUtils';
 
 interface TaskCompletionStatsProps {
   stats?: TaskStats;
@@ -13,28 +11,28 @@ interface TaskCompletionStatsProps {
 
 export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
-  
+
   const taskData = stats || getDefaultTaskStats();
   const progressData = getProgressData(taskData);
-  
+
   return (
     <div className="task-completion-stats">
       <h2 className="text-lg font-bold mb-4">Task Completion Statistics</h2>
-      
+
       <div className="stats-time-filter flex gap-1 mb-4 text-sm">
-        <button 
+        <button
           className={`px-2 py-1 rounded ${timeRange === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           onClick={() => setTimeRange('week')}
         >
           This Week
         </button>
-        <button 
+        <button
           className={`px-2 py-1 rounded ${timeRange === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           onClick={() => setTimeRange('month')}
         >
           This Month
         </button>
-        <button 
+        <button
           className={`px-2 py-1 rounded ${timeRange === 'year' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           onClick={() => setTimeRange('year')}
         >
