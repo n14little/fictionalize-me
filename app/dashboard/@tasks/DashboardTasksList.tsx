@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Task } from '@/lib/models/Task';
-import { DashboardTaskItem } from './DashboardTaskItem';
+import { DashboardTaskItem } from '@/app/dashboard/@tasks/DashboardTaskItem';
 
 interface DashboardTasksListProps {
   pendingTasks: Task[];

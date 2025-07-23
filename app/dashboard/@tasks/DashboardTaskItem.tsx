@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Task } from '@/lib/models/Task';
-import { toggleTaskCompletion, deleteTask } from './actions';
+import { toggleTaskCompletion, deleteTask } from '@/app/dashboard/@tasks/actions';
 import { CsrfTokenInput } from '@/components/CsrfTokenInput';
 import Link from 'next/link';
 

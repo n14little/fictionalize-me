@@ -1,6 +1,6 @@
 import { taskService } from '@/lib/services/taskService';
 import { getCurrentUserId } from '../utils';
-import { DashboardTasksList } from './DashboardTasksList';
+import { DashboardTasksList } from '@/app/dashboard/@tasks/DashboardTasksList';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export default async function DashboardTasksSlot() {
   const completedTasks = allTasks.filter(task => task.completed);
 
   return (
-    <DashboardTasksList 
+    <DashboardTasksList
       pendingTasks={pendingTasks}
       completedTasks={completedTasks}
     />
