@@ -2,62 +2,56 @@ export default function Loading() {
   return (
     <div className="bg-white shadow rounded-lg border border-gray-200 p-6">
       <div className="task-completion-stats">
-        <h2 className="text-lg font-bold mb-4 text-gray-300">Task Completion Statistics</h2>
-        
-        {/* Time filter buttons - exactly matching actual button dimensions */}
-        <div className="stats-time-filter flex gap-1 mb-4 text-sm">
-          <button className="px-2 py-1 rounded bg-blue-600 text-white">
-            This Week
-          </button>
-          <button className="px-2 py-1 rounded bg-gray-200">
-            This Month
-          </button>
-          <button className="px-2 py-1 rounded bg-gray-200">
-            This Year
-          </button>
-        </div>
-      
-        {/* Stats cards - exact match for dimensions */}
-        <div className="stats-summary-grid grid grid-cols-1 gap-4 mb-6">
-          <div className="stat-card p-3 bg-white rounded-lg border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-300">Completion Rate</h3>
-            <div className="text-2xl font-bold text-gray-200">--.--%</div>
-            <div className="text-xs text-gray-300">-- of -- tasks</div>
-          </div>
-          
-          <div className="stat-card p-3 bg-white rounded-lg border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-300">Avg. Completion Time</h3>
-            <div className="text-2xl font-bold text-gray-200">-- min</div>
-            <div className="text-xs text-gray-300">Per task</div>
-          </div>
-        </div>
-        
-        {/* Charts - exact match for dimensions */}
-        <div className="stats-charts-grid grid grid-cols-1 gap-4">
-          <div className="chart-container bg-white p-3 rounded-lg border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Task Progress</h3>
-            <div className="h-48 bg-gray-50 flex items-center justify-center rounded">
-              <div className="w-[60px] h-[60px] rounded-full border-6 border-gray-200"></div>
+        <h2 className="text-lg font-bold mb-4 text-gray-300">
+          Task Completion
+        </h2>
+
+        <div className="space-y-4">
+          {/* Summary stats loading */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white p-3 rounded-lg border border-gray-100">
+              <h3 className="text-xs font-medium text-gray-300">
+                Completion Rate
+              </h3>
+              <div className="text-lg font-bold text-gray-200">--.--%</div>
+              <div className="text-xs text-gray-300">-- of -- tasks</div>
+            </div>
+
+            <div className="bg-white p-3 rounded-lg border border-gray-100">
+              <h3 className="text-xs font-medium text-gray-300">Avg. Time</h3>
+              <div className="text-lg font-bold text-gray-200">--m</div>
+              <div className="text-xs text-gray-300">Per task</div>
             </div>
           </div>
-          
-          <div className="chart-container bg-white p-3 rounded-lg border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Tasks by Day of Week</h3>
-            <div className="h-48 bg-gray-50 rounded flex items-end px-6">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="flex-1 mx-1">
-                  <div className="bg-gray-200 h-12 rounded-t"></div>
-                </div>
+
+          {/* Task completion calendar loading */}
+          <div className="bg-white p-3 rounded-lg border border-gray-100">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xs font-medium text-gray-300">
+                Last 30 Days
+              </h3>
+              <div className="flex items-center gap-1 text-xs text-gray-300">
+                <span>Less</span>
+                <div className="w-2 h-2 bg-gray-100 rounded-sm"></div>
+                <div className="w-2 h-2 bg-gray-200 rounded-sm"></div>
+                <div className="w-2 h-2 bg-gray-200 rounded-sm"></div>
+                <div className="w-2 h-2 bg-gray-200 rounded-sm"></div>
+                <div className="w-2 h-2 bg-gray-200 rounded-sm"></div>
+                <span>More</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-10 gap-1">
+              {Array.from({ length: 30 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-3 h-3 rounded-sm bg-gray-100 animate-pulse"
+                ></div>
               ))}
             </div>
-          </div>
-          
-          <div className="chart-container bg-white p-3 rounded-lg border border-gray-100 col-span-1">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Daily Task Completion</h3>
-            <div className="h-48 bg-gray-50 flex items-center justify-center rounded">
-              <svg width="80%" height="40%" viewBox="0 0 100 20">
-                <path d="M0,10 Q10,5 20,10 T40,10 T60,10 T80,10 T100,10" fill="none" stroke="#e5e7eb" strokeWidth="2" />
-              </svg>
+
+            <div className="mt-2 text-xs text-gray-300">
+              Daily task completion activity
             </div>
           </div>
         </div>
