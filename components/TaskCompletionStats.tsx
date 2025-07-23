@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { TaskStats } from "../types/taskStats";
 import {
   getDefaultTaskStats,
@@ -13,6 +13,14 @@ interface TaskCompletionStatsProps {
 
 export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
   const taskData = stats || getDefaultTaskStats();
+  const [clientToday, setClientToday] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set today's date only on the client to avoid server/client mismatch
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    setClientToday(todayString);
+  }, []);
 
   // Get the last 30 days of task completion data
   const dailyData = useMemo(() => {
@@ -32,11 +40,9 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
   };
 
   const getSquareTitle = (date: string, completed: number) => {
-    const dateObj = new Date(date);
-    // Use a consistent date format that doesn't depend on locale
-    const year = dateObj.getFullYear();
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
-    const day = dateObj.getDate().toString().padStart(2, "0");
+    // Parse the date string manually to avoid timezone issues
+    // Assuming date is in YYYY-MM-DD format
+    const [year, month, day] = date.split('-');
     const formattedDate = `${month}/${day}/${year}`;
     return `${formattedDate}: ${completed} task${
       completed !== 1 ? "s" : ""
@@ -44,13 +50,8 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
   };
 
   const isToday = (date: string) => {
-    const today = new Date();
-    const dateObj = new Date(date);
-    return (
-      dateObj.getDate() === today.getDate() &&
-      dateObj.getMonth() === today.getMonth() &&
-      dateObj.getFullYear() === today.getFullYear()
-    );
+    // Only highlight as today if we have the client-side date to avoid hydration mismatch
+    return clientToday === date;
   };
 
   return (
