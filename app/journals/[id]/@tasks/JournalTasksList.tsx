@@ -23,8 +23,8 @@ export function JournalTasksList({ tasks, journalId }: JournalTasksListProps) {
 
   const handleReorder = async (
     taskId: string,
-    afterTaskId?: string,
-    beforeTaskId?: string
+    referenceTaskId: string,
+    position: 'above' | 'below'
   ) => {
     return new Promise<void>((resolve, reject) => {
       startTransition(async () => {
@@ -33,8 +33,8 @@ export function JournalTasksList({ tasks, journalId }: JournalTasksListProps) {
           const formData = new FormData();
           formData.append('taskId', taskId);
           formData.append('journalId', journalId);
-          if (afterTaskId) formData.append('afterTaskId', afterTaskId);
-          if (beforeTaskId) formData.append('beforeTaskId', beforeTaskId);
+          formData.append('referenceTaskId', referenceTaskId);
+          formData.append('position', position);
 
           // Get CSRF token
           const csrfResponse = await fetch('/api/csrf');

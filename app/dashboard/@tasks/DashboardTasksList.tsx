@@ -21,8 +21,8 @@ export function DashboardTasksList({
 
   const handleReorder = async (
     taskId: string,
-    afterTaskId?: string,
-    beforeTaskId?: string
+    referenceTaskId: string,
+    position: 'above' | 'below'
   ) => {
     return new Promise<void>((resolve, reject) => {
       startTransition(async () => {
@@ -30,8 +30,8 @@ export function DashboardTasksList({
           // Create form data for the server action
           const formData = new FormData();
           formData.append('taskId', taskId);
-          if (afterTaskId) formData.append('afterTaskId', afterTaskId);
-          if (beforeTaskId) formData.append('beforeTaskId', beforeTaskId);
+          formData.append('referenceTaskId', referenceTaskId);
+          formData.append('position', position);
 
           // Get CSRF token
           const csrfResponse = await fetch('/api/csrf');

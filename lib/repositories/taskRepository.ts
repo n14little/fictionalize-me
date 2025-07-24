@@ -226,4 +226,63 @@ export const taskRepository = {
       beforePriority: beforeTask?.priority,
     };
   },
+
+  /**
+   * Calculate new priority for a task relative to a reference task
+   */
+  calculateNewPriority: async (
+    userId: number,
+    taskId: string,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ): Promise<number | null> => {
+    // Get the reference task priority
+    const referenceResult = await query(
+      'SELECT priority FROM tasks WHERE id = $1 AND user_id = $2',
+      [referenceTaskId, userId]
+    );
+
+    if (!referenceResult.rows[0]) {
+      return null;
+    }
+
+    const referencePriority = referenceResult.rows[0].priority;
+
+    if (position === 'above') {
+      // To place above the reference task, find the task immediately before it
+      const beforeResult = await query(
+        `SELECT priority FROM tasks 
+         WHERE user_id = $1 AND priority < $2 AND id != $3
+         ORDER BY priority DESC LIMIT 1`,
+        [userId, referencePriority, taskId]
+      );
+
+      if (beforeResult.rows[0]) {
+        // Place between the before task and reference task
+        const beforePriority = beforeResult.rows[0].priority;
+        return (beforePriority + referencePriority) / 2;
+      } else {
+        // No task before reference - place at the very beginning
+        return referencePriority - 1000;
+      }
+    } else {
+      // position === 'below'
+      // To place below the reference task, find the task immediately after it
+      const afterResult = await query(
+        `SELECT priority FROM tasks 
+         WHERE user_id = $1 AND priority > $2 AND id != $3
+         ORDER BY priority ASC LIMIT 1`,
+        [userId, referencePriority, taskId]
+      );
+
+      if (afterResult.rows[0]) {
+        // Place between reference task and the task after it
+        const afterPriority = afterResult.rows[0].priority;
+        return (referencePriority + afterPriority) / 2;
+      } else {
+        // No task after reference - place at the very end
+        return referencePriority + 1000;
+      }
+    }
+  },
 };

@@ -147,8 +147,8 @@ export async function createTaskWithoutRedirect(formData: FormData) {
 export async function reorderTask(formData: FormData) {
   await csrfModule.validateFormData(formData);
   const taskId = formData.get('taskId') as string;
-  const afterTaskId = (formData.get('afterTaskId') as string) || undefined;
-  const beforeTaskId = (formData.get('beforeTaskId') as string) || undefined;
+  const referenceTaskId = formData.get('referenceTaskId') as string;
+  const position = formData.get('position') as 'above' | 'below';
   const journalId = formData.get('journalId') as string;
 
   try {
@@ -157,7 +157,7 @@ export async function reorderTask(formData: FormData) {
       throw new Error('You must be logged in to reorder tasks');
     }
 
-    await taskService.reorderTask(taskId, user.id, afterTaskId, beforeTaskId);
+    await taskService.reorderTask(taskId, user.id, referenceTaskId, position);
 
     // Revalidate the journal page and dashboard
     revalidatePath(`/journals/${journalId}`);

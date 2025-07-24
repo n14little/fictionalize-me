@@ -164,52 +164,35 @@ export const taskService = {
   },
 
   /**
-   * Reorder a task by moving it between two other tasks
+   * Reorder a task relative to another task
    */
   reorderTask: async (
     taskId: string,
     userId: number,
-    afterTaskId?: string,
-    beforeTaskId?: string
+    referenceTaskId: string,
+    position: 'above' | 'below'
   ): Promise<Task | null> => {
     const task = await taskRepository.findById(taskId);
     if (!task || task.user_id !== userId) {
       return null;
     }
 
-    // Get adjacent task priorities efficiently
-    const { afterPriority, beforePriority } =
-      await taskRepository.getAdjacentTaskPriorities(
-        userId,
-        afterTaskId,
-        beforeTaskId
-      );
+    // Get the new priority based on the reference task and position
+    const newPriority = await taskRepository.calculateNewPriority(
+      userId,
+      taskId,
+      referenceTaskId,
+      position
+    );
 
-    let newPriority: number;
-
-    if (afterPriority !== undefined && beforePriority !== undefined) {
-      // Moving between two tasks - always use midpoint
-      newPriority = (afterPriority + beforePriority) / 2;
-    } else if (afterPriority !== undefined && beforePriority === undefined) {
-      // Moving after a task (to the end)
-      newPriority = afterPriority + 1000;
-    } else if (
-      (afterPriority === undefined || afterPriority === null) &&
-      beforePriority !== undefined
-    ) {
-      // Moving before a task (to the beginning)
-      newPriority = beforePriority - 1000;
-    } else {
-      // Fallback: move to beginning with a safe priority
-      newPriority = 100;
+    if (newPriority === null) {
+      return null;
     }
 
     console.log('Reordering task:', {
       taskId,
-      afterTaskId,
-      beforeTaskId,
-      afterPriority,
-      beforePriority,
+      referenceTaskId,
+      position,
       newPriority,
     });
 

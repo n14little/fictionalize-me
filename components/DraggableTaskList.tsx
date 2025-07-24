@@ -26,8 +26,8 @@ interface DraggableTaskListProps {
   tasks: Task[];
   onReorder: (
     taskId: string,
-    afterTaskId?: string,
-    beforeTaskId?: string
+    referenceTaskId: string,
+    position: 'above' | 'below'
   ) => Promise<void>;
   renderTask: (
     task: Task,
@@ -78,15 +78,18 @@ export function DraggableTaskList({
       const newTasks = arrayMove(localTasks, oldIndex, newIndex);
       setLocalTasks(newTasks);
 
-      // Calculate afterTaskId and beforeTaskId
-      let afterTaskId: string | undefined;
-      let beforeTaskId: string | undefined;
+      // Determine reference task and position based on the drop scenario
+      let referenceTaskId: string;
+      let position: 'above' | 'below';
 
-      if (newIndex > 0) {
-        afterTaskId = newTasks[newIndex - 1].id;
-      }
-      if (newIndex < newTasks.length - 1) {
-        beforeTaskId = newTasks[newIndex + 1].id;
+      if (oldIndex < newIndex) {
+        // Moving down: we want to place BELOW the target task
+        referenceTaskId = over.id as string;
+        position = 'below';
+      } else {
+        // Moving up: we want to place ABOVE the target task
+        referenceTaskId = over.id as string;
+        position = 'above';
       }
 
       console.log('Drag and drop calculation:', {
@@ -94,13 +97,14 @@ export function DraggableTaskList({
         overId: over.id,
         oldIndex,
         newIndex,
-        afterTaskId,
-        beforeTaskId,
+        referenceTaskId,
+        position,
         newTasksLength: newTasks.length,
+        scenario: oldIndex < newIndex ? 'moving down' : 'moving up',
       });
 
       try {
-        await onReorder(active.id as string, afterTaskId, beforeTaskId);
+        await onReorder(active.id as string, referenceTaskId, position);
       } catch (error) {
         // Revert on error
         setLocalTasks(tasks);
