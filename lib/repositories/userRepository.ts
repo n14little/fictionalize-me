@@ -6,10 +6,7 @@ export const userRepository = {
    * Find a user by their ID
    */
   findById: async (id: number): Promise<User | null> => {
-    const result = await query(
-      'SELECT * FROM users WHERE id = $1',
-      [id]
-    );
+    const result = await query('SELECT * FROM users WHERE id = $1', [id]);
     return result.rows[0] || null;
   },
 
@@ -28,10 +25,7 @@ export const userRepository = {
    * Find a user by their email
    */
   findByEmail: async (email: string): Promise<User | null> => {
-    const result = await query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    );
+    const result = await query('SELECT * FROM users WHERE email = $1', [email]);
     return result.rows[0] || null;
   },
 
@@ -50,10 +44,12 @@ export const userRepository = {
    * Find a user by external ID, or create if they don't exist
    */
   findOrCreate: async (userData: CreateUser): Promise<User> => {
-    const existingUser = await userRepository.findByExternalId(userData.external_user_id);
+    const existingUser = await userRepository.findByExternalId(
+      userData.external_user_id
+    );
     if (existingUser) {
       return existingUser;
     }
     return await userRepository.create(userData);
-  }
+  },
 };

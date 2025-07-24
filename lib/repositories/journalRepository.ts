@@ -17,10 +17,7 @@ export const journalRepository = {
    * Find a journal by ID
    */
   findById: async (id: string): Promise<Journal | null> => {
-    const result = await query(
-      'SELECT * FROM journals WHERE id = $1',
-      [id]
-    );
+    const result = await query('SELECT * FROM journals WHERE id = $1', [id]);
     return result.rows[0] || null;
   },
 
@@ -28,17 +25,19 @@ export const journalRepository = {
    * Find a journal by slug
    */
   findBySlug: async (slug: string): Promise<Journal | null> => {
-    const result = await query(
-      'SELECT * FROM journals WHERE slug = $1',
-      [slug]
-    );
+    const result = await query('SELECT * FROM journals WHERE slug = $1', [
+      slug,
+    ]);
     return result.rows[0] || null;
   },
 
   /**
    * Find a journal by title for a specific user
    */
-  findByTitle: async (userId: number, title: string): Promise<Journal | null> => {
+  findByTitle: async (
+    userId: number,
+    title: string
+  ): Promise<Journal | null> => {
     const result = await query(
       'SELECT * FROM journals WHERE user_id = $1 AND title = $2',
       [userId, title]
@@ -59,7 +58,7 @@ export const journalRepository = {
         journalData.title,
         journalData.description || null,
         journalData.slug || null,
-        journalData.public !== undefined ? journalData.public : false
+        journalData.public !== undefined ? journalData.public : false,
       ]
     );
     return result.rows[0];
@@ -68,7 +67,10 @@ export const journalRepository = {
   /**
    * Update an existing journal
    */
-  update: async (id: string, journalData: UpdateJournal): Promise<Journal | null> => {
+  update: async (
+    id: string,
+    journalData: UpdateJournal
+  ): Promise<Journal | null> => {
     const sets = [];
     const values = [];
     let paramIndex = 1;
@@ -124,5 +126,5 @@ export const journalRepository = {
     }
 
     return false;
-  }
+  },
 };

@@ -11,7 +11,11 @@ interface ClickableEntryProps {
   lastEntry?: boolean;
 }
 
-export function ClickableEntry({ entry, journalId, lastEntry = false }: ClickableEntryProps) {
+export function ClickableEntry({
+  entry,
+  journalId,
+  lastEntry = false,
+}: ClickableEntryProps) {
   // Prepare the content for the button
   const entryContent = (
     <div>
@@ -23,7 +27,7 @@ export function ClickableEntry({ entry, journalId, lastEntry = false }: Clickabl
       </div>
     </div>
   );
-  
+
   // Use the EditEntryModalButton directly
   return (
     <EntryButtonModal
@@ -33,7 +37,6 @@ export function ClickableEntry({ entry, journalId, lastEntry = false }: Clickabl
       }`}
       buttonAriaLabel={`Edit entry: ${entry.title}`}
       buttonContent={entryContent}
-      
       // Modal props
       modalType="edit"
       journalId={journalId}
@@ -45,7 +48,7 @@ export function ClickableEntry({ entry, journalId, lastEntry = false }: Clickabl
         title: entry.title,
         content: entry.content,
         mood: entry.mood || '',
-        location: entry.location || ''
+        location: entry.location || '',
       }}
     />
   );

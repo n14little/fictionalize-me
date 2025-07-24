@@ -22,5 +22,5 @@ export const journalStreakService = {
    */
   getUserStreaks: async (userId: number): Promise<JournalStreak[]> => {
     return journalStreakRepository.findByUserId(userId);
-  }
+  },
 };

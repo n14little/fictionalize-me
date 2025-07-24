@@ -6,21 +6,22 @@ export const waitlistRepository = {
    * Find all waitlist entries
    */
   findAll: async (): Promise<WaitlistEntry[]> => {
-    const result = await query('SELECT * FROM waitlist_entries ORDER BY created_at DESC');
+    const result = await query(
+      'SELECT * FROM waitlist_entries ORDER BY created_at DESC'
+    );
     return result.rows;
   },
-  
+
   /**
    * Find a waitlist entry by ID
    */
   findById: async (id: number): Promise<WaitlistEntry | null> => {
-    const result = await query(
-      'SELECT * FROM waitlist_entries WHERE id = $1',
-      [id]
-    );
+    const result = await query('SELECT * FROM waitlist_entries WHERE id = $1', [
+      id,
+    ]);
     return result.rows[0] || null;
   },
-  
+
   /**
    * Find a waitlist entry by email
    */
@@ -31,7 +32,7 @@ export const waitlistRepository = {
     );
     return result.rows[0] || null;
   },
-  
+
   /**
    * Create a new waitlist entry
    */
@@ -41,5 +42,5 @@ export const waitlistRepository = {
       [entryData.email, entryData.interest || null]
     );
     return result.rows[0];
-  }
+  },
 };

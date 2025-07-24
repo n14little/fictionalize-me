@@ -5,18 +5,24 @@ import { NewEntryModalButton } from '@/components/EntryButtonAliases';
 
 export const dynamic = 'force-dynamic';
 
-export default async function JournalEntries({ params }: { params: { id: string } }) {
+export default async function JournalEntries({
+  params,
+}: {
+  params: { id: string };
+}) {
   const journalId = (await params).id;
-  
+
   // Get the current user (if authenticated)
   const user = await authService.getCurrentUser();
-  
+
   // Get journal entries
-  const entries = await journalEntryService.getJournalEntries(journalId, user?.id);
+  const entries = await journalEntryService.getJournalEntries(
+    journalId,
+    user?.id
+  );
 
   return (
     <div className="pt-6 flex flex-col gap-2">
-
       <NewEntryModalButton journalId={journalId} />
 
       {entries.length === 0 ? (

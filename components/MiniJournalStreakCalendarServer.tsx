@@ -10,18 +10,22 @@ interface MiniJournalStreakCalendarServerProps {
   streakStats: UserStreakStats;
 }
 
-export function MiniJournalStreakCalendarServer({ streakStats }: MiniJournalStreakCalendarServerProps) {
+export function MiniJournalStreakCalendarServer({
+  streakStats,
+}: MiniJournalStreakCalendarServerProps) {
   // Pre-process the streak data on the server
   // This ensures that when the client component receives the props,
   // the data is already in the expected format for immediate rendering
-  
+
   // Create a copy of the streakStats object with properly serialized dates
   const processedStreakStats: UserStreakStats = {
     ...streakStats,
     // Ensure all dates are properly serialized so they can be transmitted to the client
-    streakDates: streakStats.streakDates.map(date => new Date(date)),
-    lastStreakDate: streakStats.lastStreakDate ? new Date(streakStats.lastStreakDate) : null
+    streakDates: streakStats.streakDates.map((date) => new Date(date)),
+    lastStreakDate: streakStats.lastStreakDate
+      ? new Date(streakStats.lastStreakDate)
+      : null,
   };
-  
+
   return <MiniJournalStreakCalendar streakStats={processedStreakStats} />;
 }

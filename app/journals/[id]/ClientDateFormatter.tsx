@@ -8,10 +8,6 @@ interface ClientDateFormatterProps {
 
 export function ClientDateFormatter({ date }: ClientDateFormatterProps) {
   const formattedDate = new Date(date).toLocaleDateString();
-  
-  return (
-    <span className="text-sm text-gray-500">
-      {formattedDate}
-    </span>
-  );
+
+  return <span className="text-sm text-gray-500">{formattedDate}</span>;
 }

@@ -15,10 +15,10 @@ export const taskStatsService = {
     try {
       // Get raw task stats from repository
       const rawStats = await taskStatsRepository.getUserTaskStats(userId);
-      
+
       // Transform data into the expected TaskStats format
       const taskStats: TaskStats = {
-        dailyCompletion: rawStats.dailyCompletions
+        dailyCompletion: rawStats.dailyCompletions,
       };
 
       return taskStats;
@@ -27,5 +27,5 @@ export const taskStatsService = {
       // Return default stats on error
       return getDefaultTaskStats();
     }
-  }
+  },
 };

@@ -36,11 +36,12 @@ export class CsrfModule {
     if (session?.user?.email) {
       // Use session information as part of the token generation
       // Hash the session info to avoid exposing sensitive data
-      const sessionHash = crypto.createHash('sha256')
+      const sessionHash = crypto
+        .createHash('sha256')
         .update(`${session.user.email}-${session?.accessToken || ''}`)
         .digest('hex');
 
-        sessionId = sessionHash;
+      sessionId = sessionHash;
     } else {
       sessionId = crypto.randomBytes(16).toString('hex');
 
@@ -62,7 +63,8 @@ export class CsrfModule {
     const message = `${sessionId.length}!${sessionId}!${randomValue.length}!${randomValue}`;
 
     // Generate the HMAC hash
-    const hmac = crypto.createHmac('sha256', this.secret)
+    const hmac = crypto
+      .createHmac('sha256', this.secret)
       .update(message)
       .digest('hex');
 
@@ -116,7 +118,8 @@ export class CsrfModule {
 
       if (session?.user?.email) {
         // Recreate the same session hash we used when generating the token
-        const sessionHash = crypto.createHash('sha256')
+        const sessionHash = crypto
+          .createHash('sha256')
           .update(`${session.user.email}-${session?.accessToken || ''}`)
           .digest('hex');
         sessionId = sessionHash;
@@ -133,7 +136,8 @@ export class CsrfModule {
       const message = `${sessionId.length}!${sessionId}!${randomValue.length}!${randomValue}`;
 
       // Generate the expected HMAC
-      const expectedHmac = crypto.createHmac('sha256', this.secret)
+      const expectedHmac = crypto
+        .createHmac('sha256', this.secret)
         .update(message)
         .digest('hex');
 
@@ -158,7 +162,7 @@ export class CsrfModule {
 
     return {
       csrfToken,
-      message: 'CSRF token generated successfully'
+      message: 'CSRF token generated successfully',
     };
   }
 
@@ -167,11 +171,13 @@ export class CsrfModule {
    * @param csrfToken The token to validate
    * @returns A validation response object
    */
-  async validateTokenResponse(csrfToken?: string): Promise<CsrfValidationResponse> {
+  async validateTokenResponse(
+    csrfToken?: string
+  ): Promise<CsrfValidationResponse> {
     if (!csrfToken) {
       return {
         valid: false,
-        error: 'CSRF token is missing'
+        error: 'CSRF token is missing',
       };
     }
 
@@ -182,7 +188,7 @@ export class CsrfModule {
     } else {
       return {
         valid: false,
-        error: 'Invalid CSRF token'
+        error: 'Invalid CSRF token',
       };
     }
   }
@@ -193,7 +199,9 @@ export class CsrfModule {
     const validationResponse = await this.validateTokenResponse(csrfToken);
 
     if (!validationResponse.valid) {
-      throw new Error(validationResponse.error || 'Error validating CSRF token');
+      throw new Error(
+        validationResponse.error || 'Error validating CSRF token'
+      );
     }
   }
 }

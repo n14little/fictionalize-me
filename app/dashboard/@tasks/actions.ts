@@ -18,7 +18,7 @@ export async function toggleTaskCompletion(formData: FormData) {
     }
 
     await taskService.toggleTaskCompletion(taskId, user.id);
-    
+
     // Revalidate the dashboard and task stats
     revalidatePath('/dashboard');
   } catch (error) {
@@ -42,7 +42,7 @@ export async function deleteTask(formData: FormData) {
     }
 
     await taskService.deleteTask(taskId, user.id);
-    
+
     // Revalidate the dashboard and task stats
     revalidatePath('/dashboard');
   } catch (error) {

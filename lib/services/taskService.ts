@@ -13,9 +13,12 @@ export const taskService = {
   /**
    * Get all tasks for a specific journal
    */
-  getJournalTasks: async (journalId: string, userId?: number): Promise<Task[]> => {
+  getJournalTasks: async (
+    journalId: string,
+    userId?: number
+  ): Promise<Task[]> => {
     const journal = await journalRepository.findById(journalId);
-    
+
     if (!journal) {
       return [];
     }
@@ -36,7 +39,7 @@ export const taskService = {
    */
   getTaskById: async (id: string, userId?: number): Promise<Task | null> => {
     const task = await taskRepository.findById(id);
-    
+
     if (!task) {
       return null;
     }
@@ -61,9 +64,12 @@ export const taskService = {
   /**
    * Create a new task
    */
-  createTask: async (userId: number, data: Omit<CreateTask, 'user_id'>): Promise<Task | null> => {
+  createTask: async (
+    userId: number,
+    data: Omit<CreateTask, 'user_id'>
+  ): Promise<Task | null> => {
     const journal = await journalRepository.findById(data.journal_id);
-    
+
     if (!journal) {
       return null;
     }
@@ -74,14 +80,18 @@ export const taskService = {
 
     return taskRepository.create({
       ...data,
-      user_id: userId
+      user_id: userId,
     });
   },
 
   /**
    * Update a task
    */
-  updateTask: async (id: string, userId: number, data: UpdateTask): Promise<Task | null> => {
+  updateTask: async (
+    id: string,
+    userId: number,
+    data: UpdateTask
+  ): Promise<Task | null> => {
     const task = await taskRepository.findById(id);
 
     if (!task) {
@@ -127,7 +137,10 @@ export const taskService = {
   /**
    * Toggle task completion status
    */
-  toggleTaskCompletion: async (id: string, userId: number): Promise<Task | null> => {
+  toggleTaskCompletion: async (
+    id: string,
+    userId: number
+  ): Promise<Task | null> => {
     const task = await taskRepository.findById(id);
 
     if (!task) {
@@ -146,7 +159,7 @@ export const taskService = {
 
     return taskRepository.update(id, {
       completed: !task.completed,
-      completed_at: !task.completed ? new Date() : null
+      completed_at: !task.completed ? new Date() : null,
     });
-  }
+  },
 };

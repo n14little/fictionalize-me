@@ -12,12 +12,12 @@ interface ModalProps {
   disableAutoClose?: boolean;
 }
 
-export function Modal({ 
-  children, 
-  onClose, 
-  className = '', 
+export function Modal({
+  children,
+  onClose,
+  className = '',
   isFullscreen = false,
-  disableAutoClose = false
+  disableAutoClose = false,
 }: ModalProps) {
   const overlay = useRef<HTMLDivElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
@@ -33,7 +33,10 @@ export function Modal({
 
   const onClick = useCallback(
     (e: React.MouseEvent) => {
-      if (!disableAutoClose && (e.target === overlay.current || e.target === wrapper.current)) {
+      if (
+        !disableAutoClose &&
+        (e.target === overlay.current || e.target === wrapper.current)
+      ) {
         handleClose();
       }
     },
@@ -69,9 +72,10 @@ export function Modal({
     >
       <div
         ref={wrapper}
-        className={`${isFullscreen 
-          ? 'fixed inset-0 w-full h-full max-w-none rounded-none p-6 md:p-8 overflow-y-auto' 
-          : 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[42rem] h-[90vh] rounded-lg p-6 overflow-y-auto'
+        className={`${
+          isFullscreen
+            ? 'fixed inset-0 w-full h-full max-w-none rounded-none p-6 md:p-8 overflow-y-auto'
+            : 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[42rem] h-[90vh] rounded-lg p-6 overflow-y-auto'
         } bg-white shadow-lg ${className}`}
       >
         {children}

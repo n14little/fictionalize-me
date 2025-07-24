@@ -7,7 +7,10 @@ export const journalService = {
     return journalRepository.findByUserId(userId);
   },
 
-  getJournalById: async (id: string, userId?: number): Promise<Journal | null> => {
+  getJournalById: async (
+    id: string,
+    userId?: number
+  ): Promise<Journal | null> => {
     const journal = await journalRepository.findById(id);
 
     if (!journal) {
@@ -25,7 +28,10 @@ export const journalService = {
     return null;
   },
 
-  getJournalBySlug: async (slug: string, userId?: number): Promise<Journal | null> => {
+  getJournalBySlug: async (
+    slug: string,
+    userId?: number
+  ): Promise<Journal | null> => {
     const journal = await journalRepository.findBySlug(slug);
 
     if (!journal) {
@@ -47,40 +53,43 @@ export const journalService = {
     const title = 'Daily Write';
     // Try to find an existing Daily Write journal
     let journal = await journalRepository.findByTitle(userId, title);
-    
+
     // If not found, create a new one
     if (!journal) {
       // Generate slug from title
       const slug = slugify(title, { lower: true, strict: true });
-      
+
       // Ensure slug is unique for this user
       let counter = 0;
       let uniqueSlug = slug;
-      
+
       // Find all user's journals with similar slugs
       const userJournals = await journalRepository.findByUserId(userId);
-      const userSlugs = userJournals.map(j => j.slug);
-      
+      const userSlugs = userJournals.map((j) => j.slug);
+
       // Check if the slug exists for this user and make it unique if needed
       while (userSlugs.includes(uniqueSlug)) {
         counter++;
         uniqueSlug = `${slug}-${counter}`;
       }
-      
+
       // Create the journal
       journal = await journalRepository.create({
         user_id: userId,
         title,
         description: 'Journal for daily writing exercises',
         slug: uniqueSlug,
-        public: false
+        public: false,
       });
     }
-    
+
     return journal;
   },
 
-  createJournal: async (userId: number, data: Omit<CreateJournal, 'user_id'>): Promise<Journal> => {
+  createJournal: async (
+    userId: number,
+    data: Omit<CreateJournal, 'user_id'>
+  ): Promise<Journal> => {
     let slug = data.slug;
     if (!slug && data.title) {
       slug = slugify(data.title, { lower: true, strict: true });
@@ -99,11 +108,15 @@ export const journalService = {
       title: data.title,
       description: data.description,
       slug,
-      public: data.public
+      public: data.public,
     });
   },
 
-  updateJournal: async (id: string, userId: number, data: UpdateJournal): Promise<Journal | null> => {
+  updateJournal: async (
+    id: string,
+    userId: number,
+    data: UpdateJournal
+  ): Promise<Journal | null> => {
     const journal = await journalRepository.findById(id);
 
     if (!journal) {
@@ -142,5 +155,5 @@ export const journalService = {
     }
 
     return journalRepository.delete(id);
-  }
+  },
 };

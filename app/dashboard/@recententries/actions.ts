@@ -55,12 +55,12 @@ export async function updateEntryFromDashboard(formData: FormData) {
       title: title.trim(),
       content: JSON.parse(content), // Parse JSON string into object for JSONB column
       mood: mood?.trim() || undefined,
-      location: location?.trim() || undefined
+      location: location?.trim() || undefined,
     });
-    
+
     // Record streak for today when user updates an entry
     await journalStreakService.recordJournalStreak(user.id);
-    
+
     // Revalidate the dashboard and journal pages
     revalidatePath('/dashboard');
     revalidatePath(`/journals/${journalId}`);
@@ -73,12 +73,14 @@ export async function updateEntryFromDashboard(formData: FormData) {
 
     // Get updated stats to return to the client
     const streakStats = await journalStreakService.getUserStreakStats(user.id);
-    const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
+    const entriesStats = await journalEntryService.getTotalEntriesForUser(
+      user.id
+    );
 
-    return { 
+    return {
       success: true,
       streakStats,
-      entriesStats
+      entriesStats,
     };
   } catch (error) {
     console.error('Error updating journal entry from dashboard:', error);
@@ -89,24 +91,27 @@ export async function updateEntryFromDashboard(formData: FormData) {
 export async function getMoreEntriesForUser(currentCount: number) {
   try {
     const user = await authService.getCurrentUser();
-    
+
     if (!user) {
       throw new Error('You must be logged in to view entries');
     }
 
     // Fetch more entries (next batch)
-    const moreEntries = await journalEntryService.getRecentEntriesForUser(user.id, currentCount + 3);
-    
+    const moreEntries = await journalEntryService.getRecentEntriesForUser(
+      user.id,
+      currentCount + 3
+    );
+
     // Return only the new entries (slice off the ones we already have)
     return {
       success: true,
-      entries: moreEntries.slice(currentCount)
+      entries: moreEntries.slice(currentCount),
     };
   } catch (error) {
     console.error('Error fetching more entries:', error);
     return {
       success: false,
-      entries: []
+      entries: [],
     };
   }
 }

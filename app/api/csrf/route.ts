@@ -10,8 +10,11 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error generating CSRF token:', error);
-    return NextResponse.json({ 
-      error: 'Failed to generate CSRF token' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to generate CSRF token',
+      },
+      { status: 500 }
+    );
   }
 }

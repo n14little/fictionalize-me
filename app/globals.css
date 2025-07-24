@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -77,7 +77,8 @@ body {
   margin-bottom: 0.5em;
 }
 
-.tiptap ul, .tiptap ol {
+.tiptap ul,
+.tiptap ol {
   margin-left: 1.5em;
   margin-bottom: 1em;
 }

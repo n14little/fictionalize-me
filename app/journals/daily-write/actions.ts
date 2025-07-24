@@ -48,7 +48,7 @@ export async function createDailyEntry(formData: FormData) {
   }
 
   let journalId: string;
-  
+
   try {
     // Get or create the Daily Write journal
     const journal = await journalService.getOrCreateDailyWriteJournal(user.id);
@@ -60,9 +60,9 @@ export async function createDailyEntry(formData: FormData) {
       title: title.trim(),
       content: JSON.parse(content), // Parse JSON string into object for JSONB column
       mood: 'Daily Write',
-      location: new Date().toLocaleDateString()
+      location: new Date().toLocaleDateString(),
     });
-    
+
     // Record streak for today when user creates a daily entry
     await journalStreakService.recordJournalStreak(user.id);
 
@@ -79,13 +79,15 @@ export async function createDailyEntry(formData: FormData) {
 
     // Get updated stats to return to the client
     const streakStats = await journalStreakService.getUserStreakStats(user.id);
-    const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
+    const entriesStats = await journalEntryService.getTotalEntriesForUser(
+      user.id
+    );
 
-    return { 
-      success: true, 
-      journalId, 
+    return {
+      success: true,
+      journalId,
       streakStats,
-      entriesStats
+      entriesStats,
     };
   } catch (error) {
     console.error('Error creating daily journal entry:', error);

@@ -31,8 +31,12 @@ export default async function MyJournals() {
 
         {journals.length === 0 ? (
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
-            <p className="text-gray-700 mb-2">You don&apos;t have any journals yet.</p>
-            <p className="text-gray-500 text-sm">Create your first journal to get started.</p>
+            <p className="text-gray-700 mb-2">
+              You don&apos;t have any journals yet.
+            </p>
+            <p className="text-gray-500 text-sm">
+              Create your first journal to get started.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

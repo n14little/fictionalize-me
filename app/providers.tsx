@@ -8,4 +8,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </SessionProvider>
   );
-} 
+}

@@ -28,10 +28,7 @@ export const taskRepository = {
    * Find a task by ID
    */
   findById: async (id: string): Promise<Task | null> => {
-    const result = await query(
-      'SELECT * FROM tasks WHERE id = $1',
-      [id]
-    );
+    const result = await query('SELECT * FROM tasks WHERE id = $1', [id]);
     return result.rows[0] || null;
   },
 
@@ -47,7 +44,7 @@ export const taskRepository = {
         taskData.journal_id,
         taskData.user_id,
         taskData.title,
-        taskData.description || null
+        taskData.description || null,
       ]
     );
     return result.rows[0];
@@ -108,14 +105,13 @@ export const taskRepository = {
    * Delete a task
    */
   delete: async (id: string): Promise<boolean> => {
-    const result = await query(
-      'DELETE FROM tasks WHERE id = $1 RETURNING id',
-      [id]
-    );
+    const result = await query('DELETE FROM tasks WHERE id = $1 RETURNING id', [
+      id,
+    ]);
     if (result.rowCount) {
       return result.rowCount > 0;
     }
 
     return false;
-  }
+  },
 };

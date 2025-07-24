@@ -7,27 +7,27 @@ import { csrfModule } from '../../../lib/csrf/csrfModule';
 
 export async function createJournal(formData: FormData) {
   await csrfModule.validateFormData(formData);
-  
+
   // Get the current user
   const user = await authService.getCurrentUser();
-  
+
   if (!user) {
     throw new Error('Unauthorized');
   }
-  
+
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
-  
+
   if (!title) {
     throw new Error('Title is required');
   }
-  
+
   // Create the journal
   const journal = await journalService.createJournal(user.id, {
     title,
     description,
   });
-  
+
   // Redirect to the new journal
   redirect(`/journals/${journal.id}`);
-} 
+}

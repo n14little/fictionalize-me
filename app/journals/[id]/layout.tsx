@@ -21,7 +21,7 @@ export default async function JournalDetailLayout({
   const journalId = (await params).id;
   const user = await authService.getCurrentUser();
   const journal = await journalService.getJournalById(journalId, user?.id);
-  
+
   if (!journal) {
     notFound();
   }
@@ -30,7 +30,7 @@ export default async function JournalDetailLayout({
     <div className="flex min-h-screen flex-col items-center p-4 md:p-12">
       <div className="w-full max-w-7xl">
         <Link
-          href="/journals" 
+          href="/journals"
           className="text-blue-600 hover:text-blue-800 mb-4 block"
         >
           ← Back to Journals

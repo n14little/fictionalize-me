@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Task } from "@/lib/models/Task";
+import { useState } from 'react';
+import { Task } from '@/lib/models/Task';
 import {
   toggleTaskCompletion,
   deleteTask,
-} from "@/app/dashboard/@tasks/actions";
-import { CsrfTokenInput } from "@/components/CsrfTokenInput";
-import Link from "next/link";
+} from '@/app/dashboard/@tasks/actions';
+import { CsrfTokenInput } from '@/components/CsrfTokenInput';
+import Link from 'next/link';
 
 interface DashboardTaskItemProps {
   task: Task;
@@ -25,20 +25,20 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
       // Check if this is a Next.js redirect error - if so, let it propagate
       if (
         error instanceof Error &&
-        (error.message.includes("NEXT_REDIRECT") ||
-          error.toString().includes("NEXT_REDIRECT") ||
-          error.name === "RedirectError")
+        (error.message.includes('NEXT_REDIRECT') ||
+          error.toString().includes('NEXT_REDIRECT') ||
+          error.name === 'RedirectError')
       ) {
         throw error;
       }
-      console.error("Error toggling task completion:", error);
+      console.error('Error toggling task completion:', error);
     } finally {
       setIsToggling(false);
     }
   }
 
   async function handleDelete(formData: FormData) {
-    if (confirm("Are you sure you want to delete this task?")) {
+    if (confirm('Are you sure you want to delete this task?')) {
       setIsDeleting(true);
       try {
         await deleteTask(formData);
@@ -46,13 +46,13 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
         // Check if this is a Next.js redirect error - if so, let it propagate
         if (
           error instanceof Error &&
-          (error.message.includes("NEXT_REDIRECT") ||
-            error.toString().includes("NEXT_REDIRECT") ||
-            error.name === "RedirectError")
+          (error.message.includes('NEXT_REDIRECT') ||
+            error.toString().includes('NEXT_REDIRECT') ||
+            error.name === 'RedirectError')
         ) {
           throw error;
         }
-        console.error("Error deleting task:", error);
+        console.error('Error deleting task:', error);
         setIsDeleting(false);
       }
     }
@@ -69,11 +69,11 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
             disabled={isToggling}
             className={`w-4 h-4 rounded border mt-0.5 ${
               task.completed
-                ? "bg-blue-500 border-blue-600 text-white flex items-center justify-center"
-                : "border-gray-400"
+                ? 'bg-blue-500 border-blue-600 text-white flex items-center justify-center'
+                : 'border-gray-400'
             }`}
             aria-label={
-              task.completed ? "Mark as incomplete" : "Mark as complete"
+              task.completed ? 'Mark as incomplete' : 'Mark as complete'
             }
           >
             {task.completed && (
@@ -96,7 +96,7 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
         <div className="flex-1 min-w-0">
           <h3
             className={`text-sm font-medium ${
-              task.completed ? "line-through text-gray-400" : "text-gray-700"
+              task.completed ? 'line-through text-gray-400' : 'text-gray-700'
             }`}
           >
             {task.title}
@@ -104,7 +104,7 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
           {task.description && (
             <p
               className={`mt-1 text-xs ${
-                task.completed ? "text-gray-400" : "text-gray-500"
+                task.completed ? 'text-gray-400' : 'text-gray-500'
               } line-clamp-2`}
             >
               {task.description}

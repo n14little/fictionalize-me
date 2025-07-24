@@ -11,12 +11,17 @@
  */
 export function getUtcMidnight(date: Date = new Date()): Date {
   // Create a new date to avoid mutating the input
-  const utcDate = new Date(Date.UTC(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
-    0, 0, 0, 0
-  ));
+  const utcDate = new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
+  );
   return utcDate;
 }
 
@@ -64,7 +69,10 @@ export function isSameUtcDay(date1: Date, date2: Date): boolean {
  * @param laterDate The later date
  * @returns True if dates are consecutive UTC days
  */
-export function isConsecutiveUtcDay(earlierDate: Date, laterDate: Date): boolean {
+export function isConsecutiveUtcDay(
+  earlierDate: Date,
+  laterDate: Date
+): boolean {
   const nextDay = new Date(earlierDate);
   nextDay.setUTCDate(nextDay.getUTCDate() + 1);
   return isSameUtcDay(nextDay, laterDate);
@@ -72,14 +80,14 @@ export function isConsecutiveUtcDay(earlierDate: Date, laterDate: Date): boolean
 
 /**
  * Calculate days difference between two UTC dates
- * @param date1 First date 
+ * @param date1 First date
  * @param date2 Second date
  * @returns Number of days between dates
  */
 export function getUtcDaysDifference(date1: Date, date2: Date): number {
   const utcDate1 = getUtcMidnight(date1);
   const utcDate2 = getUtcMidnight(date2);
-  
+
   const diffTime = Math.abs(utcDate2.getTime() - utcDate1.getTime());
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }

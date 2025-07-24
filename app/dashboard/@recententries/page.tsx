@@ -6,12 +6,15 @@ export const dynamic = 'force-dynamic';
 
 export default async function RecentEntriesSlot() {
   const userId = await getCurrentUserId();
-  
+
   if (!userId) {
     return null;
   }
 
-  const recentEntries = await journalEntryService.getRecentEntriesForUser(userId, 3);
+  const recentEntries = await journalEntryService.getRecentEntriesForUser(
+    userId,
+    3
+  );
 
   return <DashboardRecentEntries entries={recentEntries} />;
 }

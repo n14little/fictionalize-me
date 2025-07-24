@@ -11,7 +11,7 @@ import { csrfModule } from '../../../../lib/csrf/csrfModule';
 function isValidTiptapJSON(jsonString: string): boolean {
   try {
     const parsed = JSON.parse(jsonString);
-    
+
     // Basic structure validation for ProseMirror JSON
     return (
       parsed &&
@@ -62,12 +62,12 @@ export async function createEntry(formData: FormData) {
       title: title.trim(),
       content: JSON.parse(content), // Parse JSON string into object for JSONB column
       mood: mood?.trim() || undefined,
-      location: location?.trim() || undefined
+      location: location?.trim() || undefined,
     });
-    
+
     // Record streak for today when user creates an entry
     await journalStreakService.recordJournalStreak(user.id);
-    
+
     // Revalidate the journal page and dashboard paths
     revalidatePath(`/journals/${journalId}`);
     revalidatePath('/dashboard');
@@ -80,24 +80,23 @@ export async function createEntry(formData: FormData) {
 
     // Get updated stats to return to the client
     const streakStats = await journalStreakService.getUserStreakStats(user.id);
-    const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
+    const entriesStats = await journalEntryService.getTotalEntriesForUser(
+      user.id
+    );
 
-    return { 
+    return {
       success: true,
-      journalId, 
+      journalId,
       streakStats,
-      entriesStats
+      entriesStats,
     };
-    
   } catch (error) {
     console.error('Error creating journal entry:', error);
     throw error;
   }
 }
 
-export async function updateEntry(
-  formData: FormData
-) {
+export async function updateEntry(formData: FormData) {
   await csrfModule.validateFormData(formData);
 
   const journalId = formData.get('journalId') as string;
@@ -135,12 +134,12 @@ export async function updateEntry(
       title: title.trim(),
       content: JSON.parse(content), // Parse JSON string into object for JSONB column
       mood: mood?.trim() || undefined,
-      location: location?.trim() || undefined
+      location: location?.trim() || undefined,
     });
-    
+
     // Record streak for today when user updates an entry
     await journalStreakService.recordJournalStreak(user.id);
-    
+
     // Revalidate the journal page and dashboard paths
     revalidatePath(`/journals/${journalId}`);
     revalidatePath('/dashboard');
@@ -153,13 +152,15 @@ export async function updateEntry(
 
     // Get updated stats to return to the client
     const streakStats = await journalStreakService.getUserStreakStats(user.id);
-    const entriesStats = await journalEntryService.getTotalEntriesForUser(user.id);
+    const entriesStats = await journalEntryService.getTotalEntriesForUser(
+      user.id
+    );
 
-    return { 
-      success: true, 
-      journalId, 
+    return {
+      success: true,
+      journalId,
       streakStats,
-      entriesStats
+      entriesStats,
     };
   } catch (error) {
     console.error('Error updating journal entry:', error);

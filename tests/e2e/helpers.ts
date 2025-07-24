@@ -30,18 +30,22 @@ export async function createJournal(page: Page, title: string) {
 /**
  * Create a journal entry in the specified journal
  */
-export async function createJournalEntry(page: Page, journalId: string, content: string) {
+export async function createJournalEntry(
+  page: Page,
+  journalId: string,
+  content: string
+) {
   await page.goto(`/journals/${journalId}`);
   await page.click('button:has-text("New Entry")');
-  
+
   // Fill in the rich text editor
   const editor = page.locator('.ProseMirror, [contenteditable="true"]');
   await editor.click();
   await page.keyboard.type(content);
-  
+
   // Submit the form
   await page.click('button:has-text("Save")');
-  
+
   // Wait for the entry to appear in the journal
   await expect(page.getByText(content.substring(0, 20))).toBeVisible();
 }

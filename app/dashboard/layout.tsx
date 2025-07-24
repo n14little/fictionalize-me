@@ -23,9 +23,11 @@ export default function DashboardLayout({
           {/* Header aligned with main content */}
           <div className="lg:col-span-8 mb-4">
             <h1 className="text-3xl font-bold">Journaling Dashboard</h1>
-            <p className="text-gray-600 mt-2">Track your journaling progress and build your writing habit</p>
+            <p className="text-gray-600 mt-2">
+              Track your journaling progress and build your writing habit
+            </p>
           </div>
-          
+
           {/* Right gutter - header row */}
           <div className="lg:col-span-2">
             <div className="hidden lg:block"></div>

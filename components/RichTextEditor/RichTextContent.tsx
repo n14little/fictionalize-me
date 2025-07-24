@@ -14,9 +14,9 @@ const extensions = [
   Link.configure({
     HTMLAttributes: {
       rel: 'noopener noreferrer',
-      target: '_blank'
-    }
-  })
+      target: '_blank',
+    },
+  }),
 ];
 
 type RichTextContentProps = {
@@ -24,10 +24,13 @@ type RichTextContentProps = {
   className?: string;
 };
 
-export const RichTextContent = ({ content, className = '' }: RichTextContentProps) => {
+export const RichTextContent = ({
+  content,
+  className = '',
+}: RichTextContentProps) => {
   // Track whether component is mounted to prevent hydration mismatch
   const [isMounted, setIsMounted] = useState(false);
-  
+
   // Process content based on its type and generate HTML
   const htmlContent = useMemo(() => {
     if (!content) {
@@ -48,7 +51,7 @@ export const RichTextContent = ({ content, className = '' }: RichTextContentProp
         return '<p></p>';
       }
     }
-    
+
     // Generate HTML from JSON content
     try {
       // Generate HTML from JSON and sanitize it
@@ -73,7 +76,7 @@ export const RichTextContent = ({ content, className = '' }: RichTextContentProp
   return (
     <div className={`prose prose-sm max-w-none ${className}`}>
       <div className={styles.contentWrapper}>
-        <div 
+        <div
           className={styles.richTextContent}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />

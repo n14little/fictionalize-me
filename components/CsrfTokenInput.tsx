@@ -45,4 +45,4 @@ export function CsrfTokenInput() {
   }
 
   return <input type="hidden" name="csrf_token" value={csrfToken} />;
-} 
+}

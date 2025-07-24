@@ -11,24 +11,24 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
-  
+
   // Maximum time one test can run
   timeout: 30 * 1000,
-  
+
   // Global setup to start the Next.js server
   globalSetup: './tests/global-setup.ts',
-  
+
   use: {
     // Base URL for all tests - points to local Next.js dev server
     baseURL: 'http://localhost:3000',
-    
+
     // Capture screenshot on failure
     screenshot: 'only-on-failure',
-    
+
     // Record trace for failed tests
     trace: 'on-first-retry',
-    
-    // Record video for failed tests  
+
+    // Record video for failed tests
     video: 'on-first-retry',
   },
 

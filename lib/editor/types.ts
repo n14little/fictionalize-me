@@ -9,5 +9,5 @@ export type { JSONContent };
 // Default empty document
 export const DEFAULT_DOCUMENT: JSONContent = {
   type: 'doc',
-  content: [{ type: 'paragraph' }]
+  content: [{ type: 'paragraph' }],
 };

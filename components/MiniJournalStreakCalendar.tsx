@@ -5,14 +5,20 @@ import { UserStreakStats } from '../lib/models/JournalStreak';
 import { Modal } from './Modal';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalStreakWrapper } from './JournalStreakWrapper';
-import { getUtcToday, getUtcMidnight, formatUtcDate } from '../lib/utils/dateUtils';
-import { DailyWriteModalButton } from "@/components/EntryButtonAliases";
+import {
+  getUtcToday,
+  getUtcMidnight,
+  formatUtcDate,
+} from '../lib/utils/dateUtils';
+import { DailyWriteModalButton } from '@/components/EntryButtonAliases';
 
 interface MiniJournalStreakCalendarProps {
   streakStats: UserStreakStats;
 }
 
-export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCalendarProps) {
+export function MiniJournalStreakCalendar({
+  streakStats,
+}: MiniJournalStreakCalendarProps) {
   const [showFullCalendar, setShowFullCalendar] = useState(false);
 
   // Use useMemo to calculate the calendar data only once per streakStats change
@@ -20,30 +26,30 @@ export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCale
   const last30Days = useMemo(() => {
     const today = getUtcToday();
     const days: { date: Date; hasJournaled: boolean }[] = [];
-    
+
     // Pre-compute a lookup set of streak dates for O(1) lookups
     const streakDateSet = new Set<string>();
-    streakStats.streakDates.forEach(date => {
+    streakStats.streakDates.forEach((date) => {
       const utcDate = getUtcMidnight(new Date(date));
       streakDateSet.add(formatUtcDate(utcDate));
     });
-    
+
     // Generate the last 30 days
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setUTCDate(today.getUTCDate() - i);
       const utcDate = getUtcMidnight(date);
-      
+
       // O(1) lookup instead of O(n) search
       const hasJournaled = streakDateSet.has(formatUtcDate(utcDate));
       days.push({ date: utcDate, hasJournaled });
     }
     return days;
   }, [streakStats.streakDates]);
-  
+
   // Safe to format dates here since we're rendering on client
   const formattedDates = useMemo(() => {
-    return streakStats.streakDates.map(date => date.toISOString());
+    return streakStats.streakDates.map((date) => date.toISOString());
   }, [streakStats.streakDates]);
 
   return (
@@ -51,21 +57,28 @@ export function MiniJournalStreakCalendar({ streakStats }: MiniJournalStreakCale
       <div className="flex flex-col">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-sm font-medium text-gray-700">Last 30 Days</h3>
-          <button 
+          <button
             onClick={() => setShowFullCalendar(true)}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
           >
             View Full Calendar
           </button>
         </div>
-        
+
         <div className="flex w-full">
-          {last30Days.map((day, index) => (
-            index !== 29 || day.hasJournaled ? (<div
-              key={day.date.toISOString()}
-              className={`h-8 flex-grow rounded-sm ${day.hasJournaled ? 'bg-blue-500' : 'bg-gray-100'}`}
-            >
-            </div>) : (<DailyWriteModalButton key={day.date.toISOString()} buttonClassName="h-8 flex-grow rounded-sm hover:bg-gray-300 hover:cursor-pointer bg-gray-200 animate-bounce" />)))}
+          {last30Days.map((day, index) =>
+            index !== 29 || day.hasJournaled ? (
+              <div
+                key={day.date.toISOString()}
+                className={`h-8 flex-grow rounded-sm ${day.hasJournaled ? 'bg-blue-500' : 'bg-gray-100'}`}
+              ></div>
+            ) : (
+              <DailyWriteModalButton
+                key={day.date.toISOString()}
+                buttonClassName="h-8 flex-grow rounded-sm hover:bg-gray-300 hover:cursor-pointer bg-gray-200 animate-bounce"
+              />
+            )
+          )}
         </div>
       </div>
 

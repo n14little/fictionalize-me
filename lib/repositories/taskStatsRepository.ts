@@ -4,7 +4,9 @@ export const taskStatsRepository = {
   /**
    * Get task statistics for a user
    */
-  getUserTaskStats: async (userId: number): Promise<{
+  getUserTaskStats: async (
+    userId: number
+  ): Promise<{
     dailyCompletions: { date: string; completed: number }[];
   }> => {
     // Get daily task completion data for the last 30 days
@@ -24,10 +26,10 @@ export const taskStatsRepository = {
     );
 
     return {
-      dailyCompletions: dailyCompletionResult.rows.map(row => ({
+      dailyCompletions: dailyCompletionResult.rows.map((row) => ({
         date: row.completed_at,
-        completed: parseInt(row.completed)
-      }))
+        completed: parseInt(row.completed),
+      })),
     };
-  }
+  },
 };

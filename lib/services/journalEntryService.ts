@@ -4,7 +4,8 @@ import { journalRepository } from '../repositories/journalRepository';
 
 export const journalEntryService = {
   getTotalEntriesForUser: async (userId: number) => {
-    const totalEntries = await journalEntryRepository.findTotalEntryCountByUserId(userId);
+    const totalEntries =
+      await journalEntryRepository.findTotalEntryCountByUserId(userId);
 
     return {
       totalEntries,
@@ -17,7 +18,7 @@ export const journalEntryService = {
 
   getJournalEntries: async (journalId: string, userId?: number) => {
     const journal = await journalRepository.findById(journalId);
-    
+
     if (!journal) {
       return [];
     }
@@ -35,7 +36,7 @@ export const journalEntryService = {
 
   getJournalEntryById: async (id: string, userId?: number) => {
     const entry = await journalEntryRepository.findById(id);
-    
+
     if (!entry) {
       return null;
     }
@@ -71,7 +72,11 @@ export const journalEntryService = {
     return journalEntryRepository.create(data);
   },
 
-  updateJournalEntry: async (id: string, userId: number, data: UpdateJournalEntry) => {
+  updateJournalEntry: async (
+    id: string,
+    userId: number,
+    data: UpdateJournalEntry
+  ) => {
     const entry = await journalEntryRepository.findById(id);
 
     if (!entry) {
@@ -109,5 +114,5 @@ export const journalEntryService = {
     }
 
     return journalEntryRepository.delete(id);
-  }
+  },
 };

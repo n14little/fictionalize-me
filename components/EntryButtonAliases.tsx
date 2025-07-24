@@ -10,10 +10,10 @@ import { createDailyEntry } from '../app/journals/daily-write/actions';
 // For backward compatibility - these components simply forward to our new unified component
 // This allows gradual migration of the codebase without breaking existing integrations
 
-export function NewEntryModalButton({ 
-  journalId, 
-  children 
-}: { 
+export function NewEntryModalButton({
+  journalId,
+  children,
+}: {
   journalId: string;
   children?: ReactNode;
 }) {
@@ -22,13 +22,14 @@ export function NewEntryModalButton({
       // Button props
       buttonClassName="w-full bg-gray-100 hover:bg-gray-200 hover:cursor-pointer text-gray-500 text-2xl px-4 py-2 rounded font-medium flex justify-center items-center gap-2"
       buttonAriaLabel="Add new journal entry"
-      buttonContent={children || (
-        <>
-          <span>+</span>
-          <span className="sr-only">New Entry</span>
-        </>
-      )}
-      
+      buttonContent={
+        children || (
+          <>
+            <span>+</span>
+            <span className="sr-only">New Entry</span>
+          </>
+        )
+      }
       // Modal props
       modalType="new"
       journalId={journalId}
@@ -41,7 +42,7 @@ export function NewEntryModalButton({
 
 export function DailyWriteModalButton({
   children,
-  buttonClassName = "",
+  buttonClassName = '',
 }: {
   children?: ReactNode;
   buttonClassName?: string;
@@ -52,7 +53,6 @@ export function DailyWriteModalButton({
       buttonClassName={buttonClassName}
       buttonAriaLabel="Quick daily write"
       buttonContent={children}
-
       // Modal props
       modalType="daily"
       onSubmit={createDailyEntry}
@@ -61,7 +61,7 @@ export function DailyWriteModalButton({
       showTimer={true}
       initialContent={{
         title: `Journal Entry - ${new Date().toLocaleDateString()}`,
-        content: {"type":"doc","content":[{"type":"paragraph"}]}
+        content: { type: 'doc', content: [{ type: 'paragraph' }] },
       }}
     />
   );
@@ -71,7 +71,7 @@ export function EditEntryModalButton({
   entry,
   journalId,
   children,
-  className
+  className,
 }: {
   entry: JournalEntry;
   journalId: string;
@@ -81,10 +81,12 @@ export function EditEntryModalButton({
   return (
     <EntryButtonModal
       // Button props
-      buttonClassName={className || "text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"}
+      buttonClassName={
+        className ||
+        'text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1'
+      }
       buttonAriaLabel={`Edit journal entry: ${entry.title || ''}`}
       buttonContent={children || <span>Edit</span>}
-      
       // Modal props
       modalType="edit"
       journalId={journalId}
@@ -96,7 +98,7 @@ export function EditEntryModalButton({
         title: entry.title,
         content: entry.content,
         mood: entry.mood || '',
-        location: entry.location || ''
+        location: entry.location || '',
       }}
     />
   );

@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createTask, createTaskWithoutRedirect } from '../app/journals/[id]/@tasks/actions';
+import {
+  createTask,
+  createTaskWithoutRedirect,
+} from '../app/journals/[id]/@tasks/actions';
 import { CsrfTokenInput } from './CsrfTokenInput';
 import { FormButton } from './FormButton';
 
@@ -12,13 +15,18 @@ interface QuickTaskButtonProps {
   selectedText?: string | null;
 }
 
-export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, selectedText }: QuickTaskButtonProps) {
+export function QuickTaskButton({
+  journalId,
+  onTaskCreated,
+  insideForm = false,
+  selectedText,
+}: QuickTaskButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  
+
   const hasSelection = Boolean(selectedText && selectedText.trim().length > 0);
 
   const handleOpenModal = () => {
@@ -26,7 +34,7 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
     if (selectedText && selectedText.trim()) {
       setTitle(selectedText.trim());
     }
-    
+
     setIsModalOpen(true);
   };
 
@@ -40,7 +48,7 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
   async function clientAction(formData: FormData) {
     // Reset error state
     setError(null);
-    
+
     // Get the form data value
     const titleValue = formData.get('title') as string;
 
@@ -52,11 +60,11 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
 
     // Add current URL as redirect to return to the current page
     formData.append('redirectUrl', window.location.pathname);
-    
+
     // Call the server action
     // Let Next.js handle redirects through errors - don't catch them
     await createTask(formData);
-    
+
     // This will only run if no redirect happens
     // Close modal and notify parent if successful
     handleCloseModal();
@@ -69,7 +77,7 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
   const handleManualSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!title.trim()) {
       setError('Task title is required');
       return;
@@ -85,13 +93,13 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
 
     // Fetch CSRF token and then submit
     fetch('/api/csrf')
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         formData.append('csrf_token', data.csrfToken);
-        
+
         startTransition(async () => {
           try {
-            // Use a separate client-side action to handle task creation 
+            // Use a separate client-side action to handle task creation
             // without redirects when inside a form
             if (insideForm) {
               // This will use our wrapper action that doesn't redirect
@@ -128,27 +136,45 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
         onClick={handleOpenModal}
         className={`flex items-center gap-1 text-sm ${
           hasSelection
-            ? 'bg-blue-100 hover:bg-blue-200' 
+            ? 'bg-blue-100 hover:bg-blue-200'
             : 'bg-blue-50 hover:bg-blue-100'
         } text-blue-700 px-2 py-1 rounded transition-colors`}
         title={
           hasSelection
-            ? "Create a task from selected text"
-            : "Create a task from this journal"
+            ? 'Create a task from selected text'
+            : 'Create a task from this journal'
         }
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M12 2v10M2 12h20M12 22v-8M19 15l-7 7-7-7" />
         </svg>
         Task
       </button>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">
-                {hasSelection ? "Create Task from Selection" : "Create Quick Task"}
+                {hasSelection
+                  ? 'Create Task from Selection'
+                  : 'Create Quick Task'}
               </h2>
               <button
                 onClick={(e) => {
@@ -158,8 +184,19 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                 className="text-gray-500 hover:text-gray-700 focus:outline-none"
                 aria-label="Close modal"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
                 </svg>
               </button>
             </div>
@@ -173,7 +210,10 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
             {insideForm ? (
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="task-title" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="task-title"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Task Title
                   </label>
                   <input
@@ -186,9 +226,12 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label htmlFor="task-description" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="task-description"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Description (optional)
                   </label>
                   <textarea
@@ -200,7 +243,7 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 pt-2">
                   <button
                     type="button"
@@ -220,9 +263,25 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                   >
                     {isPending ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Creating...
                       </>
@@ -236,9 +295,12 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
               <form action={clientAction} className="space-y-4">
                 <input type="hidden" name="journalId" value={journalId} />
                 <CsrfTokenInput />
-                
+
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="title"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Task Title
                   </label>
                   <input
@@ -252,9 +314,12 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Description (optional)
                   </label>
                   <textarea
@@ -267,7 +332,7 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 pt-2">
                   <button
                     type="button"
@@ -279,9 +344,7 @@ export function QuickTaskButton({ journalId, onTaskCreated, insideForm = false, 
                   >
                     Cancel
                   </button>
-                  <FormButton>
-                    Create Task
-                  </FormButton>
+                  <FormButton>Create Task</FormButton>
                 </div>
               </form>
             )}

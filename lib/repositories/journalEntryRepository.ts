@@ -1,5 +1,9 @@
 import { query } from '../db';
-import { JournalEntry, CreateJournalEntry, UpdateJournalEntry } from '../models/JournalEntry';
+import {
+  JournalEntry,
+  CreateJournalEntry,
+  UpdateJournalEntry,
+} from '../models/JournalEntry';
 
 export const journalEntryRepository = {
   /**
@@ -22,8 +26,10 @@ export const journalEntryRepository = {
     }
 
     // Create parameter placeholders ($1, $2, etc.) for the query
-    const placeholders = journalIds.map((_, index) => `$${index + 1}`).join(',');
-    
+    const placeholders = journalIds
+      .map((_, index) => `$${index + 1}`)
+      .join(',');
+
     const result = await query(
       `SELECT * FROM journal_entries WHERE journal_id IN (${placeholders}) ORDER BY updated_at DESC`,
       journalIds
@@ -34,7 +40,10 @@ export const journalEntryRepository = {
   /**
    * Find recent journal entries for a user across all their journals
    */
-  findRecentByUserId: async (userId: number, limit: number = 5): Promise<JournalEntry[]> => {
+  findRecentByUserId: async (
+    userId: number,
+    limit: number = 5
+  ): Promise<JournalEntry[]> => {
     // TODO: needs better pagination
     const result = await query(
       `
@@ -68,10 +77,9 @@ export const journalEntryRepository = {
    * Find a journal entry by ID
    */
   findById: async (id: string): Promise<JournalEntry | null> => {
-    const result = await query(
-      'SELECT * FROM journal_entries WHERE id = $1',
-      [id]
-    );
+    const result = await query('SELECT * FROM journal_entries WHERE id = $1', [
+      id,
+    ]);
     return result.rows[0] || null;
   },
 
@@ -88,7 +96,7 @@ export const journalEntryRepository = {
         entryData.title,
         entryData.content, // PostgreSQL will handle this as JSONB automatically
         entryData.mood || null,
-        entryData.location || null
+        entryData.location || null,
       ]
     );
     return result.rows[0];
@@ -97,7 +105,10 @@ export const journalEntryRepository = {
   /**
    * Update an existing journal entry
    */
-  update: async (id: string, entryData: UpdateJournalEntry): Promise<JournalEntry | null> => {
+  update: async (
+    id: string,
+    entryData: UpdateJournalEntry
+  ): Promise<JournalEntry | null> => {
     const sets = [];
     const values = [];
     let paramIndex = 1;
@@ -153,5 +164,5 @@ export const journalEntryRepository = {
     }
 
     return false;
-  }
+  },
 };

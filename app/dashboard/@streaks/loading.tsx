@@ -1,8 +1,10 @@
 export default function Loading() {
   return (
     <div className="bg-white shadow rounded-lg border border-gray-200 p-6 mb-6">
-      <h2 className="font-semibold text-lg mb-4 invisible">Your Journaling Habit</h2>
-      
+      <h2 className="font-semibold text-lg mb-4 invisible">
+        Your Journaling Habit
+      </h2>
+
       {/* Calendar placeholder - matches exact structure of MiniJournalStreakCalendar */}
       <div className="mb-4">
         <div className="flex flex-col">
@@ -12,10 +14,10 @@ export default function Loading() {
               View Full Calendar
             </div>
           </div>
-          
+
           <div className="flex w-full">
             {Array.from({ length: 30 }).map((_, index) => (
-              <div 
+              <div
                 key={index}
                 className="h-8 flex-grow rounded-sm bg-gray-100"
               />
@@ -23,7 +25,7 @@ export default function Loading() {
           </div>
         </div>
       </div>
-      
+
       {/* Stats cards - exact matches for the actual cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 p-4 rounded-md text-center">

@@ -13,7 +13,8 @@ export async function createTask(formData: FormData) {
   const journalId = formData.get('journalId') as string;
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
-  const redirectUrl = formData.get('redirectUrl') as string || `/journals/${journalId}`;
+  const redirectUrl =
+    (formData.get('redirectUrl') as string) || `/journals/${journalId}`;
 
   // Get the current user
   const user = await authService.getCurrentUser();
@@ -37,9 +38,9 @@ export async function createTask(formData: FormData) {
   await taskService.createTask(user.id, {
     journal_id: journalId,
     title: title.trim(),
-    description: description?.trim() || undefined
+    description: description?.trim() || undefined,
   });
-  
+
   // Revalidate the journal page
   revalidatePath(`/journals/${journalId}`);
 
@@ -64,7 +65,7 @@ export async function toggleTaskCompletion(formData: FormData) {
 
     // Toggle task completion
     await taskService.toggleTaskCompletion(taskId, user.id);
-    
+
     // Revalidate the journal page
     revalidatePath(`/journals/${journalId}`);
   } catch (error) {
@@ -92,7 +93,7 @@ export async function deleteTask(formData: FormData) {
 
     // Delete task
     await taskService.deleteTask(taskId, user.id);
-    
+
     // Revalidate the journal page
     revalidatePath(`/journals/${journalId}`);
   } catch (error) {
@@ -133,9 +134,9 @@ export async function createTaskWithoutRedirect(formData: FormData) {
   await taskService.createTask(user.id, {
     journal_id: journalId,
     title: title.trim(),
-    description: description?.trim() || undefined
+    description: description?.trim() || undefined,
   });
-  
+
   // Revalidate the journal page and tasks paths
   revalidatePath(`/journals/${journalId}`);
 

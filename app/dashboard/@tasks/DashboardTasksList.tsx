@@ -9,7 +9,10 @@ interface DashboardTasksListProps {
   completedTasks: Task[];
 }
 
-export function DashboardTasksList({ pendingTasks, completedTasks }: DashboardTasksListProps) {
+export function DashboardTasksList({
+  pendingTasks,
+  completedTasks,
+}: DashboardTasksListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
 
   return (
@@ -41,17 +44,22 @@ export function DashboardTasksList({ pendingTasks, completedTasks }: DashboardTa
             onClick={() => setShowCompleted(!showCompleted)}
             className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-2 hover:text-gray-600 transition-colors"
           >
-            <svg 
+            <svg
               className={`w-3 h-3 transition-transform ${showCompleted ? 'rotate-90' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
             Completed ({completedTasks.length})
           </button>
-          
+
           {showCompleted && (
             <div className="space-y-2">
               {completedTasks.slice(0, 3).map((task) => (

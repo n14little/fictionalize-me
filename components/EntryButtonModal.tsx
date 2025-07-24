@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
-import { 
-  JournalEntryModal, 
-  JournalEntrySharedProps
+import {
+  JournalEntryModal,
+  JournalEntrySharedProps,
 } from './JournalEntryModal';
 
 export interface EntryButtonModalProps extends JournalEntrySharedProps {
@@ -22,7 +22,7 @@ export function EntryButtonModal({
   buttonClassName,
   buttonAriaLabel,
   buttonContent,
-  
+
   // Modal props - inherited from JournalEntrySharedProps
   modalType,
   journalId,
@@ -31,10 +31,10 @@ export function EntryButtonModal({
   showMoodField = true,
   showLocationField = true,
   showTimer = false,
-  initialContent
+  initialContent,
 }: EntryButtonModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const handleOpenModal = () => {
     setIsOpen(true);
   };

@@ -18,11 +18,11 @@ export function ConfirmationModal({
   onConfirm,
   title,
   message,
-  confirmButtonText = "Confirm",
-  cancelButtonText = "Cancel"
+  confirmButtonText = 'Confirm',
+  cancelButtonText = 'Cancel',
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
-  
+
   return (
     <Modal className="!max-w-md">
       <div className="flex flex-col">
