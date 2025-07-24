@@ -22,16 +22,6 @@ export const journalRepository = {
   },
 
   /**
-   * Find a journal by slug
-   */
-  findBySlug: async (slug: string): Promise<Journal | null> => {
-    const result = await query('SELECT * FROM journals WHERE slug = $1', [
-      slug,
-    ]);
-    return result.rows[0] || null;
-  },
-
-  /**
    * Find a journal by title for a specific user
    */
   findByTitle: async (
@@ -46,18 +36,32 @@ export const journalRepository = {
   },
 
   /**
+   * Find or create a Daily Write journal for a user (race-condition safe)
+   */
+  findOrCreateDailyWrite: async (userId: number): Promise<Journal> => {
+    const result = await query(
+      `INSERT INTO journals (user_id, title, description, public) 
+       VALUES ($1, $2, $3, $4) 
+       ON CONFLICT (user_id, title) 
+       DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [userId, 'Daily Write', 'Journal for daily writing exercises', false]
+    );
+    return result.rows[0];
+  },
+
+  /**
    * Create a new journal
    */
   create: async (journalData: CreateJournal): Promise<Journal> => {
     const result = await query(
       `INSERT INTO journals (
-        user_id, title, description, slug, public
-      ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        user_id, title, description, public
+      ) VALUES ($1, $2, $3, $4) RETURNING *`,
       [
         journalData.user_id,
         journalData.title,
         journalData.description || null,
-        journalData.slug || null,
         journalData.public !== undefined ? journalData.public : false,
       ]
     );
@@ -84,12 +88,6 @@ export const journalRepository = {
     if (journalData.description !== undefined) {
       sets.push(`description = $${paramIndex}`);
       values.push(journalData.description);
-      paramIndex++;
-    }
-
-    if (journalData.slug !== undefined) {
-      sets.push(`slug = $${paramIndex}`);
-      values.push(journalData.slug);
       paramIndex++;
     }
 

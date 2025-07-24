@@ -17,27 +17,20 @@ BEGIN
             RAISE NOTICE 'Created test user for % environment', '${environment}';
         END IF;
         
-        -- Get the test user ID
+        -- Create a sample journal if one doesn't exist
         WITH test_user AS (
             SELECT id FROM users WHERE email = 'test@example.com'
         )
-        
-        -- Create a sample journal if one doesn't exist
-        INSERT INTO journals (user_id, title, description, slug, public)
+        INSERT INTO journals (user_id, title, description, public)
         SELECT 
             test_user.id,
             'My Test Journal',
             'A sample journal created for testing in the ${environment} environment',
-            'test-journal-' || '${environment}',
-            TRUE
+            false
         FROM test_user
-        WHERE NOT EXISTS (
-            SELECT 1 FROM journals j 
-            JOIN users u ON j.user_id = u.id 
-            WHERE u.email = 'test@example.com' AND j.title = 'My Test Journal'
-        );
+        ON CONFLICT (user_id, title) DO NOTHING;
         
-        -- Log that this migration was skipped in production
+        -- Log that development data was added
         RAISE NOTICE 'Development data added for % environment', '${environment}';
     ELSE
         -- Log that this migration was skipped in production
