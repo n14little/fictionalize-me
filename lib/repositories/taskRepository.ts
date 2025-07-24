@@ -42,7 +42,7 @@ export const taskRepository = {
       ) VALUES (
         $1, $2, $3, $4, 
         CASE 
-          WHEN $5 IS NOT NULL THEN $5
+          WHEN $5::INTEGER IS NOT NULL THEN $5::INTEGER
           ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
         END
       ) RETURNING *`,
