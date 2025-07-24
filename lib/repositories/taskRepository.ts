@@ -7,7 +7,7 @@ export const taskRepository = {
    */
   findByUserId: async (userId: number): Promise<Task[]> => {
     const result = await query(
-      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC, created_at ASC',
       [userId]
     );
     return result.rows;
@@ -18,7 +18,7 @@ export const taskRepository = {
    */
   findByJournalId: async (journalId: string): Promise<Task[]> => {
     const result = await query(
-      'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY created_at DESC',
+      'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY priority ASC, created_at ASC',
       [journalId]
     );
     return result.rows;
@@ -36,15 +36,27 @@ export const taskRepository = {
    * Create a new task
    */
   create: async (taskData: CreateTask): Promise<Task> => {
+    // If no priority is provided, set it to be after the last task for this user
+    let priority = taskData.priority;
+    if (priority === undefined) {
+      const lastTaskResult = await query(
+        'SELECT MAX(priority) as max_priority FROM tasks WHERE user_id = $1',
+        [taskData.user_id]
+      );
+      const maxPriority = lastTaskResult.rows[0]?.max_priority || 0;
+      priority = maxPriority + 1000;
+    }
+
     const result = await query(
       `INSERT INTO tasks (
-        journal_id, user_id, title, description
-      ) VALUES ($1, $2, $3, $4) RETURNING *`,
+        journal_id, user_id, title, description, priority
+      ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [
         taskData.journal_id,
         taskData.user_id,
         taskData.title,
         taskData.description || null,
+        priority,
       ]
     );
     return result.rows[0];
@@ -67,6 +79,12 @@ export const taskRepository = {
     if (taskData.description !== undefined) {
       sets.push(`description = $${paramIndex}`);
       values.push(taskData.description);
+      paramIndex++;
+    }
+
+    if (taskData.priority !== undefined) {
+      sets.push(`priority = $${paramIndex}`);
+      values.push(taskData.priority);
       paramIndex++;
     }
 
@@ -113,5 +131,27 @@ export const taskRepository = {
     }
 
     return false;
+  },
+
+  /**
+   * Update priority for a specific task
+   */
+  updatePriority: async (id: string, priority: number): Promise<Task | null> => {
+    const result = await query(
+      'UPDATE tasks SET priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [priority, id]
+    );
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Get tasks by user with priority range for calculating new priorities
+   */
+  getTasksForReordering: async (userId: number): Promise<Task[]> => {
+    const result = await query(
+      'SELECT id, priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
+      [userId]
+    );
+    return result.rows;
   },
 };
