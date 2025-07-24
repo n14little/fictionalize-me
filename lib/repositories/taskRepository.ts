@@ -7,7 +7,7 @@ export const taskRepository = {
    */
   findByUserId: async (userId: number): Promise<Task[]> => {
     const result = await query(
-      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC, created_at ASC',
+      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
       [userId]
     );
     return result.rows;
@@ -18,7 +18,7 @@ export const taskRepository = {
    */
   findByJournalId: async (journalId: string): Promise<Task[]> => {
     const result = await query(
-      'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY priority ASC, created_at ASC',
+      'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY priority ASC',
       [journalId]
     );
     return result.rows;
@@ -36,27 +36,22 @@ export const taskRepository = {
    * Create a new task
    */
   create: async (taskData: CreateTask): Promise<Task> => {
-    // If no priority is provided, set it to be after the last task for this user
-    let priority = taskData.priority;
-    if (priority === undefined) {
-      const lastTaskResult = await query(
-        'SELECT MAX(priority) as max_priority FROM tasks WHERE user_id = $1',
-        [taskData.user_id]
-      );
-      const maxPriority = lastTaskResult.rows[0]?.max_priority || 0;
-      priority = maxPriority + 1000;
-    }
-
     const result = await query(
       `INSERT INTO tasks (
         journal_id, user_id, title, description, priority
-      ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      ) VALUES (
+        $1, $2, $3, $4, 
+        CASE 
+          WHEN $5 IS NOT NULL THEN $5
+          ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
+        END
+      ) RETURNING *`,
       [
         taskData.journal_id,
         taskData.user_id,
         taskData.title,
         taskData.description || null,
-        priority,
+        taskData.priority || null,
       ]
     );
     return result.rows[0];
@@ -136,7 +131,10 @@ export const taskRepository = {
   /**
    * Update priority for a specific task
    */
-  updatePriority: async (id: string, priority: number): Promise<Task | null> => {
+  updatePriority: async (
+    id: string,
+    priority: number
+  ): Promise<Task | null> => {
     const result = await query(
       'UPDATE tasks SET priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [priority, id]
@@ -153,5 +151,79 @@ export const taskRepository = {
       [userId]
     );
     return result.rows;
+  },
+
+  /**
+   * Get priority of a specific task
+   */
+  getTaskPriority: async (taskId: string): Promise<number | null> => {
+    const result = await query('SELECT priority FROM tasks WHERE id = $1', [
+      taskId,
+    ]);
+    return result.rows[0]?.priority || null;
+  },
+
+  /**
+   * Get priorities of adjacent tasks for efficient reordering
+   */
+  getAdjacentTaskPriorities: async (
+    userId: number,
+    afterTaskId?: string,
+    beforeTaskId?: string
+  ): Promise<{ afterPriority?: number; beforePriority?: number }> => {
+    if (!afterTaskId && !beforeTaskId) {
+      // Moving to beginning - get first task priority
+      const result = await query(
+        'SELECT priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC LIMIT 1',
+        [userId]
+      );
+      return { beforePriority: result.rows[0]?.priority };
+    }
+
+    if (afterTaskId && !beforeTaskId) {
+      // Moving to end or after specific task - get that task and the next one
+      const result = await query(
+        `SELECT id, priority, 
+         LEAD(priority) OVER (ORDER BY priority ASC) as next_priority
+         FROM tasks 
+         WHERE user_id = $1 AND id = $2`,
+        [userId, afterTaskId]
+      );
+      const row = result.rows[0];
+      return {
+        afterPriority: row?.priority,
+        beforePriority: row?.next_priority,
+      };
+    }
+
+    if (!afterTaskId && beforeTaskId) {
+      // Moving before specific task (could be moving to the very top)
+      const result = await query(
+        `SELECT id, priority,
+         LAG(priority) OVER (ORDER BY priority ASC) as prev_priority
+         FROM tasks 
+         WHERE user_id = $1 AND id = $2`,
+        [userId, beforeTaskId]
+      );
+      const row = result.rows[0];
+      return {
+        afterPriority: row?.prev_priority || undefined,
+        beforePriority: row?.priority,
+      };
+    }
+
+    // Moving between two specific tasks
+    const result = await query(
+      'SELECT id, priority FROM tasks WHERE user_id = $1 AND id IN ($2, $3)',
+      [userId, afterTaskId, beforeTaskId]
+    );
+
+    const afterTask = result.rows.find((r) => r.id === afterTaskId);
+    const beforeTask = result.rows.find((r) => r.id === beforeTaskId);
+
+    return {
+      afterPriority: afterTask?.priority,
+      beforePriority: beforeTask?.priority,
+    };
   },
 };

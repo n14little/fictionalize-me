@@ -43,6 +43,7 @@ export function DraggableTaskList({
   className = '',
 }: DraggableTaskListProps) {
   const [localTasks, setLocalTasks] = useState(tasks);
+  const [isDragging, setIsDragging] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -55,16 +56,19 @@ export function DraggableTaskList({
     })
   );
 
-  // Update local tasks when props change
+  // Update local tasks when props change, but only if not currently dragging
+  // This prevents the jitter during drag operations
   if (
+    !isDragging &&
     JSON.stringify(tasks.map((t) => t.id)) !==
-    JSON.stringify(localTasks.map((t) => t.id))
+      JSON.stringify(localTasks.map((t) => t.id))
   ) {
     setLocalTasks(tasks);
   }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    setIsDragging(false);
 
     if (over && active.id !== over.id) {
       const oldIndex = localTasks.findIndex((task) => task.id === active.id);
@@ -85,6 +89,16 @@ export function DraggableTaskList({
         beforeTaskId = newTasks[newIndex + 1].id;
       }
 
+      console.log('Drag and drop calculation:', {
+        activeId: active.id,
+        overId: over.id,
+        oldIndex,
+        newIndex,
+        afterTaskId,
+        beforeTaskId,
+        newTasksLength: newTasks.length,
+      });
+
       try {
         await onReorder(active.id as string, afterTaskId, beforeTaskId);
       } catch (error) {
@@ -95,10 +109,15 @@ export function DraggableTaskList({
     }
   }
 
+  function handleDragStart() {
+    setIsDragging(true);
+  }
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >

@@ -56,8 +56,8 @@ export async function deleteTask(formData: FormData) {
 export async function reorderTask(formData: FormData) {
   await csrfModule.validateFormData(formData);
   const taskId = formData.get('taskId') as string;
-  const afterTaskId = formData.get('afterTaskId') as string || undefined;
-  const beforeTaskId = formData.get('beforeTaskId') as string || undefined;
+  const afterTaskId = (formData.get('afterTaskId') as string) || undefined;
+  const beforeTaskId = (formData.get('beforeTaskId') as string) || undefined;
 
   try {
     const user = await authService.getCurrentUser();

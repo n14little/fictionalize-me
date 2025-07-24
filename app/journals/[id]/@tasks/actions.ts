@@ -147,8 +147,8 @@ export async function createTaskWithoutRedirect(formData: FormData) {
 export async function reorderTask(formData: FormData) {
   await csrfModule.validateFormData(formData);
   const taskId = formData.get('taskId') as string;
-  const afterTaskId = formData.get('afterTaskId') as string || undefined;
-  const beforeTaskId = formData.get('beforeTaskId') as string || undefined;
+  const afterTaskId = (formData.get('afterTaskId') as string) || undefined;
+  const beforeTaskId = (formData.get('beforeTaskId') as string) || undefined;
   const journalId = formData.get('journalId') as string;
 
   try {

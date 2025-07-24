@@ -173,68 +173,45 @@ export const taskService = {
     beforeTaskId?: string
   ): Promise<Task | null> => {
     const task = await taskRepository.findById(taskId);
-    if (!task) {
+    if (!task || task.user_id !== userId) {
       return null;
     }
 
-    const journal = await journalRepository.findById(task.journal_id);
-    if (!journal) {
-      return null;
-    }
+    // Get adjacent task priorities efficiently
+    const { afterPriority, beforePriority } =
+      await taskRepository.getAdjacentTaskPriorities(
+        userId,
+        afterTaskId,
+        beforeTaskId
+      );
 
-    if (journal.user_id !== userId) {
-      return null;
-    }
-
-    // Get all tasks for this user to calculate new priority
-    const allTasks = await taskRepository.getTasksForReordering(userId);
-    
     let newPriority: number;
 
-    if (!afterTaskId && !beforeTaskId) {
-      // Move to the beginning
-      const firstTask = allTasks.find(t => t.id !== taskId);
-      newPriority = firstTask ? firstTask.priority - 1000 : 1000;
-    } else if (afterTaskId && !beforeTaskId) {
-      // Move after a specific task (to the end or before the next task)
-      const afterTask = allTasks.find(t => t.id === afterTaskId);
-      if (!afterTask) return null;
-      
-      const afterIndex = allTasks.findIndex(t => t.id === afterTaskId);
-      const nextTask = allTasks[afterIndex + 1];
-      
-      if (nextTask && nextTask.id !== taskId) {
-        // Calculate priority between afterTask and nextTask
-        newPriority = (afterTask.priority + nextTask.priority) / 2;
-      } else {
-        // Move to the end
-        newPriority = afterTask.priority + 1000;
-      }
-    } else if (!afterTaskId && beforeTaskId) {
-      // Move before a specific task
-      const beforeTask = allTasks.find(t => t.id === beforeTaskId);
-      if (!beforeTask) return null;
-      
-      const beforeIndex = allTasks.findIndex(t => t.id === beforeTaskId);
-      const prevTask = beforeIndex > 0 ? allTasks[beforeIndex - 1] : null;
-      
-      if (prevTask && prevTask.id !== taskId) {
-        // Calculate priority between prevTask and beforeTask
-        newPriority = (prevTask.priority + beforeTask.priority) / 2;
-      } else {
-        // Move to the beginning
-        newPriority = beforeTask.priority - 1000;
-      }
+    if (afterPriority !== undefined && beforePriority !== undefined) {
+      // Moving between two tasks - always use midpoint
+      newPriority = (afterPriority + beforePriority) / 2;
+    } else if (afterPriority !== undefined && beforePriority === undefined) {
+      // Moving after a task (to the end)
+      newPriority = afterPriority + 1000;
+    } else if (
+      (afterPriority === undefined || afterPriority === null) &&
+      beforePriority !== undefined
+    ) {
+      // Moving before a task (to the beginning)
+      newPriority = beforePriority - 1000;
     } else {
-      // Move between two specific tasks
-      const afterTask = allTasks.find(t => t.id === afterTaskId);
-      const beforeTask = allTasks.find(t => t.id === beforeTaskId);
-      
-      if (!afterTask || !beforeTask) return null;
-      
-      // Calculate priority between the two tasks
-      newPriority = (afterTask.priority + beforeTask.priority) / 2;
+      // Fallback: move to beginning with a safe priority
+      newPriority = 100;
     }
+
+    console.log('Reordering task:', {
+      taskId,
+      afterTaskId,
+      beforeTaskId,
+      afterPriority,
+      beforePriority,
+      newPriority,
+    });
 
     return taskRepository.updatePriority(taskId, newPriority);
   },
