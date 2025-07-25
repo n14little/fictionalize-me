@@ -13,7 +13,9 @@ export async function loginWithAuth0(page: Page) {
   const testPassword = process.env.TEST_USER_PASSWORD;
 
   if (!testEmail || !testPassword) {
-    throw new Error('TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables must be set for login tests');
+    throw new Error(
+      'TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables must be set for login tests'
+    );
   }
 
   await page.goto('/auth/signin');
@@ -29,33 +31,38 @@ export async function loginWithAuth0(page: Page) {
   await page.fill('input[name="password"]', testPassword);
 
   // Submit the Auth0 login form
-  await page.click('button[type="submit"], button[data-action-button-primary="true"]');
+  await page.click(
+    'button[type="submit"], button[data-action-button-primary="true"]'
+  );
 
   // Handle consent page if it appears
   try {
     await page.waitForURL(/\/u\/consent/, { timeout: 5000 });
 
     // Look for and click consent button - be very specific to avoid "Decline"
-    const acceptButton = page.locator('button').filter({ hasText: /^(Accept|Allow|Authorize)$/i });
-    
-    if (await acceptButton.count() > 0) {
+    const acceptButton = page
+      .locator('button')
+      .filter({ hasText: /^(Accept|Allow|Authorize)$/i });
+
+    if ((await acceptButton.count()) > 0) {
       await acceptButton.first().click();
     } else {
       // If no exact match, look for primary action button but avoid decline/cancel
-      const primaryButton = page.locator('button[data-action-button-primary="true"]')
+      const primaryButton = page
+        .locator('button[data-action-button-primary="true"]')
         .filter({ hasNotText: /decline|cancel|deny|reject/i });
-      
-      if (await primaryButton.count() > 0) {
+
+      if ((await primaryButton.count()) > 0) {
         await primaryButton.first().click();
       }
     }
   } catch {
     // No consent page, continue
   }
-  
+
   // Wait for redirect back to the app
   await page.waitForURL(/localhost:3000/, { timeout: 15000 });
-  
+
   // Give the app a moment to load the authenticated state
   await page.waitForLoadState('domcontentloaded');
 }
@@ -66,44 +73,79 @@ export async function loginWithAuth0(page: Page) {
  */
 export async function login(page: Page, email: string, password: string) {
   await page.goto('/auth/signin');
-  
+
   const signInButton = page.getByRole('button', { name: 'Sign in with Auth0' });
   await signInButton.click();
-  
+
   // Wait for Auth0 login page
   await page.waitForURL(/auth0\.com/, { timeout: 10000 });
-  
+
   // Fill in Auth0 credentials
   await page.fill('input[name="username"]', email);
   await page.fill('input[name="password"]', password);
-  
+
   // Submit the Auth0 login form
-  await page.click('button[type="submit"], button[data-action-button-primary="true"]');
-  
+  await page.click(
+    'button[type="submit"], button[data-action-button-primary="true"]'
+  );
+
   // Handle consent page if it appears
   try {
     await page.waitForURL(/\/u\/consent/, { timeout: 5000 });
-    
+
     // Look for and click consent button - be very specific to avoid "Decline"
-    const acceptButton = page.locator('button').filter({ hasText: /^(Accept|Allow|Authorize)$/i });
-    
-    if (await acceptButton.count() > 0) {
+    const acceptButton = page
+      .locator('button')
+      .filter({ hasText: /^(Accept|Allow|Authorize)$/i });
+
+    if ((await acceptButton.count()) > 0) {
       await acceptButton.first().click();
     } else {
       // If no exact match, look for primary action button but avoid decline/cancel
-      const primaryButton = page.locator('button[data-action-button-primary="true"]')
+      const primaryButton = page
+        .locator('button[data-action-button-primary="true"]')
         .filter({ hasNotText: /decline|cancel|deny|reject/i });
-      
-      if (await primaryButton.count() > 0) {
+
+      if ((await primaryButton.count()) > 0) {
         await primaryButton.first().click();
       }
     }
   } catch {
     // No consent page, continue
   }
-  
+
   // Wait for redirect back to the app
   await page.waitForURL(/localhost:3000/, { timeout: 15000 });
+}
+
+/**
+ * Logout helper - clears session and navigates to home
+ */
+export async function logout(page: Page) {
+  // Try to click logout if available
+  try {
+    const logoutLink = page.getByRole('link', { name: 'Logout' });
+    if (await logoutLink.isVisible()) {
+      await logoutLink.click({ force: true });
+      await page.waitForURL('/', { timeout: 10000 });
+    }
+  } catch {
+    // If logout link not available, just clear session
+  }
+
+  // Clear all cookies and local storage to ensure clean state
+  await page.context().clearCookies();
+  try {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+  } catch {
+    // Ignore localStorage access errors (cross-origin or other contexts)
+  }
+
+  // Navigate to home to ensure clean state
+  await page.goto('/');
 }
 
 /**

@@ -13,7 +13,7 @@
     "db:migrate": "./db-migrate.sh",
     "type-check": "tsc",
     "check": "concurrently \"npm run lint\" \"npm run type-check\" \"npm run format:check\"",
-    "e2e": "playwright test tests/e2e/home.spec.ts tests/e2e/journal.spec.ts tests/e2e/auth.spec.ts",
+    "e2e": "playwright test",
     "e2e:chromium": "playwright test --project=chromium",
     "e2e:firefox": "playwright test --project=firefox",
     "e2e:webkit": "playwright test --project=webkit",

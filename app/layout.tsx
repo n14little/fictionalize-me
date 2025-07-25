@@ -29,7 +29,7 @@ export default function RootLayout({
                   Fictionalize Me
                 </Link>
               </div>
-              <nav className="flex space-x-6 items-center">
+              <nav className="flex space-x-4 sm:space-x-6 items-center">
                 <Link
                   href="/waitlist"
                   className="text-gray-700 hover:text-blue-600"
@@ -43,9 +43,11 @@ export default function RootLayout({
                   Journals
                 </Link>
                 <DynamicDashboardLink />
-                <AuthProvider>
-                  <AuthButtons />
-                </AuthProvider>
+                <div className="flex-shrink-0">
+                  <AuthProvider>
+                    <AuthButtons />
+                  </AuthProvider>
+                </div>
               </nav>
             </div>
           </div>
