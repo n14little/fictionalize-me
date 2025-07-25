@@ -45,6 +45,12 @@ export interface JournalEntrySharedProps {
   entryId?: string;
   initialContent?: EntryContent;
   onSubmit: (formData: FormData) => Promise<EntrySubmitResult | undefined>;
+  onSuccess?: (updatedData: {
+    title: string;
+    content: JSONContent;
+    mood?: string;
+    location?: string;
+  }) => void;
   showMoodField?: boolean;
   showLocationField?: boolean;
   showTimer?: boolean;
@@ -61,6 +67,7 @@ export function JournalEntryModal({
   initialContent,
   onClose,
   onSubmit,
+  onSuccess,
   showMoodField = true,
   showLocationField = true,
   showTimer = false,
@@ -234,6 +241,16 @@ export function JournalEntryModal({
         result.streakStats &&
         result.journalId
       ) {
+        // Call the success callback with updated data
+        if (onSuccess) {
+          onSuccess({
+            title,
+            content,
+            mood,
+            location,
+          });
+        }
+
         // Show stats modal
         setStats({
           entriesStats: result.entriesStats,
@@ -243,6 +260,16 @@ export function JournalEntryModal({
         });
         setShowStatsModal(true);
       } else {
+        // Call the success callback even for simple success without stats
+        if (result?.success && onSuccess) {
+          onSuccess({
+            title,
+            content,
+            mood,
+            location,
+          });
+        }
+
         // Fall back to closing modal and refreshing page
         onClose();
         router.refresh();

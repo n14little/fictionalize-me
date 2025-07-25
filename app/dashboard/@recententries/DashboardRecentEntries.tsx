@@ -6,12 +6,27 @@ import { RichTextContent } from '@/components/RichTextEditor/RichTextContent';
 import { EntryButtonModal } from '@/components/EntryButtonModal';
 import { updateEntryFromDashboard, getMoreEntriesForUser } from './actions';
 import Link from 'next/link';
+import { JSONContent } from '@tiptap/react';
 
 interface DashboardRecentEntriesProps {
   entries: JournalEntry[];
 }
 
-function DashboardEntryCard({ entry }: { entry: JournalEntry }) {
+function DashboardEntryCard({
+  entry,
+  onEntryUpdate,
+}: {
+  entry: JournalEntry;
+  onEntryUpdate: (
+    entryId: string,
+    updatedData: {
+      title: string;
+      content: JSONContent;
+      mood?: string;
+      location?: string;
+    }
+  ) => void;
+}) {
   const entryContent = (
     <div className="p-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-2 truncate">
@@ -45,6 +60,7 @@ function DashboardEntryCard({ entry }: { entry: JournalEntry }) {
       journalId={entry.journal_id}
       entryId={entry.id}
       onSubmit={updateEntryFromDashboard}
+      onSuccess={(updatedData) => onEntryUpdate(entry.id, updatedData)}
       showMoodField={true}
       showLocationField={true}
       initialContent={{
@@ -63,6 +79,31 @@ export function DashboardRecentEntries({
   const [entries, setEntries] = useState(initialEntries);
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const handleEntryUpdate = (
+    entryId: string,
+    updatedData: {
+      title: string;
+      content: JSONContent;
+      mood?: string;
+      location?: string;
+    }
+  ) => {
+    setEntries((prevEntries) =>
+      prevEntries.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              title: updatedData.title,
+              content: updatedData.content,
+              mood: updatedData.mood || null,
+              location: updatedData.location || null,
+              updated_at: new Date(),
+            }
+          : entry
+      )
+    );
+  };
 
   const handleLoadMore = async () => {
     setIsLoading(true);
@@ -106,7 +147,11 @@ export function DashboardRecentEntries({
       ) : (
         <div className="space-y-3">
           {entries.map((entry) => (
-            <DashboardEntryCard key={entry.id} entry={entry} />
+            <DashboardEntryCard
+              key={entry.id}
+              entry={entry}
+              onEntryUpdate={handleEntryUpdate}
+            />
           ))}
           {entries.length >= 3 && (
             <div className="pt-2">
