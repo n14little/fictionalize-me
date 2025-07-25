@@ -195,7 +195,7 @@ test.describe('Authentication', () => {
 
       // Should be able to access dashboard
       await page.goto('/dashboard');
-      await expect(page).toHaveTitle(/Fictionalize Me/);
+      await expect(page.getByRole('heading', { name: 'Journaling Dashboard'})).toBeVisible();
 
       // Should not be redirected to signin
       expect(page.url()).not.toContain('/auth/signin');
