@@ -19,6 +19,7 @@ yarn-error.log*
 # Database
 *.db
 *.sqlite
+db/migrations/*.sql
 
 # OS generated files
 .DS_Store

@@ -16,7 +16,17 @@ export default async function DashboardTasksSlot() {
 
   // Separate pending and completed tasks
   const pendingTasks = allTasks.filter((task) => !task.completed);
-  const completedTasks = allTasks.filter((task) => task.completed);
+  const completedTasks = allTasks
+    .filter((task) => task.completed)
+    .sort((a, b) => {
+      // Sort completed tasks by completion date (most recent first)
+      if (!a.completed_at && !b.completed_at) return 0;
+      if (!a.completed_at) return 1;
+      if (!b.completed_at) return -1;
+      return (
+        new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
+      );
+    });
 
   return (
     <DashboardTasksList

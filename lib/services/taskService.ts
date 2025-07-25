@@ -162,4 +162,86 @@ export const taskService = {
       completed_at: !task.completed ? new Date() : null,
     });
   },
+
+  /**
+   * Reorder a task relative to another task
+   */
+  reorderTask: async (
+    taskId: string,
+    userId: number,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ): Promise<Task | null> => {
+    const task = await taskRepository.findById(taskId);
+    if (!task || task.user_id !== userId) {
+      return null;
+    }
+
+    // Get the new priority based on the reference task and position
+    const newPriority = await taskRepository.calculateNewPriority(
+      userId,
+      taskId,
+      referenceTaskId,
+      position
+    );
+
+    if (newPriority === null) {
+      return null;
+    }
+
+    console.log('Reordering task:', {
+      taskId,
+      referenceTaskId,
+      position,
+      newPriority,
+    });
+
+    return taskRepository.updatePriority(taskId, newPriority);
+  },
+
+  /**
+   * Reorder a pending task relative to another task, considering only pending tasks
+   * This is used specifically for dashboard drag-and-drop where only pending tasks are shown
+   */
+  reorderPendingTask: async (
+    taskId: string,
+    userId: number,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ): Promise<Task | null> => {
+    const task = await taskRepository.findById(taskId);
+    if (!task || task.user_id !== userId) {
+      return null;
+    }
+
+    // Ensure we're only reordering pending tasks
+    if (task.completed) {
+      console.log('Cannot reorder completed task:', taskId);
+      return null;
+    }
+
+    // Get the new priority based on the reference task and position, considering only pending tasks
+    const newPriority =
+      await taskRepository.calculateNewPriorityForPendingTasks(
+        userId,
+        taskId,
+        referenceTaskId,
+        position
+      );
+
+    if (newPriority === null) {
+      return null;
+    }
+
+    console.log('Reordering pending task:', {
+      taskId,
+      referenceTaskId,
+      position,
+      newPriority,
+      taskTitle: task.title,
+      oldPriority: task.priority,
+    });
+
+    return taskRepository.updatePriority(taskId, newPriority);
+  },
 };

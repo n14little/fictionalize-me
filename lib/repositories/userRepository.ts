@@ -44,12 +44,14 @@ export const userRepository = {
    * Find a user by external ID, or create if they don't exist
    */
   findOrCreate: async (userData: CreateUser): Promise<User> => {
-    const existingUser = await userRepository.findByExternalId(
-      userData.external_user_id
+    const result = await query(
+      `INSERT INTO users (email, external_user_id) 
+       VALUES ($1, $2) 
+       ON CONFLICT (external_user_id) 
+       DO UPDATE SET email = EXCLUDED.email, updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [userData.email, userData.external_user_id]
     );
-    if (existingUser) {
-      return existingUser;
-    }
-    return await userRepository.create(userData);
+    return result.rows[0];
   },
 };

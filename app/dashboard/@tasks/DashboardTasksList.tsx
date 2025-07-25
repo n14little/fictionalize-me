@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Task } from '@/lib/models/Task';
 import { DashboardTaskItem } from '@/app/dashboard/@tasks/DashboardTaskItem';
+import { DraggableTaskList } from '@/components/DraggableTaskList';
+import { SortableTaskItem } from '@/components/SortableTaskItem';
+import { reorderTask } from './actions';
 
 interface DashboardTasksListProps {
   pendingTasks: Task[];
@@ -14,6 +17,41 @@ export function DashboardTasksList({
   completedTasks,
 }: DashboardTasksListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [, startTransition] = useTransition();
+
+  const handleReorder = async (
+    taskId: string,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ) => {
+    return new Promise<void>((resolve, reject) => {
+      startTransition(async () => {
+        try {
+          // Create form data for the server action
+          const formData = new FormData();
+          formData.append('taskId', taskId);
+          formData.append('referenceTaskId', referenceTaskId);
+          formData.append('position', position);
+
+          // Get CSRF token
+          const csrfResponse = await fetch('/api/csrf');
+          const csrfData = await csrfResponse.json();
+          formData.append('csrf_token', csrfData.csrfToken);
+
+          await reorderTask(formData);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  };
+
+  const renderPendingTask = (task: Task) => (
+    <SortableTaskItem key={task.id} id={task.id}>
+      <DashboardTaskItem task={task} />
+    </SortableTaskItem>
+  );
 
   return (
     <div className="bg-white shadow rounded-lg border border-gray-200 p-6">
@@ -29,11 +67,12 @@ export function DashboardTasksList({
             No pending tasks
           </div>
         ) : (
-          <div className="space-y-2">
-            {pendingTasks.map((task) => (
-              <DashboardTaskItem key={task.id} task={task} />
-            ))}
-          </div>
+          <DraggableTaskList
+            tasks={pendingTasks}
+            onReorder={handleReorder}
+            renderTask={renderPendingTask}
+            className="space-y-2"
+          />
         )}
       </div>
 

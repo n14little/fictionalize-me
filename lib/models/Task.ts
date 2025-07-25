@@ -7,6 +7,7 @@ export interface Task {
   description: string | null;
   completed: boolean;
   completed_at: Date | null;
+  priority: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -16,6 +17,7 @@ export interface CreateTask {
   user_id: number;
   title: string;
   description?: string;
+  priority?: number;
 }
 
 export interface UpdateTask {
@@ -23,4 +25,5 @@ export interface UpdateTask {
   description?: string;
   completed?: boolean;
   completed_at?: Date | null;
+  priority?: number;
 }

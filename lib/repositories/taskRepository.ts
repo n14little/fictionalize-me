@@ -7,7 +7,7 @@ export const taskRepository = {
    */
   findByUserId: async (userId: number): Promise<Task[]> => {
     const result = await query(
-      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
       [userId]
     );
     return result.rows;
@@ -18,7 +18,7 @@ export const taskRepository = {
    */
   findByJournalId: async (journalId: string): Promise<Task[]> => {
     const result = await query(
-      'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY created_at DESC',
+      'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY priority ASC',
       [journalId]
     );
     return result.rows;
@@ -38,13 +38,20 @@ export const taskRepository = {
   create: async (taskData: CreateTask): Promise<Task> => {
     const result = await query(
       `INSERT INTO tasks (
-        journal_id, user_id, title, description
-      ) VALUES ($1, $2, $3, $4) RETURNING *`,
+        journal_id, user_id, title, description, priority
+      ) VALUES (
+        $1, $2, $3, $4, 
+        CASE 
+          WHEN $5::INTEGER IS NOT NULL THEN $5::INTEGER
+          ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
+        END
+      ) RETURNING *`,
       [
         taskData.journal_id,
         taskData.user_id,
         taskData.title,
         taskData.description || null,
+        taskData.priority || null,
       ]
     );
     return result.rows[0];
@@ -67,6 +74,12 @@ export const taskRepository = {
     if (taskData.description !== undefined) {
       sets.push(`description = $${paramIndex}`);
       values.push(taskData.description);
+      paramIndex++;
+    }
+
+    if (taskData.priority !== undefined) {
+      sets.push(`priority = $${paramIndex}`);
+      values.push(taskData.priority);
       paramIndex++;
     }
 
@@ -113,5 +126,217 @@ export const taskRepository = {
     }
 
     return false;
+  },
+
+  /**
+   * Update priority for a specific task
+   */
+  updatePriority: async (
+    id: string,
+    priority: number
+  ): Promise<Task | null> => {
+    const result = await query(
+      'UPDATE tasks SET priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [priority, id]
+    );
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Get tasks by user with priority range for calculating new priorities
+   */
+  getTasksForReordering: async (userId: number): Promise<Task[]> => {
+    const result = await query(
+      'SELECT id, priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
+      [userId]
+    );
+    return result.rows;
+  },
+
+  /**
+   * Get priority of a specific task
+   */
+  getTaskPriority: async (taskId: string): Promise<number | null> => {
+    const result = await query('SELECT priority FROM tasks WHERE id = $1', [
+      taskId,
+    ]);
+    return result.rows[0]?.priority || null;
+  },
+
+  /**
+   * Get priorities of adjacent tasks for efficient reordering
+   */
+  getAdjacentTaskPriorities: async (
+    userId: number,
+    afterTaskId?: string,
+    beforeTaskId?: string
+  ): Promise<{ afterPriority?: number; beforePriority?: number }> => {
+    if (!afterTaskId && !beforeTaskId) {
+      // Moving to beginning - get first task priority
+      const result = await query(
+        'SELECT priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC LIMIT 1',
+        [userId]
+      );
+      return { beforePriority: result.rows[0]?.priority };
+    }
+
+    if (afterTaskId && !beforeTaskId) {
+      // Moving to end or after specific task - get that task and the next one
+      const result = await query(
+        `SELECT id, priority, 
+         LEAD(priority) OVER (ORDER BY priority ASC) as next_priority
+         FROM tasks 
+         WHERE user_id = $1 AND id = $2`,
+        [userId, afterTaskId]
+      );
+      const row = result.rows[0];
+      return {
+        afterPriority: row?.priority,
+        beforePriority: row?.next_priority,
+      };
+    }
+
+    if (!afterTaskId && beforeTaskId) {
+      // Moving before specific task (could be moving to the very top)
+      const result = await query(
+        `SELECT id, priority,
+         LAG(priority) OVER (ORDER BY priority ASC) as prev_priority
+         FROM tasks 
+         WHERE user_id = $1 AND id = $2`,
+        [userId, beforeTaskId]
+      );
+      const row = result.rows[0];
+      return {
+        afterPriority: row?.prev_priority || undefined,
+        beforePriority: row?.priority,
+      };
+    }
+
+    // Moving between two specific tasks
+    const result = await query(
+      'SELECT id, priority FROM tasks WHERE user_id = $1 AND id IN ($2, $3)',
+      [userId, afterTaskId, beforeTaskId]
+    );
+
+    const afterTask = result.rows.find((r) => r.id === afterTaskId);
+    const beforeTask = result.rows.find((r) => r.id === beforeTaskId);
+
+    return {
+      afterPriority: afterTask?.priority,
+      beforePriority: beforeTask?.priority,
+    };
+  },
+
+  /**
+   * Calculate new priority for a task relative to a reference task
+   */
+  calculateNewPriority: async (
+    userId: number,
+    taskId: string,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ): Promise<number | null> => {
+    // Get the reference task priority
+    const referenceResult = await query(
+      'SELECT priority FROM tasks WHERE id = $1 AND user_id = $2',
+      [referenceTaskId, userId]
+    );
+
+    if (!referenceResult.rows[0]) {
+      return null;
+    }
+
+    const referencePriority = referenceResult.rows[0].priority;
+
+    if (position === 'above') {
+      // To place above the reference task, find the task immediately before it
+      const beforeResult = await query(
+        `SELECT priority FROM tasks 
+         WHERE user_id = $1 AND priority < $2 AND id != $3
+         ORDER BY priority DESC LIMIT 1`,
+        [userId, referencePriority, taskId]
+      );
+
+      if (beforeResult.rows[0]) {
+        // Place between the before task and reference task
+        const beforePriority = beforeResult.rows[0].priority;
+        return (beforePriority + referencePriority) / 2;
+      } else {
+        // No task before reference - place at the very beginning
+        return referencePriority - 1000;
+      }
+    } else {
+      // position === 'below'
+      // To place below the reference task, find the task immediately after it
+      const afterResult = await query(
+        `SELECT priority FROM tasks 
+         WHERE user_id = $1 AND priority > $2 AND id != $3
+         ORDER BY priority ASC LIMIT 1`,
+        [userId, referencePriority, taskId]
+      );
+
+      if (afterResult.rows[0]) {
+        // Place between reference task and the task after it
+        const afterPriority = afterResult.rows[0].priority;
+        return (referencePriority + afterPriority) / 2;
+      } else {
+        // No task after reference - place at the very end
+        return referencePriority + 1000;
+      }
+    }
+  },
+
+  /**
+   * Calculate new priority for a task relative to a reference task, considering only pending tasks
+   * This ensures that completed tasks do not interfere with pending task ordering
+   * Uses a single query to avoid concurrency issues
+   */
+  calculateNewPriorityForPendingTasks: async (
+    userId: number,
+    taskId: string,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ): Promise<number | null> => {
+    const result = await query(
+      `WITH reference_task AS (
+        SELECT priority as ref_priority
+        FROM tasks
+        WHERE id = $2 AND user_id = $1
+      ),
+      adjacent_priority AS (
+        SELECT 
+          CASE 
+            WHEN $4 = 'above' THEN 
+              (SELECT priority FROM tasks 
+               WHERE user_id = $1 AND completed = false AND id != $3 
+                 AND priority < (SELECT ref_priority FROM reference_task)
+               ORDER BY priority DESC LIMIT 1)
+            ELSE 
+              (SELECT priority FROM tasks 
+               WHERE user_id = $1 AND completed = false AND id != $3 
+                 AND priority > (SELECT ref_priority FROM reference_task)
+               ORDER BY priority ASC LIMIT 1)
+          END as adj_priority
+      )
+      SELECT 
+        ref_priority,
+        adj_priority,
+        CASE 
+          WHEN adj_priority IS NOT NULL THEN 
+            (ref_priority + adj_priority) / 2.0
+          WHEN $4 = 'above' THEN 
+            ref_priority - 1000
+          ELSE 
+            ref_priority + 1000
+        END as new_priority
+      FROM reference_task, adjacent_priority`,
+      [userId, referenceTaskId, taskId, position]
+    );
+
+    if (!result.rows[0] || result.rows[0].ref_priority === null) {
+      return null;
+    }
+
+    return result.rows[0].new_priority;
   },
 };

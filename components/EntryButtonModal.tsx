@@ -28,6 +28,7 @@ export function EntryButtonModal({
   journalId,
   entryId,
   onSubmit,
+  onSuccess,
   showMoodField = true,
   showLocationField = true,
   showTimer = false,
@@ -60,6 +61,7 @@ export function EntryButtonModal({
           entryId={entryId}
           onClose={handleCloseModal}
           onSubmit={onSubmit}
+          onSuccess={onSuccess}
           showMoodField={showMoodField}
           showLocationField={showLocationField}
           showTimer={showTimer}

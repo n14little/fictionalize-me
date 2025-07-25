@@ -80,6 +80,7 @@ export const authOptions: AuthOptions = {
 
         const enhancedUser: EnhancedUser = {
           ...user,
+          id: token.sub,
         };
         extendedToken.user = enhancedUser;
       }
@@ -129,11 +130,10 @@ export const authService = {
       if (session.user.id) {
         externalUserId = session.user.id;
       } else {
-        const userEmail = session.user.email;
-        externalUserId = `auth0-email|${userEmail}`;
         console.warn(
-          `No external user ID found in session, using email-based fallback: ${externalUserId}`
+          'No external user ID found in session, user may not be properly authenticated'
         );
+        return null;
       }
 
       const user = await userRepository.findOrCreate({

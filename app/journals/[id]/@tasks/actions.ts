@@ -143,3 +143,29 @@ export async function createTaskWithoutRedirect(formData: FormData) {
   // Return success object instead of redirecting
   return { success: true };
 }
+
+export async function reorderTask(formData: FormData) {
+  await csrfModule.validateFormData(formData);
+  const taskId = formData.get('taskId') as string;
+  const referenceTaskId = formData.get('referenceTaskId') as string;
+  const position = formData.get('position') as 'above' | 'below';
+  const journalId = formData.get('journalId') as string;
+
+  try {
+    const user = await authService.getCurrentUser();
+    if (!user) {
+      throw new Error('You must be logged in to reorder tasks');
+    }
+
+    await taskService.reorderTask(taskId, user.id, referenceTaskId, position);
+
+    // Revalidate the journal page and dashboard
+    revalidatePath(`/journals/${journalId}`);
+    revalidatePath('/dashboard');
+  } catch (error) {
+    console.error('Error reordering task:', error);
+    throw error;
+  }
+
+  return { success: true };
+}
