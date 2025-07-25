@@ -67,7 +67,12 @@ export async function reorderTask(formData: FormData) {
 
     // Use the pending-task-specific reordering method for the dashboard
     // This ensures that completed tasks don't interfere with pending task ordering
-    await taskService.reorderPendingTask(taskId, user.id, referenceTaskId, position);
+    await taskService.reorderPendingTask(
+      taskId,
+      user.id,
+      referenceTaskId,
+      position
+    );
 
     // Revalidate the dashboard
     revalidatePath('/dashboard');

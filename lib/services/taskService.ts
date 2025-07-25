@@ -221,12 +221,13 @@ export const taskService = {
     }
 
     // Get the new priority based on the reference task and position, considering only pending tasks
-    const newPriority = await taskRepository.calculateNewPriorityForPendingTasks(
-      userId,
-      taskId,
-      referenceTaskId,
-      position
-    );
+    const newPriority =
+      await taskRepository.calculateNewPriorityForPendingTasks(
+        userId,
+        taskId,
+        referenceTaskId,
+        position
+      );
 
     if (newPriority === null) {
       return null;
