@@ -12,8 +12,8 @@ BEGIN
         -- Create a test user if one doesn't exist
         IF NOT EXISTS (SELECT 1 FROM users WHERE email = 'test@example.com') THEN
             INSERT INTO users (email, external_user_id)
-            VALUES ('test@example.com', 'test-user-id');
-            
+            VALUES ('test@example.com', 'auth0|6883a29afbf0d4e556d313f9');
+
             RAISE NOTICE 'Created test user for % environment', '${environment}';
         END IF;
         

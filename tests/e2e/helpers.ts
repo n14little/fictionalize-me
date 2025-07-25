@@ -5,14 +5,105 @@ import { Page, expect } from '@playwright/test';
  */
 
 /**
- * Login with the provided credentials
+ * Login with Auth0 OAuth flow using real credentials
+ * Requires TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables
+ */
+export async function loginWithAuth0(page: Page) {
+  const testEmail = process.env.TEST_USER_EMAIL;
+  const testPassword = process.env.TEST_USER_PASSWORD;
+
+  if (!testEmail || !testPassword) {
+    throw new Error('TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables must be set for login tests');
+  }
+
+  await page.goto('/auth/signin');
+
+  const signInButton = page.getByRole('button', { name: 'Sign in with Auth0' });
+  await signInButton.click();
+
+  // Wait for Auth0 login page
+  await page.waitForURL(/auth0\.com/, { timeout: 10000 });
+
+  // Fill in Auth0 credentials
+  await page.fill('input[name="username"]', testEmail);
+  await page.fill('input[name="password"]', testPassword);
+
+  // Submit the Auth0 login form
+  await page.click('button[type="submit"], button[data-action-button-primary="true"]');
+
+  // Handle consent page if it appears
+  try {
+    await page.waitForURL(/\/u\/consent/, { timeout: 5000 });
+
+    // Look for and click consent button - be very specific to avoid "Decline"
+    const acceptButton = page.locator('button').filter({ hasText: /^(Accept|Allow|Authorize)$/i });
+    
+    if (await acceptButton.count() > 0) {
+      await acceptButton.first().click();
+    } else {
+      // If no exact match, look for primary action button but avoid decline/cancel
+      const primaryButton = page.locator('button[data-action-button-primary="true"]')
+        .filter({ hasNotText: /decline|cancel|deny|reject/i });
+      
+      if (await primaryButton.count() > 0) {
+        await primaryButton.first().click();
+      }
+    }
+  } catch {
+    // No consent page, continue
+  }
+  
+  // Wait for redirect back to the app
+  await page.waitForURL(/localhost:3000/, { timeout: 15000 });
+  
+  // Give the app a moment to load the authenticated state
+  await page.waitForLoadState('domcontentloaded');
+}
+
+/**
+ * Login with the provided credentials (for future use if email/password auth is added)
+ * Currently this attempts the Auth0 flow with provided credentials
  */
 export async function login(page: Page, email: string, password: string) {
   await page.goto('/auth/signin');
-  await page.fill('input[name="email"]', email);
+  
+  const signInButton = page.getByRole('button', { name: 'Sign in with Auth0' });
+  await signInButton.click();
+  
+  // Wait for Auth0 login page
+  await page.waitForURL(/auth0\.com/, { timeout: 10000 });
+  
+  // Fill in Auth0 credentials
+  await page.fill('input[name="username"]', email);
   await page.fill('input[name="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('/dashboard');
+  
+  // Submit the Auth0 login form
+  await page.click('button[type="submit"], button[data-action-button-primary="true"]');
+  
+  // Handle consent page if it appears
+  try {
+    await page.waitForURL(/\/u\/consent/, { timeout: 5000 });
+    
+    // Look for and click consent button - be very specific to avoid "Decline"
+    const acceptButton = page.locator('button').filter({ hasText: /^(Accept|Allow|Authorize)$/i });
+    
+    if (await acceptButton.count() > 0) {
+      await acceptButton.first().click();
+    } else {
+      // If no exact match, look for primary action button but avoid decline/cancel
+      const primaryButton = page.locator('button[data-action-button-primary="true"]')
+        .filter({ hasNotText: /decline|cancel|deny|reject/i });
+      
+      if (await primaryButton.count() > 0) {
+        await primaryButton.first().click();
+      }
+    }
+  } catch {
+    // No consent page, continue
+  }
+  
+  // Wait for redirect back to the app
+  await page.waitForURL(/localhost:3000/, { timeout: 15000 });
 }
 
 /**
