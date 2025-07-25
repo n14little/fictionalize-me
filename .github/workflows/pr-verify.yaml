@@ -68,7 +68,7 @@ jobs:
       - uses: neondatabase/create-branch-action@v5
         id: create-branch
         with:
-          project_id: fictionalize-me
+          project_id: red-math-84760190
           database: fictionalize_me
           branch_name: ${{ github.head_ref || github.ref_name }}
           username: fictionalize_me
