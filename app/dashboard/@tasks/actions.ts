@@ -65,7 +65,9 @@ export async function reorderTask(formData: FormData) {
       throw new Error('You must be logged in to reorder tasks');
     }
 
-    await taskService.reorderTask(taskId, user.id, referenceTaskId, position);
+    // Use the pending-task-specific reordering method for the dashboard
+    // This ensures that completed tasks don't interfere with pending task ordering
+    await taskService.reorderPendingTask(taskId, user.id, referenceTaskId, position);
 
     // Revalidate the dashboard
     revalidatePath('/dashboard');

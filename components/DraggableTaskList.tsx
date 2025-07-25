@@ -101,6 +101,10 @@ export function DraggableTaskList({
         position,
         newTasksLength: newTasks.length,
         scenario: oldIndex < newIndex ? 'moving down' : 'moving up',
+        activeTask: localTasks.find((t) => t.id === active.id),
+        referenceTask: localTasks.find((t) => t.id === over.id),
+        beforeTask: oldIndex < newIndex ? null : newTasks[newIndex - 1],
+        afterTask: oldIndex < newIndex ? newTasks[newIndex + 1] : null,
       });
 
       try {

@@ -285,4 +285,58 @@ export const taskRepository = {
       }
     }
   },
+
+  /**
+   * Calculate new priority for a task relative to a reference task, considering only pending tasks
+   * This ensures that completed tasks do not interfere with pending task ordering
+   * Uses a single query to avoid concurrency issues
+   */
+  calculateNewPriorityForPendingTasks: async (
+    userId: number,
+    taskId: string,
+    referenceTaskId: string,
+    position: 'above' | 'below'
+  ): Promise<number | null> => {
+    const result = await query(
+      `WITH reference_task AS (
+        SELECT priority as ref_priority
+        FROM tasks
+        WHERE id = $2 AND user_id = $1
+      ),
+      adjacent_priority AS (
+        SELECT 
+          CASE 
+            WHEN $4 = 'above' THEN 
+              (SELECT priority FROM tasks 
+               WHERE user_id = $1 AND completed = false AND id != $3 
+                 AND priority < (SELECT ref_priority FROM reference_task)
+               ORDER BY priority DESC LIMIT 1)
+            ELSE 
+              (SELECT priority FROM tasks 
+               WHERE user_id = $1 AND completed = false AND id != $3 
+                 AND priority > (SELECT ref_priority FROM reference_task)
+               ORDER BY priority ASC LIMIT 1)
+          END as adj_priority
+      )
+      SELECT 
+        ref_priority,
+        adj_priority,
+        CASE 
+          WHEN adj_priority IS NOT NULL THEN 
+            (ref_priority + adj_priority) / 2.0
+          WHEN $4 = 'above' THEN 
+            ref_priority - 1000
+          ELSE 
+            ref_priority + 1000
+        END as new_priority
+      FROM reference_task, adjacent_priority`,
+      [userId, referenceTaskId, taskId, position]
+    );
+
+    if (!result.rows[0] || result.rows[0].ref_priority === null) {
+      return null;
+    }
+
+    return result.rows[0].new_priority;
+  },
 };
