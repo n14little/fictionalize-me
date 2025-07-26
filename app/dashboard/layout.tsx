@@ -1,6 +1,7 @@
 'use client';
 
 import { KeyboardNavigationProvider } from '@/components/KeyboardNavigation';
+import { DailyWriteModalButton } from '@/components/EntryButtonAliases';
 
 export default function DashboardLayout({
   streaks,
@@ -26,6 +27,11 @@ export default function DashboardLayout({
 
   return (
     <KeyboardNavigationProvider onDailyWrite={handleDailyWrite}>
+      {/* Hidden daily write button for keyboard shortcut */}
+      <div className="hidden">
+        <DailyWriteModalButton />
+      </div>
+
       <main className="flex min-h-screen flex-col p-4 md:p-12">
         <div className="w-full mx-auto">
           {/* Three column layout with header and content */}
