@@ -1,5 +1,6 @@
 import { query } from '../db';
 import { Task, CreateTask, UpdateTask } from '../models/Task';
+import { ReferenceTask, CreateReferenceTask } from '../models/ReferenceTask';
 
 export const taskRepository = {
   /**
@@ -338,5 +339,155 @@ export const taskRepository = {
     }
 
     return result.rows[0].new_priority;
+  },
+
+  // ===== REFERENCE TASK METHODS =====
+
+  /**
+   * Upsert a reference task - create if doesn't exist, update if it does
+   * Uses atomic operation to prevent race conditions
+   */
+  upsertReferenceTask: async (
+    referenceTaskData: CreateReferenceTask & { id?: string }
+  ): Promise<ReferenceTask> => {
+    const result = await query(
+      `INSERT INTO reference_tasks (
+        ${referenceTaskData.id ? 'id,' : ''}
+        user_id, journal_id, title, description, recurrence_type, recurrence_interval,
+        recurrence_days_of_week, recurrence_day_of_month, recurrence_week_of_month,
+        starts_on, ends_on
+      ) VALUES (
+        ${referenceTaskData.id ? '$12,' : ''}
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        recurrence_type = EXCLUDED.recurrence_type,
+        recurrence_interval = EXCLUDED.recurrence_interval,
+        recurrence_days_of_week = EXCLUDED.recurrence_days_of_week,
+        recurrence_day_of_month = EXCLUDED.recurrence_day_of_month,
+        recurrence_week_of_month = EXCLUDED.recurrence_week_of_month,
+        starts_on = EXCLUDED.starts_on,
+        ends_on = EXCLUDED.ends_on,
+        updated_at = NOW()
+      RETURNING *`,
+      referenceTaskData.id
+        ? [
+            referenceTaskData.user_id,
+            referenceTaskData.journal_id,
+            referenceTaskData.title,
+            referenceTaskData.description || null,
+            referenceTaskData.recurrence_type,
+            referenceTaskData.recurrence_interval || 1,
+            referenceTaskData.recurrence_days_of_week || null,
+            referenceTaskData.recurrence_day_of_month || null,
+            referenceTaskData.recurrence_week_of_month || null,
+            referenceTaskData.starts_on,
+            referenceTaskData.ends_on || null,
+            referenceTaskData.id,
+          ]
+        : [
+            referenceTaskData.user_id,
+            referenceTaskData.journal_id,
+            referenceTaskData.title,
+            referenceTaskData.description || null,
+            referenceTaskData.recurrence_type,
+            referenceTaskData.recurrence_interval || 1,
+            referenceTaskData.recurrence_days_of_week || null,
+            referenceTaskData.recurrence_day_of_month || null,
+            referenceTaskData.recurrence_week_of_month || null,
+            referenceTaskData.starts_on,
+            referenceTaskData.ends_on || null,
+          ]
+    );
+    return result.rows[0];
+  },
+
+  /**
+   * Insert a new task from reference task
+   * Uses atomic operation to create task with default priority
+   */
+  insertTaskFromReferenceTask: async (
+    referenceTask: ReferenceTask,
+    scheduledDate: Date
+  ): Promise<Task> => {
+    const result = await query(
+      `INSERT INTO tasks (
+        journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+      ) VALUES (
+        $1, $2, $3, $4, 
+        COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000,
+        $5, $6
+      )
+      WHERE NOT EXISTS (
+        SELECT 1 FROM tasks 
+        WHERE reference_task_id = $5 AND scheduled_date = $6
+      )
+      RETURNING *`,
+      [
+        referenceTask.journal_id,
+        referenceTask.user_id,
+        referenceTask.title,
+        referenceTask.description || null,
+        referenceTask.id,
+        scheduledDate,
+      ]
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('Task already exists for this reference task and date');
+    }
+
+    return result.rows[0];
+  },
+
+  /**
+   * Update an existing task from reference task
+   * Updates title and description only, preserves priority and other fields
+   */
+  updateTaskFromReferenceTask: async (
+    taskId: string,
+    referenceTask: ReferenceTask
+  ): Promise<Task | null> => {
+    const result = await query(
+      `UPDATE tasks 
+       SET title = $2,
+           description = $3,
+           updated_at = NOW()
+       WHERE id = $1 AND reference_task_id = $4
+       RETURNING *`,
+      [
+        taskId,
+        referenceTask.title,
+        referenceTask.description || null,
+        referenceTask.id,
+      ]
+    );
+
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Find all reference tasks for a user
+   */
+  findReferenceTasksByUserId: async (
+    userId: number
+  ): Promise<ReferenceTask[]> => {
+    const result = await query(
+      'SELECT * FROM reference_tasks WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+    return result.rows;
+  },
+
+  /**
+   * Find a reference task by ID
+   */
+  findReferenceTaskById: async (id: string): Promise<ReferenceTask | null> => {
+    const result = await query('SELECT * FROM reference_tasks WHERE id = $1', [
+      id,
+    ]);
+    return result.rows[0] || null;
   },
 };

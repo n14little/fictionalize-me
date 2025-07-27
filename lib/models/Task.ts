@@ -8,6 +8,8 @@ export interface Task {
   completed: boolean;
   completed_at: Date | null;
   priority: number;
+  reference_task_id: string | null; // Link to recurring task template
+  scheduled_date: Date | null; // When this recurring task instance is due
   created_at: Date;
   updated_at: Date;
 }
@@ -18,6 +20,8 @@ export interface CreateTask {
   title: string;
   description?: string;
   priority?: number;
+  reference_task_id?: string;
+  scheduled_date?: Date;
 }
 
 export interface UpdateTask {
@@ -26,4 +30,6 @@ export interface UpdateTask {
   completed?: boolean;
   completed_at?: Date | null;
   priority?: number;
+  reference_task_id?: string;
+  scheduled_date?: Date;
 }

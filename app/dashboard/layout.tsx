@@ -55,6 +55,14 @@ export default function DashboardLayout({
                     Keyboard shortcuts: E for entries, T for tasks, ↑↓ to
                     navigate, Enter to open/toggle, Ctrl+D for daily write
                   </div>
+                  <div className="flex gap-2">
+                    <a
+                      href="/reference-tasks"
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Manage Reference Tasks
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
