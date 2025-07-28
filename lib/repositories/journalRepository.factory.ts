@@ -1,4 +1,3 @@
-import { query } from '../db';
 import { QueryFunction } from '../db/types';
 import { Journal, CreateJournal, UpdateJournal } from '../models/Journal';
 
@@ -123,6 +122,3 @@ export const createJournalRepository = (query: QueryFunction) => ({
     return (result.rowCount || 0) > 0;
   },
 });
-
-// Create the default instance using the default query function
-export const journalRepository = createJournalRepository(query);

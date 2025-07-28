@@ -1,7 +1,6 @@
-import { query } from '../db';
-import { QueryFunction } from '../db/types';
 import { Journal, CreateJournal, UpdateJournal } from '../models/Journal';
-import { createJournalRepository } from '../repositories/journalRepository';
+import { createJournalRepository } from '../repositories/journalRepository.factory';
+import { QueryFunction } from '../db/types';
 
 export const createJournalService = (query: QueryFunction) => {
   const journalRepository = createJournalRepository(query);
@@ -82,6 +81,3 @@ export const createJournalService = (query: QueryFunction) => {
     },
   };
 };
-
-// Create the default instance using the default query function
-export const journalService = createJournalService(query);
