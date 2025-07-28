@@ -354,16 +354,31 @@ export const taskRepository = {
   upsertReferenceTask: async (
     referenceTaskData: CreateReferenceTask & { id?: string }
   ): Promise<ReferenceTask> => {
-    const result = await query(
-      `INSERT INTO reference_tasks (
-        ${referenceTaskData.id ? 'id,' : ''}
-        user_id, journal_id, title, description, recurrence_type, recurrence_interval,
+    const params = [
+      referenceTaskData.user_id,
+      referenceTaskData.journal_id,
+      referenceTaskData.title,
+      referenceTaskData.description || null,
+      referenceTaskData.recurrence_type,
+      Number(referenceTaskData.recurrence_interval) || 1,
+      referenceTaskData.recurrence_days_of_week || null,
+      referenceTaskData.recurrence_day_of_month ? Number(referenceTaskData.recurrence_day_of_month) : null,
+      referenceTaskData.recurrence_week_of_month ? Number(referenceTaskData.recurrence_week_of_month) : null,
+      referenceTaskData.starts_on,
+      referenceTaskData.ends_on || null,
+    ];
+
+    let sql: string;
+    
+    if (referenceTaskData.id) {
+      params.push(referenceTaskData.id);
+      sql = `INSERT INTO reference_tasks (
+        id, user_id, journal_id, title, description, recurrence_type, recurrence_interval,
         recurrence_days_of_week, recurrence_day_of_month, recurrence_week_of_month,
         starts_on, ends_on, next_scheduled_date
       ) VALUES (
-        ${referenceTaskData.id ? '$12,' : ''}
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-        calculate_next_scheduled_date($5, $6, $7, $8, $10, $11, CURRENT_DATE)
+        $12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        calculate_next_scheduled_date($5::recurrence_type_enum, $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
       )
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
@@ -385,37 +400,40 @@ export const taskRepository = {
           CURRENT_DATE
         ),
         updated_at = NOW()
-      RETURNING *`,
-      referenceTaskData.id
-        ? [
-            referenceTaskData.user_id,
-            referenceTaskData.journal_id,
-            referenceTaskData.title,
-            referenceTaskData.description || null,
-            referenceTaskData.recurrence_type,
-            referenceTaskData.recurrence_interval || 1,
-            referenceTaskData.recurrence_days_of_week || null,
-            referenceTaskData.recurrence_day_of_month || null,
-            referenceTaskData.recurrence_week_of_month || null,
-            referenceTaskData.starts_on,
-            referenceTaskData.ends_on || null,
-            referenceTaskData.id,
-          ]
-        : [
-            referenceTaskData.user_id,
-            referenceTaskData.journal_id,
-            referenceTaskData.title,
-            referenceTaskData.description || null,
-            referenceTaskData.recurrence_type,
-            referenceTaskData.recurrence_interval || 1,
-            referenceTaskData.recurrence_days_of_week || null,
-            referenceTaskData.recurrence_day_of_month || null,
-            referenceTaskData.recurrence_week_of_month || null,
-            referenceTaskData.starts_on,
-            referenceTaskData.ends_on || null,
-          ]
-    );
+      RETURNING *`;
+    } else {
+      sql = `INSERT INTO reference_tasks (
+        user_id, journal_id, title, description, recurrence_type, recurrence_interval,
+        recurrence_days_of_week, recurrence_day_of_month, recurrence_week_of_month,
+        starts_on, ends_on, next_scheduled_date
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        calculate_next_scheduled_date($5::recurrence_type_enum, $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        recurrence_type = EXCLUDED.recurrence_type,
+        recurrence_interval = EXCLUDED.recurrence_interval,
+        recurrence_days_of_week = EXCLUDED.recurrence_days_of_week,
+        recurrence_day_of_month = EXCLUDED.recurrence_day_of_month,
+        recurrence_week_of_month = EXCLUDED.recurrence_week_of_month,
+        starts_on = EXCLUDED.starts_on,
+        ends_on = EXCLUDED.ends_on,
+        next_scheduled_date = calculate_next_scheduled_date(
+          EXCLUDED.recurrence_type,
+          EXCLUDED.recurrence_interval,
+          EXCLUDED.recurrence_days_of_week,
+          EXCLUDED.recurrence_day_of_month,
+          EXCLUDED.starts_on,
+          EXCLUDED.ends_on,
+          CURRENT_DATE
+        ),
+        updated_at = NOW()
+      RETURNING *`;
+    }
 
+    const result = await query(sql, params);
     return result.rows[0];
   },
 
@@ -527,7 +545,7 @@ export const taskRepository = {
           recurrence_day_of_month,
           starts_on,
           ends_on,
-          $2::date + INTERVAL '1 day'
+          ($2::date + INTERVAL '1 day')::date
         )
         WHERE id IN (SELECT reference_task_id FROM inserted_tasks)
         RETURNING id
@@ -595,7 +613,7 @@ export const taskRepository = {
           recurrence_day_of_month,
           starts_on,
           ends_on,
-          $1::date + INTERVAL '1 day'
+          ($1::date + INTERVAL '1 day')::date
         )
         WHERE id IN (SELECT reference_task_id FROM inserted_tasks)
         RETURNING id

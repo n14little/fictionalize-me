@@ -13,10 +13,10 @@ WHERE
 
 -- Function to calculate next scheduled date for a reference task
 CREATE OR REPLACE FUNCTION calculate_next_scheduled_date(
-    p_recurrence_type TEXT,
-    p_recurrence_interval INTEGER,
-    p_recurrence_days_of_week INTEGER[],
-    p_recurrence_day_of_month INTEGER,
+    p_recurrence_type recurrence_type_enum,
+    p_recurrence_interval SMALLINT,
+    p_recurrence_days_of_week SMALLINT[],
+    p_recurrence_day_of_month SMALLINT,
     p_starts_on DATE,
     p_ends_on DATE,
     p_from_date DATE DEFAULT CURRENT_DATE
