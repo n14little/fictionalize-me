@@ -49,7 +49,7 @@ export class TestDatabase {
     await query('DELETE FROM reference_tasks WHERE 1=1');
     await query('DELETE FROM journals WHERE 1=1');
     await query(
-      "DELETE FROM users WHERE email LIKE '%test%' OR email LIKE '%@example.%'"
+      "DELETE FROM users WHERE email LIKE 'testuser%@example.com' OR external_user_id LIKE 'test_%'"
     );
   }
 
