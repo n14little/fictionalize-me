@@ -7,8 +7,12 @@ export class TestFixtures {
 
   async createTestUser(overrides: Partial<User> = {}): Promise<User> {
     const userData = {
-      email: overrides.email || `testuser${Date.now()}-${Math.random().toString(36).substring(2, 11)}@example.com`,
-      external_user_id: overrides.external_user_id || `test_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      email:
+        overrides.email ||
+        `testuser${Date.now()}-${Math.random().toString(36).substring(2, 11)}@example.com`,
+      external_user_id:
+        overrides.external_user_id ||
+        `test_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       ...overrides,
     };
 
