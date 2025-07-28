@@ -4,7 +4,7 @@ import { QueryFunction } from '../db/types';
 
 export const createJournalService = (query: QueryFunction) => {
   const journalRepository = createJournalRepository(query);
-  
+
   return {
     getUserJournals: async (userId: number): Promise<Journal[]> => {
       return journalRepository.findByUserId(userId);

@@ -98,7 +98,10 @@ export const createJournalRepository = (query: QueryFunction) => ({
     }
 
     if (sets.length === 0) {
-      const existingJournal = await query('SELECT * FROM journals WHERE id = $1', [id]);
+      const existingJournal = await query(
+        'SELECT * FROM journals WHERE id = $1',
+        [id]
+      );
       return (existingJournal.rows[0] as Journal) || null;
     }
 

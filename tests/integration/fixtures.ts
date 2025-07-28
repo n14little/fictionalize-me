@@ -20,7 +20,10 @@ export class TestFixtures {
     return result.rows[0] as User;
   }
 
-  async createTestJournal(userId: number, overrides: Partial<Journal> = {}): Promise<Journal> {
+  async createTestJournal(
+    userId: number,
+    overrides: Partial<Journal> = {}
+  ): Promise<Journal> {
     const journalData = {
       user_id: userId,
       title: overrides.title || `Test Journal ${Date.now()}`,
@@ -31,7 +34,12 @@ export class TestFixtures {
 
     const result = await this.query(
       'INSERT INTO journals (user_id, title, description, public) VALUES ($1, $2, $3, $4) RETURNING *',
-      [journalData.user_id, journalData.title, journalData.description, journalData.public]
+      [
+        journalData.user_id,
+        journalData.title,
+        journalData.description,
+        journalData.public,
+      ]
     );
 
     return result.rows[0] as Journal;

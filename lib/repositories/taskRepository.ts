@@ -362,14 +362,18 @@ export const taskRepository = {
       referenceTaskData.recurrence_type,
       Number(referenceTaskData.recurrence_interval) || 1,
       referenceTaskData.recurrence_days_of_week || null,
-      referenceTaskData.recurrence_day_of_month ? Number(referenceTaskData.recurrence_day_of_month) : null,
-      referenceTaskData.recurrence_week_of_month ? Number(referenceTaskData.recurrence_week_of_month) : null,
+      referenceTaskData.recurrence_day_of_month
+        ? Number(referenceTaskData.recurrence_day_of_month)
+        : null,
+      referenceTaskData.recurrence_week_of_month
+        ? Number(referenceTaskData.recurrence_week_of_month)
+        : null,
       referenceTaskData.starts_on,
       referenceTaskData.ends_on || null,
     ];
 
     let sql: string;
-    
+
     if (referenceTaskData.id) {
       params.push(referenceTaskData.id);
       sql = `INSERT INTO reference_tasks (

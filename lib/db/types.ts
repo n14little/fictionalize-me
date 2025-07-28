@@ -1,4 +1,7 @@
-export type QueryFunction = (text: string, params?: unknown[]) => Promise<{
+export type QueryFunction = (
+  text: string,
+  params?: unknown[]
+) => Promise<{
   rows: unknown[];
   rowCount: number | null;
   command: string;

@@ -13,7 +13,7 @@ describe('JournalService - Integration Tests', () => {
     const query = testDb.getQueryFunction();
     fixtures = new TestFixtures(query);
     journalService = createJournalService(query);
-    
+
     // Clean up before each test
     await testDb.cleanup();
   });
@@ -33,7 +33,10 @@ describe('JournalService - Integration Tests', () => {
       };
 
       // Act
-      const createdJournal = await journalService.createJournal(testUser.id, journalData);
+      const createdJournal = await journalService.createJournal(
+        testUser.id,
+        journalData
+      );
 
       // Assert
       expect(createdJournal).toBeDefined();
@@ -54,7 +57,10 @@ describe('JournalService - Integration Tests', () => {
       };
 
       // Act
-      const createdJournal = await journalService.createJournal(testUser.id, journalData);
+      const createdJournal = await journalService.createJournal(
+        testUser.id,
+        journalData
+      );
 
       // Assert
       expect(createdJournal).toBeDefined();
@@ -71,18 +77,23 @@ describe('JournalService - Integration Tests', () => {
       const testUser = await fixtures.createTestUser();
       await fixtures.createTestJournal(testUser.id, { title: 'Journal 1' });
       await fixtures.createTestJournal(testUser.id, { title: 'Journal 2' });
-      
+
       // Create a journal for a different user to ensure isolation
       const otherUser = await fixtures.createTestUser();
-      await fixtures.createTestJournal(otherUser.id, { title: 'Other Journal' });
+      await fixtures.createTestJournal(otherUser.id, {
+        title: 'Other Journal',
+      });
 
       // Act
       const userJournals = await journalService.getUserJournals(testUser.id);
 
       // Assert
       expect(userJournals).toHaveLength(2);
-      expect(userJournals.map(j => j.title).sort()).toEqual(['Journal 1', 'Journal 2']);
-      expect(userJournals.every(j => j.user_id === testUser.id)).toBe(true);
+      expect(userJournals.map((j) => j.title).sort()).toEqual([
+        'Journal 1',
+        'Journal 2',
+      ]);
+      expect(userJournals.every((j) => j.user_id === testUser.id)).toBe(true);
     });
 
     it('should return empty array when user has no journals', async () => {
@@ -101,10 +112,15 @@ describe('JournalService - Integration Tests', () => {
     it('should return journal when user owns it', async () => {
       // Arrange
       const testUser = await fixtures.createTestUser();
-      const journal = await fixtures.createTestJournal(testUser.id, { title: 'My Journal' });
+      const journal = await fixtures.createTestJournal(testUser.id, {
+        title: 'My Journal',
+      });
 
       // Act
-      const result = await journalService.getJournalById(journal.id, testUser.id);
+      const result = await journalService.getJournalById(
+        journal.id,
+        testUser.id
+      );
 
       // Assert
       expect(result).toBeDefined();
@@ -116,13 +132,16 @@ describe('JournalService - Integration Tests', () => {
       // Arrange
       const owner = await fixtures.createTestUser();
       const otherUser = await fixtures.createTestUser();
-      const journal = await fixtures.createTestJournal(owner.id, { 
+      const journal = await fixtures.createTestJournal(owner.id, {
         title: 'Private Journal',
-        public: false 
+        public: false,
       });
 
       // Act
-      const result = await journalService.getJournalById(journal.id, otherUser.id);
+      const result = await journalService.getJournalById(
+        journal.id,
+        otherUser.id
+      );
 
       // Assert
       expect(result).toBeNull();
@@ -132,13 +151,16 @@ describe('JournalService - Integration Tests', () => {
       // Arrange
       const owner = await fixtures.createTestUser();
       const otherUser = await fixtures.createTestUser();
-      const journal = await fixtures.createTestJournal(owner.id, { 
+      const journal = await fixtures.createTestJournal(owner.id, {
         title: 'Public Journal',
-        public: true 
+        public: true,
       });
 
       // Act
-      const result = await journalService.getJournalById(journal.id, otherUser.id);
+      const result = await journalService.getJournalById(
+        journal.id,
+        otherUser.id
+      );
 
       // Assert
       expect(result).toBeDefined();
@@ -152,7 +174,10 @@ describe('JournalService - Integration Tests', () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
       // Act
-      const result = await journalService.getJournalById(nonExistentId, testUser.id);
+      const result = await journalService.getJournalById(
+        nonExistentId,
+        testUser.id
+      );
 
       // Assert
       expect(result).toBeNull();

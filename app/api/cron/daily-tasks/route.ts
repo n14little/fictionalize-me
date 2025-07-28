@@ -3,7 +3,10 @@ import { cronService } from '@/lib/services/cronService';
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV !== 'development') {
+  if (
+    authHeader !== `Bearer ${process.env.CRON_SECRET}` &&
+    process.env.NODE_ENV !== 'development'
+  ) {
     return new Response('Unauthorized', {
       status: 401,
     });
@@ -32,7 +35,10 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const result = await cronService.processDailyTasksForUser(userId, targetDate);
+      const result = await cronService.processDailyTasksForUser(
+        userId,
+        targetDate
+      );
 
       if (!result.success) {
         console.error('Cron job completed with errors:', result.errors);
