@@ -23,6 +23,9 @@ export interface ReferenceTask {
   ends_on: Date | null;
   is_active: boolean;
 
+  // Optimization fields
+  next_scheduled_date: Date | null;
+
   created_at: Date;
   updated_at: Date;
 }

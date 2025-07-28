@@ -39,13 +39,14 @@ export const taskRepository = {
   create: async (taskData: CreateTask): Promise<Task> => {
     const result = await query(
       `INSERT INTO tasks (
-        journal_id, user_id, title, description, priority
+        journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
       ) VALUES (
         $1, $2, $3, $4, 
         CASE 
           WHEN $5::INTEGER IS NOT NULL THEN $5::INTEGER
           ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
-        END
+        END,
+        $6, $7
       ) RETURNING *`,
       [
         taskData.journal_id,
@@ -53,6 +54,8 @@ export const taskRepository = {
         taskData.title,
         taskData.description || null,
         taskData.priority || null,
+        taskData.reference_task_id || null,
+        taskData.scheduled_date || null,
       ]
     );
     return result.rows[0];
@@ -346,6 +349,7 @@ export const taskRepository = {
   /**
    * Upsert a reference task - create if doesn't exist, update if it does
    * Uses atomic operation to prevent race conditions
+   * Calculates next_scheduled_date in the same query for optimal performance
    */
   upsertReferenceTask: async (
     referenceTaskData: CreateReferenceTask & { id?: string }
@@ -355,10 +359,11 @@ export const taskRepository = {
         ${referenceTaskData.id ? 'id,' : ''}
         user_id, journal_id, title, description, recurrence_type, recurrence_interval,
         recurrence_days_of_week, recurrence_day_of_month, recurrence_week_of_month,
-        starts_on, ends_on
+        starts_on, ends_on, next_scheduled_date
       ) VALUES (
         ${referenceTaskData.id ? '$12,' : ''}
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        calculate_next_scheduled_date($5, $6, $7, $8, $10, $11, CURRENT_DATE)
       )
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
@@ -370,6 +375,15 @@ export const taskRepository = {
         recurrence_week_of_month = EXCLUDED.recurrence_week_of_month,
         starts_on = EXCLUDED.starts_on,
         ends_on = EXCLUDED.ends_on,
+        next_scheduled_date = calculate_next_scheduled_date(
+          EXCLUDED.recurrence_type,
+          EXCLUDED.recurrence_interval,
+          EXCLUDED.recurrence_days_of_week,
+          EXCLUDED.recurrence_day_of_month,
+          EXCLUDED.starts_on,
+          EXCLUDED.ends_on,
+          CURRENT_DATE
+        ),
         updated_at = NOW()
       RETURNING *`,
       referenceTaskData.id
@@ -401,71 +415,8 @@ export const taskRepository = {
             referenceTaskData.ends_on || null,
           ]
     );
-    return result.rows[0];
-  },
-
-  /**
-   * Insert a new task from reference task
-   * Uses atomic operation to create task with default priority
-   */
-  insertTaskFromReferenceTask: async (
-    referenceTask: ReferenceTask,
-    scheduledDate: Date
-  ): Promise<Task> => {
-    const result = await query(
-      `INSERT INTO tasks (
-        journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
-      ) VALUES (
-        $1, $2, $3, $4, 
-        COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000,
-        $5, $6
-      )
-      WHERE NOT EXISTS (
-        SELECT 1 FROM tasks 
-        WHERE reference_task_id = $5 AND scheduled_date = $6
-      )
-      RETURNING *`,
-      [
-        referenceTask.journal_id,
-        referenceTask.user_id,
-        referenceTask.title,
-        referenceTask.description || null,
-        referenceTask.id,
-        scheduledDate,
-      ]
-    );
-
-    if (!result.rows[0]) {
-      throw new Error('Task already exists for this reference task and date');
-    }
 
     return result.rows[0];
-  },
-
-  /**
-   * Update an existing task from reference task
-   * Updates title and description only, preserves priority and other fields
-   */
-  updateTaskFromReferenceTask: async (
-    taskId: string,
-    referenceTask: ReferenceTask
-  ): Promise<Task | null> => {
-    const result = await query(
-      `UPDATE tasks 
-       SET title = $2,
-           description = $3,
-           updated_at = NOW()
-       WHERE id = $1 AND reference_task_id = $4
-       RETURNING *`,
-      [
-        taskId,
-        referenceTask.title,
-        referenceTask.description || null,
-        referenceTask.id,
-      ]
-    );
-
-    return result.rows[0] || null;
   },
 
   /**
@@ -489,5 +440,182 @@ export const taskRepository = {
       id,
     ]);
     return result.rows[0] || null;
+  },
+
+  /**
+   * Get reference tasks that need tasks created for a specific date (for a specific user)
+   * This is optimized using the next_scheduled_date index
+   */
+  getReferenceTasksDueForUser: async (
+    userId: number,
+    targetDate: Date
+  ): Promise<ReferenceTask[]> => {
+    const result = await query(
+      `SELECT * FROM reference_tasks 
+       WHERE user_id = $1 
+       AND is_active = true 
+       AND next_scheduled_date = $2::date`,
+      [userId, targetDate]
+    );
+    return result.rows;
+  },
+
+  /**
+   * Get all reference tasks that need tasks created for a specific date (across all users)
+   * This is optimized using the next_scheduled_date index
+   */
+  getReferenceTasksDueForDate: async (
+    targetDate: Date
+  ): Promise<ReferenceTask[]> => {
+    const result = await query(
+      `SELECT * FROM reference_tasks 
+       WHERE is_active = true 
+       AND next_scheduled_date = $1::date
+       ORDER BY user_id`,
+      [targetDate]
+    );
+    return result.rows;
+  },
+
+  /**
+   * Create tasks from reference tasks for a specific date (SQL-based, per user)
+   * This does all the work in SQL and returns the count of tasks created
+   */
+  createTasksFromReferenceTasksForUser: async (
+    userId: number,
+    targetDate: Date
+  ): Promise<{ tasksCreated: number; tasksSkipped: number }> => {
+    const result = await query(
+      `
+      WITH eligible_reference_tasks AS (
+        SELECT * FROM reference_tasks 
+        WHERE user_id = $1 
+        AND is_active = true 
+        AND next_scheduled_date = $2::date
+      ),
+      tasks_to_create AS (
+        SELECT 
+          rt.id as reference_task_id,
+          rt.journal_id,
+          rt.user_id,
+          rt.title,
+          rt.description,
+          $2::date as scheduled_date,
+          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority
+        FROM eligible_reference_tasks rt
+        WHERE NOT EXISTS (
+          SELECT 1 FROM tasks t 
+          WHERE t.reference_task_id = rt.id 
+          AND t.scheduled_date::date = $2::date
+        )
+      ),
+      inserted_tasks AS (
+        INSERT INTO tasks (
+          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        )
+        SELECT 
+          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        FROM tasks_to_create
+        RETURNING reference_task_id
+      ),
+      updated_reference_tasks AS (
+        UPDATE reference_tasks 
+        SET next_scheduled_date = calculate_next_scheduled_date(
+          recurrence_type,
+          recurrence_interval,
+          recurrence_days_of_week,
+          recurrence_day_of_month,
+          starts_on,
+          ends_on,
+          $2::date + INTERVAL '1 day'
+        )
+        WHERE id IN (SELECT reference_task_id FROM inserted_tasks)
+        RETURNING id
+      )
+      SELECT 
+        (SELECT COUNT(*) FROM inserted_tasks) as tasks_created,
+        (SELECT COUNT(*) FROM eligible_reference_tasks) - (SELECT COUNT(*) FROM inserted_tasks) as tasks_skipped
+      `,
+      [userId, targetDate]
+    );
+
+    return result.rows[0] || { tasksCreated: 0, tasksSkipped: 0 };
+  },
+
+  /**
+   * Create tasks from reference tasks for a specific date (SQL-based, all users)
+   * This does all the work in SQL and returns detailed results
+   */
+  createTasksFromReferenceTasksForDate: async (
+    targetDate: Date
+  ): Promise<{
+    tasksCreated: number;
+    tasksSkipped: number;
+    usersProcessed: number;
+    referenceTasksProcessed: number;
+  }> => {
+    const result = await query(
+      `
+      WITH eligible_reference_tasks AS (
+        SELECT * FROM reference_tasks 
+        WHERE is_active = true 
+        AND next_scheduled_date = $1::date
+      ),
+      tasks_to_create AS (
+        SELECT 
+          rt.id as reference_task_id,
+          rt.journal_id,
+          rt.user_id,
+          rt.title,
+          rt.description,
+          $1::date as scheduled_date,
+          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority
+        FROM eligible_reference_tasks rt
+        WHERE NOT EXISTS (
+          SELECT 1 FROM tasks t 
+          WHERE t.reference_task_id = rt.id 
+          AND t.scheduled_date::date = $1::date
+        )
+      ),
+      inserted_tasks AS (
+        INSERT INTO tasks (
+          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        )
+        SELECT 
+          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        FROM tasks_to_create
+        RETURNING reference_task_id
+      ),
+      updated_reference_tasks AS (
+        UPDATE reference_tasks 
+        SET next_scheduled_date = calculate_next_scheduled_date(
+          recurrence_type,
+          recurrence_interval,
+          recurrence_days_of_week,
+          recurrence_day_of_month,
+          starts_on,
+          ends_on,
+          $1::date + INTERVAL '1 day'
+        )
+        WHERE id IN (SELECT reference_task_id FROM inserted_tasks)
+        RETURNING id
+      )
+      SELECT 
+        (SELECT COUNT(*) FROM inserted_tasks) as tasks_created,
+        (SELECT COUNT(*) FROM eligible_reference_tasks) - (SELECT COUNT(*) FROM inserted_tasks) as tasks_skipped,
+        (SELECT COUNT(DISTINCT user_id) FROM eligible_reference_tasks) as users_processed,
+        (SELECT COUNT(*) FROM eligible_reference_tasks) as reference_tasks_processed
+      `,
+      [targetDate]
+    );
+
+    return (
+      result.rows[0] || {
+        tasksCreated: 0,
+        tasksSkipped: 0,
+        usersProcessed: 0,
+        referenceTasksProcessed: 0,
+      }
+    );
   },
 };
