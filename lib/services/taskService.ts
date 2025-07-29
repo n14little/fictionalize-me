@@ -244,4 +244,41 @@ export const taskService = {
 
     return taskRepository.updatePriority(taskId, newPriority);
   },
+
+  /**
+   * Create tasks from reference tasks for a specific user and date
+   * This processes all active reference tasks for the user that are due on the target date
+   */
+  createTasksFromReferenceTasksForUser: async (
+    userId: number,
+    targetDate: Date
+  ): Promise<{ tasks_created: string; tasks_skipped: string }> => {
+    return taskRepository.createTasksFromReferenceTasksForUser(
+      userId,
+      targetDate
+    );
+  },
+
+  /**
+   * Create tasks from reference tasks for a specific date (all users)
+   * This processes all active reference tasks across all users that are due on the target date
+   */
+  createTasksFromReferenceTasksForDate: async (
+    targetDate: Date
+  ): Promise<{
+    tasks_created: string;
+    tasks_skipped: string;
+    users_processed: string;
+    reference_tasks_processed: string;
+  }> => {
+    return taskRepository.createTasksFromReferenceTasksForDate(targetDate);
+  },
+
+  /**
+   * Get all reference tasks that need tasks created for a specific date (across all users)
+   * This is useful for determining which users have tasks due on a given date
+   */
+  getReferenceTasksDueForDate: async (targetDate: Date) => {
+    return taskRepository.getReferenceTasksDueForDate(targetDate);
+  },
 };
