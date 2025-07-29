@@ -1,7 +1,10 @@
 import { QueryFunction } from '../../lib/db/types';
 import { User, CreateUser } from '../../lib/models/User';
 import { Journal } from '../../lib/models/Journal';
-import { ReferenceTask, CreateReferenceTask } from '../../lib/models/ReferenceTask';
+import {
+  ReferenceTask,
+  CreateReferenceTask,
+} from '../../lib/models/ReferenceTask';
 import { createUserRepository } from '../../lib/repositories/userRepository';
 import { createJournalRepository } from '../../lib/repositories/journalRepository';
 import { createTaskRepository } from '../../lib/repositories/taskRepository';

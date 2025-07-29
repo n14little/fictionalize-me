@@ -27,7 +27,9 @@ export const createUserRepository = (queryFn: QueryFunction) => {
      * Find a user by their email
      */
     findByEmail: async (email: string): Promise<User | null> => {
-      const result = await queryFn('SELECT * FROM users WHERE email = $1', [email]);
+      const result = await queryFn('SELECT * FROM users WHERE email = $1', [
+        email,
+      ]);
       return (result.rows[0] as User) || null;
     },
 
