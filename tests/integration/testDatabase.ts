@@ -10,7 +10,7 @@ export class TestDatabase {
       connectionString:
         process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
       ssl: false, // Usually no SSL for test databases
-      max: 5, // Lower connection pool for tests
+      max: 10, // Higher connection pool for tests
     });
   }
 
@@ -42,15 +42,23 @@ export class TestDatabase {
 
     const query = this.getQueryFunction();
 
-    // Clean up in reverse dependency order
-    await query('DELETE FROM journal_entries WHERE 1=1');
-    await query('DELETE FROM journal_streaks WHERE 1=1');
-    await query('DELETE FROM tasks WHERE 1=1');
-    await query('DELETE FROM reference_tasks WHERE 1=1');
-    await query('DELETE FROM journals WHERE 1=1');
-    await query(
-      "DELETE FROM users WHERE email LIKE 'testuser%@example.com' OR external_user_id LIKE 'test_%'"
-    );
+    // Use a transaction to ensure atomic cleanup
+    await query('BEGIN');
+    try {
+      // Clean up in reverse dependency order
+      await query('DELETE FROM journal_entries WHERE 1=1');
+      await query('DELETE FROM journal_streaks WHERE 1=1');
+      await query('DELETE FROM tasks WHERE 1=1');
+      await query('DELETE FROM reference_tasks WHERE 1=1');
+      await query('DELETE FROM journals WHERE 1=1');
+      await query(
+        "DELETE FROM users WHERE email LIKE 'testuser%@example.com' OR external_user_id LIKE 'test_%'"
+      );
+      await query('COMMIT');
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
   }
 
   async close(): Promise<void> {

@@ -1,43 +1,45 @@
 import { query } from '../db';
+import { QueryFunction } from '../db/types';
 import { Task, CreateTask, UpdateTask } from '../models/Task';
 import { ReferenceTask, CreateReferenceTask } from '../models/ReferenceTask';
 
-export const taskRepository = {
+export const createTaskRepository = (queryFn: QueryFunction) => {
+  const repository = {
   /**
    * Find all tasks for a user
    */
   findByUserId: async (userId: number): Promise<Task[]> => {
-    const result = await query(
+    const result = await queryFn(
       'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
       [userId]
     );
-    return result.rows;
+    return result.rows as Task[];
   },
 
   /**
    * Find all tasks for a specific journal
    */
   findByJournalId: async (journalId: string): Promise<Task[]> => {
-    const result = await query(
+    const result = await queryFn(
       'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY priority ASC',
       [journalId]
     );
-    return result.rows;
+    return result.rows as Task[];
   },
 
   /**
    * Find a task by ID
    */
   findById: async (id: string): Promise<Task | null> => {
-    const result = await query('SELECT * FROM tasks WHERE id = $1', [id]);
-    return result.rows[0] || null;
+    const result = await queryFn('SELECT * FROM tasks WHERE id = $1', [id]);
+    return (result.rows[0] as Task) || null;
   },
 
   /**
    * Create a new task
    */
   create: async (taskData: CreateTask): Promise<Task> => {
-    const result = await query(
+    const result = await queryFn(
       `INSERT INTO tasks (
         journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
       ) VALUES (
@@ -58,7 +60,7 @@ export const taskRepository = {
         taskData.scheduled_date || null,
       ]
     );
-    return result.rows[0];
+    return result.rows[0] as Task;
   },
 
   /**
@@ -105,24 +107,24 @@ export const taskRepository = {
     }
 
     if (sets.length === 0) {
-      return await taskRepository.findById(id);
+      return await repository.findById(id);
     }
 
     sets.push(`updated_at = NOW()`);
 
     values.push(id);
-    const result = await query(
+    const result = await queryFn(
       `UPDATE tasks SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
       values
     );
-    return result.rows[0] || null;
+    return (result.rows[0] as Task) || null;
   },
 
   /**
    * Delete a task
    */
   delete: async (id: string): Promise<boolean> => {
-    const result = await query('DELETE FROM tasks WHERE id = $1 RETURNING id', [
+    const result = await queryFn('DELETE FROM tasks WHERE id = $1 RETURNING id', [
       id,
     ]);
     if (result.rowCount) {
@@ -139,32 +141,32 @@ export const taskRepository = {
     id: string,
     priority: number
   ): Promise<Task | null> => {
-    const result = await query(
+    const result = await queryFn(
       'UPDATE tasks SET priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [priority, id]
     );
-    return result.rows[0] || null;
+    return (result.rows[0] as Task) || null;
   },
 
   /**
    * Get tasks by user with priority range for calculating new priorities
    */
   getTasksForReordering: async (userId: number): Promise<Task[]> => {
-    const result = await query(
+    const result = await queryFn(
       'SELECT id, priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
       [userId]
     );
-    return result.rows;
+    return result.rows as Task[];
   },
 
   /**
    * Get priority of a specific task
    */
   getTaskPriority: async (taskId: string): Promise<number | null> => {
-    const result = await query('SELECT priority FROM tasks WHERE id = $1', [
+    const result = await queryFn('SELECT priority FROM tasks WHERE id = $1', [
       taskId,
     ]);
-    return result.rows[0]?.priority || null;
+    return (result.rows[0] as { priority: number })?.priority || null;
   },
 
   /**
@@ -177,23 +179,23 @@ export const taskRepository = {
   ): Promise<{ afterPriority?: number; beforePriority?: number }> => {
     if (!afterTaskId && !beforeTaskId) {
       // Moving to beginning - get first task priority
-      const result = await query(
+      const result = await queryFn(
         'SELECT priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC LIMIT 1',
         [userId]
       );
-      return { beforePriority: result.rows[0]?.priority };
+      return { beforePriority: (result.rows[0] as { priority: number })?.priority };
     }
 
     if (afterTaskId && !beforeTaskId) {
       // Moving to end or after specific task - get that task and the next one
-      const result = await query(
+      const result = await queryFn(
         `SELECT id, priority, 
          LEAD(priority) OVER (ORDER BY priority ASC) as next_priority
          FROM tasks 
          WHERE user_id = $1 AND id = $2`,
         [userId, afterTaskId]
       );
-      const row = result.rows[0];
+      const row = result.rows[0] as { priority: number; next_priority: number };
       return {
         afterPriority: row?.priority,
         beforePriority: row?.next_priority,
@@ -202,14 +204,14 @@ export const taskRepository = {
 
     if (!afterTaskId && beforeTaskId) {
       // Moving before specific task (could be moving to the very top)
-      const result = await query(
+      const result = await queryFn(
         `SELECT id, priority,
          LAG(priority) OVER (ORDER BY priority ASC) as prev_priority
          FROM tasks 
          WHERE user_id = $1 AND id = $2`,
         [userId, beforeTaskId]
       );
-      const row = result.rows[0];
+      const row = result.rows[0] as { priority: number; prev_priority: number };
       return {
         afterPriority: row?.prev_priority || undefined,
         beforePriority: row?.priority,
@@ -217,13 +219,13 @@ export const taskRepository = {
     }
 
     // Moving between two specific tasks
-    const result = await query(
+    const result = await queryFn(
       'SELECT id, priority FROM tasks WHERE user_id = $1 AND id IN ($2, $3)',
       [userId, afterTaskId, beforeTaskId]
     );
 
-    const afterTask = result.rows.find((r) => r.id === afterTaskId);
-    const beforeTask = result.rows.find((r) => r.id === beforeTaskId);
+    const afterTask = (result.rows as { id: string; priority: number }[]).find((r) => r.id === afterTaskId);
+    const beforeTask = (result.rows as { id: string; priority: number }[]).find((r) => r.id === beforeTaskId);
 
     return {
       afterPriority: afterTask?.priority,
@@ -241,7 +243,7 @@ export const taskRepository = {
     position: 'above' | 'below'
   ): Promise<number | null> => {
     // Get the reference task priority
-    const referenceResult = await query(
+    const referenceResult = await queryFn(
       'SELECT priority FROM tasks WHERE id = $1 AND user_id = $2',
       [referenceTaskId, userId]
     );
@@ -250,11 +252,11 @@ export const taskRepository = {
       return null;
     }
 
-    const referencePriority = referenceResult.rows[0].priority;
+    const referencePriority = (referenceResult.rows[0] as { priority: number }).priority;
 
     if (position === 'above') {
       // To place above the reference task, find the task immediately before it
-      const beforeResult = await query(
+      const beforeResult = await queryFn(
         `SELECT priority FROM tasks 
          WHERE user_id = $1 AND priority < $2 AND id != $3
          ORDER BY priority DESC LIMIT 1`,
@@ -263,7 +265,7 @@ export const taskRepository = {
 
       if (beforeResult.rows[0]) {
         // Place between the before task and reference task
-        const beforePriority = beforeResult.rows[0].priority;
+        const beforePriority = (beforeResult.rows[0] as { priority: number }).priority;
         return (beforePriority + referencePriority) / 2;
       } else {
         // No task before reference - place at the very beginning
@@ -272,7 +274,7 @@ export const taskRepository = {
     } else {
       // position === 'below'
       // To place below the reference task, find the task immediately after it
-      const afterResult = await query(
+      const afterResult = await queryFn(
         `SELECT priority FROM tasks 
          WHERE user_id = $1 AND priority > $2 AND id != $3
          ORDER BY priority ASC LIMIT 1`,
@@ -281,7 +283,7 @@ export const taskRepository = {
 
       if (afterResult.rows[0]) {
         // Place between reference task and the task after it
-        const afterPriority = afterResult.rows[0].priority;
+        const afterPriority = (afterResult.rows[0] as { priority: number }).priority;
         return (referencePriority + afterPriority) / 2;
       } else {
         // No task after reference - place at the very end
@@ -301,7 +303,7 @@ export const taskRepository = {
     referenceTaskId: string,
     position: 'above' | 'below'
   ): Promise<number | null> => {
-    const result = await query(
+    const result = await queryFn(
       `WITH reference_task AS (
         SELECT priority as ref_priority
         FROM tasks
@@ -337,11 +339,11 @@ export const taskRepository = {
       [userId, referenceTaskId, taskId, position]
     );
 
-    if (!result.rows[0] || result.rows[0].ref_priority === null) {
+    if (!result.rows[0] || (result.rows[0] as { ref_priority: number }).ref_priority === null) {
       return null;
     }
 
-    return result.rows[0].new_priority;
+    return (result.rows[0] as { new_priority: number }).new_priority;
   },
 
   // ===== REFERENCE TASK METHODS =====
@@ -370,6 +372,7 @@ export const taskRepository = {
         : null,
       referenceTaskData.starts_on,
       referenceTaskData.ends_on || null,
+      referenceTaskData.is_active !== undefined ? referenceTaskData.is_active : true,
     ];
 
     let sql: string;
@@ -379,9 +382,9 @@ export const taskRepository = {
       sql = `INSERT INTO reference_tasks (
         id, user_id, journal_id, title, description, recurrence_type, recurrence_interval,
         recurrence_days_of_week, recurrence_day_of_month, recurrence_week_of_month,
-        starts_on, ends_on, next_scheduled_date
+        starts_on, ends_on, is_active, next_scheduled_date
       ) VALUES (
-        $12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        $13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
         calculate_next_scheduled_date($5::recurrence_type_enum, $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -394,6 +397,7 @@ export const taskRepository = {
         recurrence_week_of_month = EXCLUDED.recurrence_week_of_month,
         starts_on = EXCLUDED.starts_on,
         ends_on = EXCLUDED.ends_on,
+        is_active = EXCLUDED.is_active,
         next_scheduled_date = calculate_next_scheduled_date(
           EXCLUDED.recurrence_type,
           EXCLUDED.recurrence_interval,
@@ -409,9 +413,9 @@ export const taskRepository = {
       sql = `INSERT INTO reference_tasks (
         user_id, journal_id, title, description, recurrence_type, recurrence_interval,
         recurrence_days_of_week, recurrence_day_of_month, recurrence_week_of_month,
-        starts_on, ends_on, next_scheduled_date
+        starts_on, ends_on, is_active, next_scheduled_date
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
         calculate_next_scheduled_date($5::recurrence_type_enum, $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -424,6 +428,7 @@ export const taskRepository = {
         recurrence_week_of_month = EXCLUDED.recurrence_week_of_month,
         starts_on = EXCLUDED.starts_on,
         ends_on = EXCLUDED.ends_on,
+        is_active = EXCLUDED.is_active,
         next_scheduled_date = calculate_next_scheduled_date(
           EXCLUDED.recurrence_type,
           EXCLUDED.recurrence_interval,
@@ -437,8 +442,8 @@ export const taskRepository = {
       RETURNING *`;
     }
 
-    const result = await query(sql, params);
-    return result.rows[0];
+    const result = await queryFn(sql, params);
+    return result.rows[0] as ReferenceTask;
   },
 
   /**
@@ -447,21 +452,21 @@ export const taskRepository = {
   findReferenceTasksByUserId: async (
     userId: number
   ): Promise<ReferenceTask[]> => {
-    const result = await query(
+    const result = await queryFn(
       'SELECT * FROM reference_tasks WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
-    return result.rows;
+    return result.rows as ReferenceTask[];
   },
 
   /**
    * Find a reference task by ID
    */
   findReferenceTaskById: async (id: string): Promise<ReferenceTask | null> => {
-    const result = await query('SELECT * FROM reference_tasks WHERE id = $1', [
+    const result = await queryFn('SELECT * FROM reference_tasks WHERE id = $1', [
       id,
     ]);
-    return result.rows[0] || null;
+    return (result.rows[0] as ReferenceTask) || null;
   },
 
   /**
@@ -472,14 +477,14 @@ export const taskRepository = {
     userId: number,
     targetDate: Date
   ): Promise<ReferenceTask[]> => {
-    const result = await query(
+    const result = await queryFn(
       `SELECT * FROM reference_tasks 
        WHERE user_id = $1 
        AND is_active = true 
        AND next_scheduled_date = $2::date`,
       [userId, targetDate]
     );
-    return result.rows;
+    return result.rows as ReferenceTask[];
   },
 
   /**
@@ -489,14 +494,14 @@ export const taskRepository = {
   getReferenceTasksDueForDate: async (
     targetDate: Date
   ): Promise<ReferenceTask[]> => {
-    const result = await query(
+    const result = await queryFn(
       `SELECT * FROM reference_tasks 
        WHERE is_active = true 
        AND next_scheduled_date = $1::date
        ORDER BY user_id`,
       [targetDate]
     );
-    return result.rows;
+    return result.rows as ReferenceTask[];
   },
 
   /**
@@ -506,8 +511,8 @@ export const taskRepository = {
   createTasksFromReferenceTasksForUser: async (
     userId: number,
     targetDate: Date
-  ): Promise<{ tasksCreated: number; tasksSkipped: number }> => {
-    const result = await query(
+  ): Promise<{ tasks_created: string; tasks_skipped: string }> => {
+    const result = await queryFn(
       `
       WITH eligible_reference_tasks AS (
         SELECT * FROM reference_tasks 
@@ -561,7 +566,7 @@ export const taskRepository = {
       [userId, targetDate]
     );
 
-    return result.rows[0] || { tasksCreated: 0, tasksSkipped: 0 };
+    return (result.rows[0] as { tasks_created: string; tasks_skipped: string }) || { tasks_created: '0', tasks_skipped: '0' };
   },
 
   /**
@@ -571,12 +576,12 @@ export const taskRepository = {
   createTasksFromReferenceTasksForDate: async (
     targetDate: Date
   ): Promise<{
-    tasksCreated: number;
-    tasksSkipped: number;
-    usersProcessed: number;
-    referenceTasksProcessed: number;
+    tasks_created: string;
+    tasks_skipped: string;
+    users_processed: string;
+    reference_tasks_processed: string;
   }> => {
-    const result = await query(
+    const result = await queryFn(
       `
       WITH eligible_reference_tasks AS (
         SELECT * FROM reference_tasks 
@@ -632,12 +637,23 @@ export const taskRepository = {
     );
 
     return (
-      result.rows[0] || {
-        tasksCreated: 0,
-        tasksSkipped: 0,
-        usersProcessed: 0,
-        referenceTasksProcessed: 0,
+      (result.rows[0] as {
+        tasks_created: string;
+        tasks_skipped: string;
+        users_processed: string;
+        reference_tasks_processed: string;
+      }) || {
+        tasks_created: '0',
+        tasks_skipped: '0',
+        users_processed: '0',
+        reference_tasks_processed: '0',
       }
     );
   },
 };
+
+return repository;
+};
+
+// Create the default instance using the default query function
+export const taskRepository = createTaskRepository(query);

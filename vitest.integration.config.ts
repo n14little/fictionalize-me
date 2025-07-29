@@ -8,6 +8,12 @@ export default defineConfig({
     include: ['tests/integration/**/*.test.ts'],
     setupFiles: ['tests/integration/setup.ts'],
     testTimeout: 10000, // Longer timeout for database operations
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true, // Run integration tests sequentially to avoid database conflicts
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
