@@ -242,7 +242,13 @@ test.describe('Authentication', () => {
       // Should be able to access dashboard
       await page.goto('/dashboard');
       await expect(
-        page.getByRole('heading', { name: 'Journaling Dashboard' })
+        page.getByRole('heading', { name: 'Productivity' })
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Recent Entries' })
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Your Tasks' })
       ).toBeVisible();
 
       // Should not be redirected to signin
