@@ -73,8 +73,9 @@ export default function DashboardLayout({
             </div>
 
             {/* Left gutter - content row */}
+            {/* PLACE NEW GRAPHIC IN THIS COLUMN */}
             <div className="lg:col-span-2">
-              <div className="hidden lg:block h-full"></div>
+              {taskstats}
             </div>
 
             {/* Main content area - streaks and recent entries */}
@@ -85,7 +86,6 @@ export default function DashboardLayout({
 
             {/* Right sidebar for task stats and tasks */}
             <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start space-y-6">
-              {taskstats}
               {tasks}
             </div>
           </div>
