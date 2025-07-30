@@ -77,7 +77,7 @@ export function DashboardTasksList({
 
   return (
     <NavigableColumn column="tasks" itemCount={totalNavigableItems}>
-      <div className="bg-white shadow rounded-lg border border-gray-200 p-6">
+      <div className="bg-white p-6">
         <h2 className="text-lg font-bold mb-4">Your Tasks</h2>
 
         {/* Pending Tasks Section */}

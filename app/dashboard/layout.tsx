@@ -4,7 +4,7 @@ import { KeyboardNavigationProvider } from '@/components/KeyboardNavigation';
 import { DailyWriteModalButton } from '@/components/EntryButtonAliases';
 
 export default function DashboardLayout({
-  streaks,
+  streaks: _streaks,
   taskstats,
   recententries,
   tasks,
@@ -28,69 +28,42 @@ export default function DashboardLayout({
   return (
     <KeyboardNavigationProvider onDailyWrite={handleDailyWrite}>
       {/* Hidden daily write button for keyboard shortcut */}
-      <div className="hidden">
-        <DailyWriteModalButton />
-      </div>
+      <div className="min-h-screen">
+        <div className="hidden">
+          <DailyWriteModalButton />
+        </div>
 
-      <main className="flex min-h-screen flex-col p-4 md:p-12">
-        <div className="w-full mx-auto">
-          {/* Three column layout with header and content */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-y-6 gap-x-6">
-            {/* Left gutter - header row */}
-            <div className="lg:col-span-2">
-              <div className="hidden lg:block"></div>
-            </div>
+        <main className="flex min-h-screen flex-grow flex-col p-4 md:p-12">
+          <div className="w-full flex-1 mx-auto flex flex-col">
+            <div className="flex flex-col lg:flex-row w-full gap-y-6 lg:gap-x-0 flex-1">
+              <div className="lg:w-2/12 lg:pr-6 lg:border-r lg:border-gray-200">
+                {taskstats}
 
-            {/* Header aligned with main content */}
-            <div className="lg:col-span-8 mb-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-3xl font-bold">Journaling Dashboard</h1>
-                  <p className="text-gray-600 mt-2">
-                    Track your journaling progress and build your writing habit
-                  </p>
+                <div className="text-sm text-gray-500 mb-2">
+                  Keyboard shortcuts: E for entries, T for tasks, ↑↓ to
+                  navigate, Enter to open/toggle, Ctrl+D for daily write
                 </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-500 mb-2">
-                    Keyboard shortcuts: E for entries, T for tasks, ↑↓ to
-                    navigate, Enter to open/toggle, Ctrl+D for daily write
-                  </div>
-                  <div className="flex gap-2">
-                    <a
-                      href="/reference-tasks"
-                      className="text-sm text-blue-600 hover:text-blue-800 underline"
-                    >
-                      Manage Reference Tasks
-                    </a>
-                  </div>
+                <div className="flex gap-2">
+                  <a
+                    href="/reference-tasks"
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Manage Reference Tasks
+                  </a>
                 </div>
               </div>
-            </div>
 
-            {/* Right gutter - header row */}
-            <div className="lg:col-span-2">
-              <div className="hidden lg:block"></div>
-            </div>
+              <div className="lg:w-8/12 lg:px-6 lg:border-r lg:border-gray-200 space-y-6">
+                {recententries}
+              </div>
 
-            {/* Left gutter - content row */}
-            {/* PLACE NEW GRAPHIC IN THIS COLUMN */}
-            <div className="lg:col-span-2">
-              {taskstats}
-            </div>
-
-            {/* Main content area - streaks and recent entries */}
-            <div className="lg:col-span-8 space-y-6">
-              {streaks}
-              {recententries}
-            </div>
-
-            {/* Right sidebar for task stats and tasks */}
-            <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start space-y-6">
-              {tasks}
+              <div className="lg:w-2/12 lg:pl-6 space-y-6">
+                <div className="lg:sticky lg:top-6">{tasks}</div>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </KeyboardNavigationProvider>
   );
 }

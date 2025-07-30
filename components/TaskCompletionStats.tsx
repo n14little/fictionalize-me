@@ -58,10 +58,10 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
 
   return (
     <div className="task-completion-stats">
-      <h2 className="text-lg font-bold mb-4">Task Completion</h2>
+      <h2 className="text-lg font-bold mb-2">Productivity</h2>
 
       <div className="space-y-4">
-        <div className="bg-white p-3 rounded-lg border border-gray-100">
+        <div className="bg-white">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-xs font-medium text-gray-600">Last 30 Days</h3>
             <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -87,10 +87,6 @@ export function TaskCompletionStats({ stats }: TaskCompletionStatsProps) {
                 title={getSquareTitle(day.date, day.completed)}
               ></div>
             ))}
-          </div>
-
-          <div className="mt-2 text-xs text-gray-500">
-            Daily task completion activity
           </div>
         </div>
       </div>
