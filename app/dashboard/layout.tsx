@@ -28,42 +28,40 @@ export default function DashboardLayout({
   return (
     <KeyboardNavigationProvider onDailyWrite={handleDailyWrite}>
       {/* Hidden daily write button for keyboard shortcut */}
-      <div className="min-h-screen">
-        <div className="hidden">
-          <DailyWriteModalButton />
-        </div>
+      <div className="hidden">
+        <DailyWriteModalButton />
+      </div>
 
-        <main className="flex min-h-screen flex-grow flex-col p-4 md:p-12">
-          <div className="w-full flex-1 mx-auto flex flex-col">
-            <div className="flex flex-col lg:flex-row w-full gap-y-6 lg:gap-x-0 flex-1">
-              <div className="lg:w-2/12 lg:pr-6 lg:border-r lg:border-gray-200">
-                {taskstats}
+      <main className="flex-1 flex flex-col">
+        <div className="w-full flex-1 mx-auto">
+          <div className="flex flex-col lg:flex-row w-full gap-y-6 lg:gap-x-0 h-full">
+            <div className="lg:w-2/12 lg:pr-6 lg:border-r lg:border-gray-200">
+              {taskstats}
 
-                <div className="text-sm text-gray-500 mb-2">
-                  Keyboard shortcuts: E for entries, T for tasks, ↑↓ to
-                  navigate, Enter to open/toggle, Ctrl+D for daily write
-                </div>
-                <div className="flex gap-2">
-                  <a
-                    href="/reference-tasks"
-                    className="text-sm text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Manage Reference Tasks
-                  </a>
-                </div>
+              <div className="text-sm text-gray-500 mb-2">
+                Keyboard shortcuts: E for entries, T for tasks, ↑↓ to navigate,
+                Enter to open/toggle, Ctrl+D for daily write
               </div>
-
-              <div className="lg:w-8/12 lg:px-6 lg:border-r lg:border-gray-200 space-y-6">
-                {recententries}
-              </div>
-
-              <div className="lg:w-2/12 lg:pl-6 space-y-6">
-                <div className="lg:sticky lg:top-6">{tasks}</div>
+              <div className="flex gap-2">
+                <a
+                  href="/reference-tasks"
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Manage Reference Tasks
+                </a>
               </div>
             </div>
+
+            <div className="lg:w-8/12 lg:px-6 lg:border-r lg:border-gray-200 space-y-6">
+              {recententries}
+            </div>
+
+            <div className="lg:w-2/12 lg:pl-6 space-y-6">
+              <div className="lg:sticky lg:top-6">{tasks}</div>
+            </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </KeyboardNavigationProvider>
   );
 }

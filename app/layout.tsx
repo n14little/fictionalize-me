@@ -19,9 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <header className="bg-white shadow-sm border-b border-gray-200">
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full flex flex-col`}>
+        <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
               <div className="flex-shrink-0">
@@ -52,13 +52,11 @@ export default function RootLayout({
             </div>
           </div>
         </header>
-        <div className="min-h-screen">
-          <div className="h-full">
-            {children}
-            <div id="modal-root"></div>
-          </div>
+        <div className="flex-1 flex flex-col">
+          {children}
+          <div id="modal-root"></div>
         </div>
-        <footer className="bg-white border-t border-gray-200 py-6 mt-12">
+        <footer className="bg-white border-t border-gray-200 py-6 flex-shrink-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <p className="text-center text-gray-500 text-sm">
               &copy; {new Date().getFullYear()} Fictionalize Me. All rights
