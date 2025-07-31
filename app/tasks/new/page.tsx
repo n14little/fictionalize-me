@@ -23,9 +23,7 @@ export default async function NewTaskPage({
   const [journals, validParentTasks] = await Promise.all([
     journalService.getUserJournals(user.id),
     // Get valid parent tasks for hierarchy selection
-    parent
-      ? []
-      : taskService.getValidParentTasks('', user.id).catch(() => []),
+    parent ? [] : taskService.getValidParentTasks('', user.id).catch(() => []),
   ]);
 
   const parentId = parent;

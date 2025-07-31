@@ -48,9 +48,45 @@ export const createReferenceTaskService = (query: QueryFunction) => {
         throw new Error('Reference task not found or access denied');
       }
 
-      return taskRepository.upsertReferenceTask({
-        ...data,
+      // Merge existing data with new data, giving precedence to new data
+      const mergedData: CreateReferenceTask = {
         user_id: userId,
+        journal_id: data.journal_id,
+        title: data.title,
+        description:
+          data.description !== undefined
+            ? data.description
+            : existingTask.description || undefined,
+        recurrence_type: data.recurrence_type,
+        recurrence_interval:
+          data.recurrence_interval !== undefined
+            ? data.recurrence_interval
+            : existingTask.recurrence_interval,
+        recurrence_days_of_week:
+          data.recurrence_days_of_week !== undefined
+            ? data.recurrence_days_of_week
+            : existingTask.recurrence_days_of_week || undefined,
+        recurrence_day_of_month:
+          data.recurrence_day_of_month !== undefined
+            ? data.recurrence_day_of_month
+            : existingTask.recurrence_day_of_month || undefined,
+        recurrence_week_of_month:
+          data.recurrence_week_of_month !== undefined
+            ? data.recurrence_week_of_month
+            : existingTask.recurrence_week_of_month || undefined,
+        starts_on: data.starts_on,
+        ends_on:
+          data.ends_on !== undefined
+            ? data.ends_on
+            : existingTask.ends_on || undefined,
+        is_active:
+          data.is_active !== undefined
+            ? data.is_active
+            : existingTask.is_active,
+      };
+
+      return taskRepository.upsertReferenceTask({
+        ...mergedData,
         id,
       });
     },

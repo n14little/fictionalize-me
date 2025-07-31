@@ -281,6 +281,43 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       );
     });
 
+    it('should update only provided fields and keep others unchanged', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+      const createdTask = await fixtures.createTestReferenceTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Original Title',
+          description: 'Original Description',
+          recurrence_type: 'daily',
+          recurrence_interval: 2,
+        }
+      );
+
+      const partialUpdate = {
+        journal_id: testJournal.id,
+        title: 'Updated Title Only',
+        recurrence_type: 'daily' as RecurrenceType,
+        starts_on: createdTask.starts_on,
+      };
+
+      // Act
+      const updatedTask = await referenceTaskService.updateReferenceTask(
+        createdTask.id,
+        testUser.id,
+        partialUpdate
+      );
+
+      // Assert
+      expect(updatedTask.title).toBe(partialUpdate.title);
+      expect(updatedTask.description).toBe(createdTask.description); // Unchanged
+      expect(updatedTask.recurrence_interval).toBe(
+        createdTask.recurrence_interval
+      ); // Unchanged
+    });
+
     it('should throw error when trying to update non-existent reference task', async () => {
       // Arrange
       const testUser = await fixtures.createTestUser();
@@ -331,6 +368,74 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
           updatedData
         )
       ).rejects.toThrow('Reference task not found or access denied');
+    });
+
+    it('should update recurrence pattern from daily to monthly with day of month', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+      const createdTask = await fixtures.createTestReferenceTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Daily Task',
+          recurrence_type: 'daily',
+          recurrence_interval: 1,
+        }
+      );
+
+      const updatedData = {
+        journal_id: testJournal.id,
+        title: 'Monthly Task',
+        recurrence_type: 'monthly' as RecurrenceType,
+        recurrence_interval: 1,
+        recurrence_day_of_month: 15,
+        starts_on: new Date('2024-01-01'),
+      };
+
+      // Act
+      const updatedTask = await referenceTaskService.updateReferenceTask(
+        createdTask.id,
+        testUser.id,
+        updatedData
+      );
+
+      // Assert
+      expect(updatedTask.recurrence_type).toBe('monthly');
+      expect(updatedTask.recurrence_day_of_month).toBe(15);
+      expect(updatedTask.recurrence_days_of_week).toBeNull();
+    });
+
+    it('should allow deactivating a reference task', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+      const createdTask = await fixtures.createTestReferenceTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Active Task',
+          is_active: true,
+        }
+      );
+
+      const updatedData = {
+        journal_id: testJournal.id,
+        title: createdTask.title,
+        recurrence_type: createdTask.recurrence_type,
+        starts_on: createdTask.starts_on,
+        is_active: false,
+      };
+
+      // Act
+      const updatedTask = await referenceTaskService.updateReferenceTask(
+        createdTask.id,
+        testUser.id,
+        updatedData
+      );
+
+      // Assert
+      expect(updatedTask.is_active).toBe(false);
     });
   });
 });

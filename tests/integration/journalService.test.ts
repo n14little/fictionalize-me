@@ -182,5 +182,207 @@ describe('JournalService - Integration Tests', () => {
       // Assert
       expect(result).toBeNull();
     });
+
+    it('should return journal when no userId provided and journal is public', async () => {
+      // Arrange
+      const owner = await fixtures.createTestUser();
+      const journal = await fixtures.createTestJournal(owner.id, {
+        title: 'Public Journal',
+        public: true,
+      });
+
+      // Act
+      const result = await journalService.getJournalById(journal.id);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result!.id).toBe(journal.id);
+      expect(result!.title).toBe('Public Journal');
+    });
+
+    it('should return null when no userId provided and journal is private', async () => {
+      // Arrange
+      const owner = await fixtures.createTestUser();
+      const journal = await fixtures.createTestJournal(owner.id, {
+        title: 'Private Journal',
+        public: false,
+      });
+
+      // Act
+      const result = await journalService.getJournalById(journal.id);
+
+      // Assert
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getOrCreateDailyWriteJournal', () => {
+    it('should create a new daily write journal if one does not exist', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+
+      // Act
+      const journal = await journalService.getOrCreateDailyWriteJournal(
+        testUser.id
+      );
+
+      // Assert
+      expect(journal).toBeDefined();
+      expect(journal.title).toBe('Daily Write');
+      expect(journal.user_id).toBe(testUser.id);
+      expect(journal.public).toBe(false);
+    });
+
+    it('should return existing daily write journal if one already exists', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const firstJournal = await journalService.getOrCreateDailyWriteJournal(
+        testUser.id
+      );
+
+      // Act
+      const secondJournal = await journalService.getOrCreateDailyWriteJournal(
+        testUser.id
+      );
+
+      // Assert
+      expect(secondJournal.id).toBe(firstJournal.id);
+      expect(secondJournal.title).toBe('Daily Write');
+    });
+  });
+
+  describe('updateJournal', () => {
+    it('should update an existing journal when user owns it', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const journal = await fixtures.createTestJournal(testUser.id, {
+        title: 'Original Title',
+        description: 'Original Description',
+      });
+
+      const updateData = {
+        title: 'Updated Title',
+        description: 'Updated Description',
+        public: true,
+      };
+
+      // Act
+      const updatedJournal = await journalService.updateJournal(
+        journal.id,
+        testUser.id,
+        updateData
+      );
+
+      // Assert
+      expect(updatedJournal).toBeDefined();
+      expect(updatedJournal!.id).toBe(journal.id);
+      expect(updatedJournal!.title).toBe(updateData.title);
+      expect(updatedJournal!.description).toBe(updateData.description);
+      expect(updatedJournal!.public).toBe(updateData.public);
+      expect(updatedJournal!.updated_at.getTime()).toBeGreaterThan(
+        journal.updated_at.getTime()
+      );
+    });
+
+    it('should return null when journal does not exist', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const nonExistentId = '00000000-0000-0000-0000-000000000000';
+
+      // Act
+      const result = await journalService.updateJournal(
+        nonExistentId,
+        testUser.id,
+        { title: 'Updated Title' }
+      );
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should return null when user does not own the journal', async () => {
+      // Arrange
+      const owner = await fixtures.createTestUser();
+      const otherUser = await fixtures.createTestUser();
+      const journal = await fixtures.createTestJournal(owner.id, {
+        title: 'Original Title',
+      });
+
+      // Act
+      const result = await journalService.updateJournal(
+        journal.id,
+        otherUser.id,
+        { title: 'Updated Title' }
+      );
+
+      // Assert
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('deleteJournal', () => {
+    it('should delete a journal when user owns it', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const journal = await fixtures.createTestJournal(testUser.id, {
+        title: 'Journal to Delete',
+      });
+
+      // Act
+      const result = await journalService.deleteJournal(
+        journal.id,
+        testUser.id
+      );
+
+      // Assert
+      expect(result).toBe(true);
+
+      // Verify journal was deleted
+      const deletedJournal = await journalService.getJournalById(
+        journal.id,
+        testUser.id
+      );
+      expect(deletedJournal).toBeNull();
+    });
+
+    it('should return false when journal does not exist', async () => {
+      // Arrange
+      const testUser = await fixtures.createTestUser();
+      const nonExistentId = '00000000-0000-0000-0000-000000000000';
+
+      // Act
+      const result = await journalService.deleteJournal(
+        nonExistentId,
+        testUser.id
+      );
+
+      // Assert
+      expect(result).toBe(false);
+    });
+
+    it('should return false when user does not own the journal', async () => {
+      // Arrange
+      const owner = await fixtures.createTestUser();
+      const otherUser = await fixtures.createTestUser();
+      const journal = await fixtures.createTestJournal(owner.id, {
+        title: 'Journal to Delete',
+      });
+
+      // Act
+      const result = await journalService.deleteJournal(
+        journal.id,
+        otherUser.id
+      );
+
+      // Assert
+      expect(result).toBe(false);
+
+      // Verify journal still exists
+      const existingJournal = await journalService.getJournalById(
+        journal.id,
+        owner.id
+      );
+      expect(existingJournal).toBeDefined();
+    });
   });
 });

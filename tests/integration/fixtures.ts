@@ -1,6 +1,7 @@
 import { QueryFunction } from '../../lib/db/types';
 import { User, CreateUser } from '../../lib/models/User';
 import { Journal } from '../../lib/models/Journal';
+import { Task, CreateTask } from '../../lib/models/Task';
 import {
   ReferenceTask,
   CreateReferenceTask,
@@ -73,5 +74,25 @@ export class TestFixtures {
     };
 
     return await this.taskRepository.upsertReferenceTask(referenceTaskData);
+  }
+
+  async createTestTask(
+    userId: number,
+    journalId: string,
+    overrides: Partial<Omit<CreateTask, 'user_id' | 'journal_id'>> = {}
+  ): Promise<Task> {
+    const taskData: CreateTask = {
+      user_id: userId,
+      journal_id: journalId,
+      title: overrides.title || `Test Task ${Date.now()}`,
+      description: overrides.description || 'A test task',
+      priority: overrides.priority || 1,
+      reference_task_id: overrides.reference_task_id ?? undefined,
+      scheduled_date: overrides.scheduled_date ?? undefined,
+      parent_task_id: overrides.parent_task_id ?? undefined,
+    };
+
+    // Use the create method from the task repository
+    return await this.taskRepository.create(taskData);
   }
 }
