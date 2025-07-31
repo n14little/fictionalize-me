@@ -42,6 +42,12 @@ export default function RootLayout({
                 >
                   Journals
                 </Link>
+                <Link
+                  href="/tasks"
+                  className="text-gray-700 hover:text-blue-600"
+                >
+                  Tasks
+                </Link>
                 <DynamicDashboardLink />
                 <div className="flex-shrink-0">
                   <AuthProvider>
