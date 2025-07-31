@@ -7,21 +7,21 @@ import { TaskForm } from '@/app/tasks/TaskForm';
 
 export const dynamic = 'force-dynamic';
 
-interface EditTaskPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function EditTaskPage({ params }: EditTaskPageProps) {
+export default async function EditTaskPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const user = await authService.getCurrentUser();
 
   if (!user) {
     redirect('/auth/signin');
   }
 
+  const { id } = await params;
+
   const [task, journals] = await Promise.all([
-    taskService.getTaskById(params.id, user.id),
+    taskService.getTaskById(id, user.id),
     journalService.getUserJournals(user.id),
   ]);
 

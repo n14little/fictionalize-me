@@ -7,28 +7,28 @@ import { TaskForm } from '@/app/tasks/TaskForm';
 
 export const dynamic = 'force-dynamic';
 
-interface NewTaskPageProps {
-  searchParams: {
-    parent?: string;
-  };
-}
-
-export default async function NewTaskPage({ searchParams }: NewTaskPageProps) {
+export default async function NewTaskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ parent?: string }>;
+}) {
   const user = await authService.getCurrentUser();
 
   if (!user) {
     redirect('/auth/signin');
   }
 
+  const { parent } = await searchParams;
+
   const [journals, validParentTasks] = await Promise.all([
     journalService.getUserJournals(user.id),
     // Get valid parent tasks for hierarchy selection
-    searchParams.parent
+    parent
       ? []
       : taskService.getValidParentTasks('', user.id).catch(() => []),
   ]);
 
-  const parentId = searchParams.parent;
+  const parentId = parent;
 
   if (journals.length === 0) {
     return (
