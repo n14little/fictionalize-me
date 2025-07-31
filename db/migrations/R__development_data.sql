@@ -69,29 +69,69 @@ BEGIN
             JOIN test_user tu ON j.user_id = tu.id 
             WHERE j.title = 'My Test Journal'
         )
-        INSERT INTO tasks (user_id, journal_id, title, description, completed, created_at)
+        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, created_at)
         SELECT 
             uj.user_id,
             uj.journal_id,
             task_data.title,
             task_data.description,
             task_data.completed,
+            task_data.priority,
             CURRENT_TIMESTAMP - (task_data.days_ago || ' days')::INTERVAL
         FROM user_journal uj
         CROSS JOIN (
             VALUES 
-                ('Review dashboard layout', 'Fix the border overlap issue in the dashboard columns', false, '0'),
-                ('Write blog post', 'Draft article about React server components and their benefits', false, '1'),
-                ('Plan weekend trip', 'Research destinations and book accommodations for upcoming getaway', false, '0'),
-                ('Update project documentation', 'Add API documentation and usage examples for the journal app', false, '2'),
-                ('Grocery shopping', 'Buy ingredients for this week''s meal prep', true, '1'),
-                ('Call dentist', 'Schedule routine cleaning appointment', false, '0'),
-                ('Read design patterns book', 'Continue reading chapter on Observer pattern', false, '3'),
-                ('Organize digital photos', 'Sort and backup recent photos from vacation', false, '5')
-        ) as task_data(title, description, completed, days_ago)
+                ('Update project documentation', 'Add API documentation and usage examples for the journal app', false, 1000, '2'),
+                ('Review dashboard layout', 'Fix the border overlap issue in the dashboard columns', false, 2000, '0'),
+                ('Write blog post -- edited', 'Draft article about React server components and their benefits', false, 3000, '1'),
+                ('Plan weekend trip', 'Research destinations and book accommodations for upcoming getaway', false, 4000, '0'),
+                ('Read design patterns book', 'Continue reading chapter on Observer pattern', false, 5000, '3'),
+                ('Grocery shopping', 'Buy ingredients for this week''s meal prep', true, 6000, '1'),
+                ('Call dentist', 'Schedule routine cleaning appointment', true, 7000, '0'),
+                ('Some new task', 'A standalone task for testing', false, 8000, '0')
+        ) as task_data(title, description, completed, priority, days_ago)
         WHERE NOT EXISTS (
             SELECT 1 FROM tasks t 
             WHERE t.user_id = uj.user_id AND t.title = task_data.title
+        );
+
+        -- Insert sub-tasks with higher priorities than their parents
+        WITH test_user AS (
+            SELECT id FROM users WHERE email = 'test@example.com'
+        ),
+        user_journal AS (
+            SELECT j.id as journal_id, j.user_id
+            FROM journals j 
+            JOIN test_user tu ON j.user_id = tu.id 
+            WHERE j.title = 'My Test Journal'
+        ),
+        parent_tasks AS (
+            SELECT t.id as parent_id, t.user_id, t.journal_id, t.title as parent_title
+            FROM tasks t
+            JOIN user_journal uj ON t.user_id = uj.user_id
+            WHERE t.title IN ('Update project documentation', 'Review dashboard layout')
+        )
+        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, parent_task_id, created_at)
+        SELECT 
+            pt.user_id,
+            pt.journal_id,
+            subtask_data.title,
+            subtask_data.description,
+            subtask_data.completed,
+            subtask_data.priority,
+            pt.parent_id,
+            CURRENT_TIMESTAMP - (subtask_data.days_ago || ' days')::INTERVAL
+        FROM parent_tasks pt
+        CROSS JOIN (
+            VALUES 
+                ('Update project documentation', 'some subtask', 'Create API documentation outline', false, 1500, '1'),
+                ('Update project documentation', 'update project documentation subtask', 'Write code examples for API endpoints', false, 1600, '1'),
+                ('Review dashboard layout', 'review dashboard layout sub task', 'Fix border overlap in dashboard columns', false, 2100, '0')
+        ) as subtask_data(parent_title, title, description, completed, priority, days_ago)
+        WHERE pt.parent_title = subtask_data.parent_title
+        AND NOT EXISTS (
+            SELECT 1 FROM tasks t 
+            WHERE t.user_id = pt.user_id AND t.title = subtask_data.title
         );
 
         -- Insert some reference tasks (only if they don't already exist)

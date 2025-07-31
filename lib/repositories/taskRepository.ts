@@ -41,14 +41,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     create: async (taskData: CreateTask): Promise<Task> => {
       const result = await queryFn(
         `INSERT INTO tasks (
-        journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        journal_id, user_id, title, description, priority, reference_task_id, scheduled_date, parent_task_id
       ) VALUES (
         $1, $2, $3, $4, 
         CASE 
           WHEN $5::INTEGER IS NOT NULL THEN $5::INTEGER
           ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
         END,
-        $6, $7
+        $6, $7, $8
       ) RETURNING *`,
         [
           taskData.journal_id,
@@ -58,6 +58,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           taskData.priority || null,
           taskData.reference_task_id || null,
           taskData.scheduled_date || null,
+          taskData.parent_task_id || null,
         ]
       );
       return result.rows[0] as Task;
@@ -106,6 +107,12 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         paramIndex++;
       }
 
+      if (taskData.parent_task_id !== undefined) {
+        sets.push(`parent_task_id = $${paramIndex}`);
+        values.push(taskData.parent_task_id);
+        paramIndex++;
+      }
+
       if (sets.length === 0) {
         return await repository.findById(id);
       }
@@ -147,6 +154,222 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         [priority, id]
       );
       return (result.rows[0] as Task) || null;
+    },
+
+    /**
+     * Create a sub-task with validation in a single query
+     * Returns null if validation fails, otherwise returns the created task
+     */
+    createSubTaskWithValidation: async (
+      userId: number,
+      parentId: string,
+      title: string,
+      description?: string
+    ): Promise<Task | null> => {
+      const result = await queryFn(
+        `WITH parent_validation AS (
+          SELECT 
+            t.id,
+            t.user_id,
+            t.journal_id,
+            COALESCE(
+              (WITH RECURSIVE task_depth AS (
+                SELECT t.id, 0 as depth
+                FROM tasks t
+                WHERE t.id = $2
+                UNION ALL
+                SELECT p.id, td.depth + 1
+                FROM tasks p
+                JOIN task_depth td ON p.parent_task_id = td.id
+                WHERE td.depth < 10
+              )
+              SELECT MAX(depth) FROM task_depth), 0
+            ) as current_depth
+          FROM tasks t
+          WHERE t.id = $2 AND t.user_id = $1
+        )
+        INSERT INTO tasks (
+          journal_id, user_id, title, description, priority, parent_task_id
+        )
+        SELECT 
+          pv.journal_id,
+          $1,
+          $3,
+          $4,
+          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $1), 0) + 1000,
+          $2
+        FROM parent_validation pv
+        WHERE pv.id IS NOT NULL AND pv.current_depth < 2
+        RETURNING *`,
+        [userId, parentId, title, description || null]
+      );
+      return (result.rows[0] as Task) || null;
+    },
+
+    /**
+     * Get valid parent tasks for a given task in a single query
+     */
+    getValidParentTasksForTask: async (
+      taskId: string,
+      userId: number
+    ): Promise<Task[]> => {
+      const result = await queryFn(
+        `WITH RECURSIVE 
+        -- Calculate depth for each task
+        task_depths AS (
+          SELECT 
+            t.id, 
+            t.parent_task_id,
+            CASE 
+              WHEN t.parent_task_id IS NULL THEN 0
+              ELSE (
+                WITH RECURSIVE depth_calc AS (
+                  SELECT id, parent_task_id, 0 as depth
+                  FROM tasks 
+                  WHERE id = t.id
+                  UNION ALL
+                  SELECT p.id, p.parent_task_id, dc.depth + 1
+                  FROM tasks p
+                  JOIN depth_calc dc ON p.id = dc.parent_task_id
+                  WHERE dc.depth < 10
+                )
+                SELECT MAX(depth) FROM depth_calc
+              )
+            END as depth
+          FROM tasks t
+          WHERE t.user_id = $2
+        ),
+        -- Get all descendants of the target task to avoid cycles
+        task_descendants AS (
+          SELECT $1::uuid as id
+          UNION ALL
+          SELECT t.id
+          FROM tasks t
+          JOIN task_descendants td ON t.parent_task_id = td.id
+        )
+        SELECT t.*
+        FROM tasks t
+        JOIN task_depths td ON t.id = td.id
+        WHERE t.user_id = $2
+        AND t.id != $1  -- Can't be parent of itself
+        AND t.id NOT IN (SELECT id FROM task_descendants WHERE id != $1)  -- Avoid cycles
+        AND td.depth < 2  -- Not at max depth
+        ORDER BY t.title`,
+        [taskId, userId]
+      );
+      return result.rows as Task[];
+    },
+
+    /**
+     * Complete a task and return completion info with sub-task status in one query
+     */
+    completeTaskWithSubTaskInfo: async (
+      taskId: string,
+      completed: boolean
+    ): Promise<{
+      task: Task | null;
+      hasIncompleteSubTasks: boolean;
+      incompleteSubTasks: Task[];
+    }> => {
+      // First update the task
+      const updateResult = await queryFn(
+        'UPDATE tasks SET completed = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END WHERE id = $2 RETURNING *',
+        [completed, taskId]
+      );
+
+      const task = (updateResult.rows[0] as Task) || null;
+
+      if (!task || !completed) {
+        return { task, hasIncompleteSubTasks: false, incompleteSubTasks: [] };
+      }
+
+      // Get incomplete sub-tasks in one query
+      const subTaskResult = await queryFn(
+        'SELECT * FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY priority ASC',
+        [taskId]
+      );
+
+      const incompleteSubTasks = subTaskResult.rows as Task[];
+
+      return {
+        task,
+        hasIncompleteSubTasks: incompleteSubTasks.length > 0,
+        incompleteSubTasks,
+      };
+    },
+
+    /**
+     * Check if a task can be completed (no incomplete child tasks)
+     */
+    canCompleteTask: async (taskId: string): Promise<{
+      canComplete: boolean;
+      incompleteChildren: Task[];
+    }> => {
+      const result = await queryFn(
+        'SELECT * FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY priority ASC',
+        [taskId]
+      );
+
+      const incompleteChildren = result.rows as Task[];
+
+      return {
+        canComplete: incompleteChildren.length === 0,
+        incompleteChildren,
+      };
+    },
+
+    /**
+     * Complete a task only if it has no incomplete child tasks
+     */
+    completeTaskWithValidation: async (
+      taskId: string,
+      completed: boolean
+    ): Promise<{
+      task: Task | null;
+      canComplete: boolean;
+      incompleteChildren: Task[];
+      error?: string;
+    }> => {
+      // If uncompleting, skip validation
+      if (!completed) {
+        const updateResult = await queryFn(
+          'UPDATE tasks SET completed = $1, completed_at = NULL WHERE id = $2 RETURNING *',
+          [completed, taskId]
+        );
+        const task = (updateResult.rows[0] as Task) || null;
+        return { task, canComplete: true, incompleteChildren: [] };
+      }
+
+      // Check if task can be completed (no incomplete children)
+      const childResult = await queryFn(
+        'SELECT * FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY priority ASC',
+        [taskId]
+      );
+
+      const incompleteChildren = childResult.rows as Task[];
+      
+      if (incompleteChildren.length > 0) {
+        return {
+          task: null,
+          canComplete: false,
+          incompleteChildren,
+          error: 'Cannot complete task while child tasks remain incomplete'
+        };
+      }
+
+      // Complete the task
+      const updateResult = await queryFn(
+        'UPDATE tasks SET completed = $1, completed_at = NOW() WHERE id = $2 RETURNING *',
+        [completed, taskId]
+      );
+
+      const task = (updateResult.rows[0] as Task) || null;
+
+      return {
+        task,
+        canComplete: true,
+        incompleteChildren: [],
+      };
     },
 
     /**
@@ -366,6 +589,82 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       return (result.rows[0] as { new_priority: number }).new_priority;
     },
 
+    // ===== TASK HIERARCHY METHODS =====
+
+    /**
+     * Find all direct children of a parent task
+     */
+    findByParentId: async (parentId: string): Promise<Task[]> => {
+      const result = await queryFn(
+        'SELECT * FROM tasks WHERE parent_task_id = $1 ORDER BY priority ASC',
+        [parentId]
+      );
+      return result.rows as Task[];
+    },
+
+    /**
+     * Find all tasks for a user with proper hierarchical ordering
+     * Returns tasks ordered by hierarchy (parent tasks followed by their children)
+     */
+    findHierarchyByUserId: async (userId: number): Promise<Task[]> => {
+      const result = await queryFn(
+        `WITH RECURSIVE task_hierarchy AS (
+          -- Start with top-level tasks (no parent)
+          SELECT *, 0 as level, ARRAY[priority] as sort_path
+          FROM tasks 
+          WHERE user_id = $1 AND parent_task_id IS NULL
+          
+          UNION ALL
+          
+          -- Recursively find children
+          SELECT t.*, th.level + 1, th.sort_path || t.priority
+          FROM tasks t
+          INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
+          WHERE th.level < 3  -- Prevent infinite recursion, max 3 levels
+        )
+        SELECT * FROM task_hierarchy 
+        ORDER BY sort_path`,
+        [userId]
+      );
+      return result.rows as Task[];
+    },
+
+    /**
+     * Check if a task has any incomplete sub-tasks
+     */
+    hasIncompleteSubTasks: async (taskId: string): Promise<boolean> => {
+      const result = await queryFn(
+        `WITH RECURSIVE task_descendants AS (
+          -- Start with direct children
+          SELECT id, completed, 1 as level
+          FROM tasks 
+          WHERE parent_task_id = $1
+          
+          UNION ALL
+          
+          -- Recursively find all descendants
+          SELECT t.id, t.completed, td.level + 1
+          FROM tasks t
+          INNER JOIN task_descendants td ON t.parent_task_id = td.id
+          WHERE td.level < 3  -- Max 3 levels deep
+        )
+        SELECT 1 FROM task_descendants WHERE completed = false LIMIT 1`,
+        [taskId]
+      );
+
+      return result.rows.length > 0;
+    },
+
+    /**
+     * Promote all sub-tasks of a deleted parent to top-level
+     */
+    promoteSubTasksToTopLevel: async (parentId: string): Promise<void> => {
+      await queryFn(
+        'UPDATE tasks SET parent_task_id = NULL WHERE parent_task_id = $1',
+        [parentId]
+      );
+    },
+
     // ===== REFERENCE TASK METHODS =====
 
     /**
@@ -537,66 +836,75 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       userId: number,
       targetDate: Date
     ): Promise<{ tasks_created: string; tasks_skipped: string }> => {
-      const result = await queryFn(
-        `
-      WITH eligible_reference_tasks AS (
-        SELECT * FROM reference_tasks 
-        WHERE user_id = $1 
-        AND is_active = true 
-        AND next_scheduled_date = $2::date
-      ),
-      tasks_to_create AS (
+      // Step 1: Get eligible reference tasks
+      const eligibleTasksResult = await queryFn(
+        `SELECT * FROM reference_tasks 
+         WHERE user_id = $1 
+         AND is_active = true 
+         AND next_scheduled_date = $2::date`,
+        [userId, targetDate]
+      );
+
+      const eligibleTasks = eligibleTasksResult.rows;
+
+      if (eligibleTasks.length === 0) {
+        return { tasks_created: '0', tasks_skipped: '0' };
+      }
+
+      // Step 2: Insert tasks for eligible reference tasks that don't already have tasks for this date
+      const insertResult = await queryFn(
+        `INSERT INTO tasks (
+          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        )
         SELECT 
-          rt.id as reference_task_id,
           rt.journal_id,
           rt.user_id,
           rt.title,
           rt.description,
-          $2::date as scheduled_date,
-          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority
-        FROM eligible_reference_tasks rt
-        WHERE NOT EXISTS (
+          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority,
+          rt.id,
+          $2::date
+        FROM reference_tasks rt
+        WHERE rt.user_id = $1 
+        AND rt.is_active = true 
+        AND rt.next_scheduled_date = $2::date
+        AND NOT EXISTS (
           SELECT 1 FROM tasks t 
           WHERE t.reference_task_id = rt.id 
           AND t.scheduled_date::date = $2::date
         )
-      ),
-      inserted_tasks AS (
-        INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
-        )
-        SELECT 
-          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
-        FROM tasks_to_create
-        RETURNING reference_task_id
-      ),
-      updated_reference_tasks AS (
-        UPDATE reference_tasks 
-        SET next_scheduled_date = calculate_next_scheduled_date(
-          recurrence_type,
-          recurrence_interval,
-          recurrence_days_of_week,
-          recurrence_day_of_month,
-          starts_on,
-          ends_on,
-          ($2::date + INTERVAL '1 day')::date
-        )
-        WHERE id IN (SELECT reference_task_id FROM inserted_tasks)
-        RETURNING id
-      )
-      SELECT 
-        (SELECT COUNT(*) FROM inserted_tasks) as tasks_created,
-        (SELECT COUNT(*) FROM eligible_reference_tasks) - (SELECT COUNT(*) FROM inserted_tasks) as tasks_skipped
-      `,
+        RETURNING reference_task_id`,
         [userId, targetDate]
       );
 
-      return (
-        (result.rows[0] as {
-          tasks_created: string;
-          tasks_skipped: string;
-        }) || { tasks_created: '0', tasks_skipped: '0' }
-      );
+      const createdTasksCount = insertResult.rows.length;
+      const skippedTasksCount = eligibleTasks.length - createdTasksCount;
+
+      // Step 3: Update next_scheduled_date for reference tasks that had tasks created
+      if (createdTasksCount > 0) {
+        const referenceTaskIds = (
+          insertResult.rows as { reference_task_id: string }[]
+        ).map((row) => row.reference_task_id);
+        await queryFn(
+          `UPDATE reference_tasks 
+           SET next_scheduled_date = calculate_next_scheduled_date(
+             recurrence_type,
+             recurrence_interval,
+             recurrence_days_of_week,
+             recurrence_day_of_month,
+             starts_on,
+             ends_on,
+             ($2::date + INTERVAL '1 day')::date
+           )
+           WHERE id = ANY($1)`,
+          [referenceTaskIds, targetDate]
+        );
+      }
+
+      return {
+        tasks_created: createdTasksCount.toString(),
+        tasks_skipped: skippedTasksCount.toString(),
+      };
     },
 
     /**
@@ -611,74 +919,89 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       users_processed: string;
       reference_tasks_processed: string;
     }> => {
-      const result = await queryFn(
-        `
-      WITH eligible_reference_tasks AS (
-        SELECT * FROM reference_tasks 
-        WHERE is_active = true 
-        AND next_scheduled_date = $1::date
-      ),
-      tasks_to_create AS (
-        SELECT 
-          rt.id as reference_task_id,
-          rt.journal_id,
-          rt.user_id,
-          rt.title,
-          rt.description,
-          $1::date as scheduled_date,
-          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority
-        FROM eligible_reference_tasks rt
-        WHERE NOT EXISTS (
-          SELECT 1 FROM tasks t 
-          WHERE t.reference_task_id = rt.id 
-          AND t.scheduled_date::date = $1::date
-        )
-      ),
-      inserted_tasks AS (
-        INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
-        )
-        SELECT 
-          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
-        FROM tasks_to_create
-        RETURNING reference_task_id
-      ),
-      updated_reference_tasks AS (
-        UPDATE reference_tasks 
-        SET next_scheduled_date = calculate_next_scheduled_date(
-          recurrence_type,
-          recurrence_interval,
-          recurrence_days_of_week,
-          recurrence_day_of_month,
-          starts_on,
-          ends_on,
-          ($1::date + INTERVAL '1 day')::date
-        )
-        WHERE id IN (SELECT reference_task_id FROM inserted_tasks)
-        RETURNING id
-      )
-      SELECT 
-        (SELECT COUNT(*) FROM inserted_tasks) as tasks_created,
-        (SELECT COUNT(*) FROM eligible_reference_tasks) - (SELECT COUNT(*) FROM inserted_tasks) as tasks_skipped,
-        (SELECT COUNT(DISTINCT user_id) FROM eligible_reference_tasks) as users_processed,
-        (SELECT COUNT(*) FROM eligible_reference_tasks) as reference_tasks_processed
-      `,
+      // Step 1: Get eligible reference tasks
+      const eligibleTasksResult = await queryFn(
+        `SELECT * FROM reference_tasks 
+         WHERE is_active = true 
+         AND next_scheduled_date = $1::date`,
         [targetDate]
       );
 
-      return (
-        (result.rows[0] as {
-          tasks_created: string;
-          tasks_skipped: string;
-          users_processed: string;
-          reference_tasks_processed: string;
-        }) || {
+      const eligibleTasks = eligibleTasksResult.rows;
+
+      if (eligibleTasks.length === 0) {
+        return {
           tasks_created: '0',
           tasks_skipped: '0',
           users_processed: '0',
           reference_tasks_processed: '0',
-        }
+        };
+      }
+
+      // Step 2: Insert tasks for eligible reference tasks that don't already have tasks for this date
+      const insertResult = await queryFn(
+        `INSERT INTO tasks (
+          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+        )
+        SELECT 
+          rt.journal_id,
+          rt.user_id,
+          rt.title,
+          rt.description,
+          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority,
+          rt.id,
+          $1::date
+        FROM reference_tasks rt
+        WHERE rt.is_active = true 
+        AND rt.next_scheduled_date = $1::date
+        AND NOT EXISTS (
+          SELECT 1 FROM tasks t 
+          WHERE t.reference_task_id = rt.id 
+          AND t.scheduled_date::date = $1::date
+        )
+        RETURNING reference_task_id`,
+        [targetDate]
       );
+
+      const createdTasksCount = insertResult.rows.length;
+      const skippedTasksCount = eligibleTasks.length - createdTasksCount;
+
+      // Step 3: Calculate users processed (distinct user_ids from eligible tasks)
+      const usersProcessedResult = await queryFn(
+        `SELECT COUNT(DISTINCT user_id) as count FROM reference_tasks 
+         WHERE is_active = true AND next_scheduled_date = $1::date`,
+        [targetDate]
+      );
+      const usersProcessed = (usersProcessedResult.rows[0] as { count: string })
+        .count;
+
+      // Step 4: Update next_scheduled_date for reference tasks that had tasks created
+      if (createdTasksCount > 0) {
+        const referenceTaskIds = (
+          insertResult.rows as { reference_task_id: string }[]
+        ).map((row) => row.reference_task_id);
+        await queryFn(
+          `UPDATE reference_tasks 
+           SET next_scheduled_date = calculate_next_scheduled_date(
+             recurrence_type,
+             recurrence_interval,
+             recurrence_days_of_week,
+             recurrence_day_of_month,
+             starts_on,
+             ends_on,
+             ($2::date + INTERVAL '1 day')::date
+           )
+           WHERE id = ANY($1)`,
+          [referenceTaskIds, targetDate]
+        );
+      }
+
+      return {
+        tasks_created: createdTasksCount.toString(),
+        tasks_skipped: skippedTasksCount.toString(),
+        users_processed: usersProcessed,
+        reference_tasks_processed: eligibleTasks.length.toString(),
+      };
     },
   };
 

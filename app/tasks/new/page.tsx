@@ -2,18 +2,33 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '@/lib/services/authService';
 import { journalService } from '@/lib/services/journalService';
+import { taskService } from '@/lib/services/taskService';
 import { TaskForm } from '@/app/tasks/TaskForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewTaskPage() {
+interface NewTaskPageProps {
+  searchParams: {
+    parent?: string;
+  };
+}
+
+export default async function NewTaskPage({ searchParams }: NewTaskPageProps) {
   const user = await authService.getCurrentUser();
 
   if (!user) {
     redirect('/auth/signin');
   }
 
-  const journals = await journalService.getUserJournals(user.id);
+  const [journals, validParentTasks] = await Promise.all([
+    journalService.getUserJournals(user.id),
+    // Get valid parent tasks for hierarchy selection
+    searchParams.parent
+      ? []
+      : taskService.getValidParentTasks('', user.id).catch(() => []),
+  ]);
+
+  const parentId = searchParams.parent;
 
   if (journals.length === 0) {
     return (
@@ -52,7 +67,11 @@ export default async function NewTaskPage() {
           ← Back to Tasks
         </Link>
         <h1 className="text-2xl font-bold mb-8">Create New Task</h1>
-        <TaskForm journals={journals} />
+        <TaskForm
+          journals={journals}
+          validParentTasks={validParentTasks}
+          defaultParentId={parentId}
+        />
       </div>
     </main>
   );

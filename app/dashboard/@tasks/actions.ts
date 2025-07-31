@@ -17,16 +17,21 @@ export async function toggleTaskCompletion(formData: FormData) {
       throw new Error('You must be logged in to update a task');
     }
 
-    await taskService.toggleTaskCompletion(taskId, user.id);
+    const result = await taskService.toggleTaskCompletion(taskId, user.id);
+
+    // Check if completion was prevented due to incomplete child tasks
+    if (!result.canComplete && result.error) {
+      throw new Error(result.error);
+    }
 
     // Revalidate the dashboard and task stats
     revalidatePath('/dashboard');
+    
+    return { success: true, task: result.task };
   } catch (error) {
     console.error('Error toggling task completion:', error);
     throw error;
   }
-
-  return { success: true };
 }
 
 export async function deleteTask(formData: FormData) {

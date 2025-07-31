@@ -9,9 +9,16 @@ import { CsrfTokenInput } from '@/components/CsrfTokenInput';
 interface TaskItemProps {
   task: Task;
   journalTitle: string;
+  isSubTask?: boolean;
+  level?: number;
 }
 
-export function TaskItem({ task, journalTitle }: TaskItemProps) {
+export function TaskItem({
+  task,
+  journalTitle,
+  isSubTask = false,
+  level = 0,
+}: TaskItemProps) {
   const [isToggling, setIsToggling] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -21,6 +28,17 @@ export function TaskItem({ task, journalTitle }: TaskItemProps) {
       await toggleTaskCompletion(formData);
     } catch (error) {
       console.error('Error toggling task completion:', error);
+      // Show user-friendly error message
+      if (
+        error instanceof Error &&
+        error.message.includes('child tasks remain incomplete')
+      ) {
+        alert(
+          'Cannot complete this task while child tasks remain incomplete. Please complete all sub-tasks first.'
+        );
+      } else {
+        alert('Failed to update task. Please try again.');
+      }
     } finally {
       setIsToggling(false);
     }
@@ -40,10 +58,19 @@ export function TaskItem({ task, journalTitle }: TaskItemProps) {
   return (
     <>
       <div
-        className={`bg-white border rounded-lg p-4 shadow-sm ${task.completed ? 'opacity-75' : ''}`}
+        className={`bg-white border rounded-lg p-4 shadow-sm ${
+          task.completed ? 'opacity-75' : ''
+        } ${isSubTask ? 'border-l-4 border-l-blue-200' : ''}`}
       >
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
+            {/* Hierarchy indicator */}
+            {isSubTask && (
+              <div className="flex items-center text-gray-400 mt-1">
+                <span className="text-sm">└─</span>
+              </div>
+            )}
+
             <form action={handleToggleCompletion}>
               <CsrfTokenInput />
               <input type="hidden" name="taskId" value={task.id} />
@@ -103,6 +130,16 @@ export function TaskItem({ task, journalTitle }: TaskItemProps) {
           </div>
 
           <div className="flex items-center space-x-2 ml-4">
+            {/* Add Sub-task button - only show if under depth limit */}
+            {level < 2 && (
+              <Link
+                href={`/tasks/new?parent=${task.id}`}
+                className="text-green-600 hover:text-green-800 text-sm"
+                title="Add sub-task"
+              >
+                + Sub-task
+              </Link>
+            )}
             <Link
               href={`/tasks/${task.id}/edit`}
               className="text-blue-600 hover:text-blue-800 text-sm"
