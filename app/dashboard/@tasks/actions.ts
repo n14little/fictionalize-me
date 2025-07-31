@@ -26,7 +26,7 @@ export async function toggleTaskCompletion(formData: FormData) {
 
     // Revalidate the dashboard and task stats
     revalidatePath('/dashboard');
-    
+
     return { success: true, task: result.task };
   } catch (error) {
     console.error('Error toggling task completion:', error);

@@ -143,6 +143,115 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     },
 
     /**
+     * Delete a task with user validation in a single query
+     * Returns true if deleted, false if not found or unauthorized
+     */
+    deleteWithUserValidation: async (
+      id: string,
+      userId: number
+    ): Promise<boolean> => {
+      const result = await queryFn(
+        `DELETE FROM tasks 
+         WHERE id = $1 
+         AND id IN (
+           SELECT t.id 
+           FROM tasks t 
+           JOIN journals j ON t.journal_id = j.id 
+           WHERE j.user_id = $2
+         ) 
+         RETURNING id`,
+        [id, userId]
+      );
+      return (result.rowCount ?? 0) > 0;
+    },
+
+    /**
+     * Update a task with user validation in a single query
+     * Returns the updated task if successful, null if not found or unauthorized
+     */
+    updateWithUserValidation: async (
+      id: string,
+      userId: number,
+      taskData: UpdateTask
+    ): Promise<Task | null> => {
+      const sets = [];
+      const values = [id, userId];
+      let paramIndex = 3;
+
+      if (taskData.title !== undefined) {
+        sets.push(`title = $${paramIndex}`);
+        values.push(taskData.title);
+        paramIndex++;
+      }
+
+      if (taskData.description !== undefined) {
+        sets.push(`description = $${paramIndex}`);
+        values.push(taskData.description);
+        paramIndex++;
+      }
+
+      if (taskData.priority !== undefined) {
+        sets.push(`priority = $${paramIndex}`);
+        values.push(taskData.priority);
+        paramIndex++;
+      }
+
+      if (taskData.completed !== undefined) {
+        sets.push(`completed = $${paramIndex}`);
+        values.push(taskData.completed ? 'true' : 'false');
+        paramIndex++;
+
+        if (taskData.completed) {
+          sets.push(`completed_at = NOW()`);
+        } else {
+          sets.push(`completed_at = NULL`);
+        }
+      }
+
+      if (sets.length === 0) {
+        return null;
+      }
+
+      sets.push(`updated_at = NOW()`);
+
+      const result = await queryFn(
+        `UPDATE tasks 
+         SET ${sets.join(', ')}
+         WHERE id = $1 
+         AND id IN (
+           SELECT t.id 
+           FROM tasks t 
+           JOIN journals j ON t.journal_id = j.id 
+           WHERE j.user_id = $2
+         )
+         RETURNING *`,
+        values
+      );
+      return (result.rows[0] as Task) || null;
+    },
+
+    /**
+     * Create a task with journal validation in a single query
+     * Returns the created task if successful, null if journal not found or unauthorized
+     */
+    createWithJournalValidation: async (
+      userId: number,
+      journalId: string,
+      title: string,
+      description?: string
+    ): Promise<Task | null> => {
+      const result = await queryFn(
+        `INSERT INTO tasks (journal_id, user_id, title, description, priority)
+         SELECT $2, $1, $3, $4, COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $1), 0) + 1000
+         FROM journals j
+         WHERE j.id = $2 AND j.user_id = $1
+         RETURNING *`,
+        [userId, journalId, title, description || null]
+      );
+      return (result.rows[0] as Task) || null;
+    },
+
+    /**
      * Update priority for a specific task
      */
     updatePriority: async (
@@ -301,7 +410,9 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     /**
      * Check if a task can be completed (no incomplete child tasks)
      */
-    canCompleteTask: async (taskId: string): Promise<{
+    canCompleteTask: async (
+      taskId: string
+    ): Promise<{
       canComplete: boolean;
       incompleteChildren: Task[];
     }> => {
@@ -347,13 +458,13 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       );
 
       const incompleteChildren = childResult.rows as Task[];
-      
+
       if (incompleteChildren.length > 0) {
         return {
           task: null,
           canComplete: false,
           incompleteChildren,
-          error: 'Cannot complete task while child tasks remain incomplete'
+          error: 'Cannot complete task while child tasks remain incomplete',
         };
       }
 
@@ -370,6 +481,45 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         canComplete: true,
         incompleteChildren: [],
       };
+    },
+
+    /**
+     * Toggle task completion with user validation in optimized queries
+     * Gets current state and performs completion toggle with validation
+     */
+    toggleTaskCompletionWithUserValidation: async (
+      taskId: string,
+      userId: number
+    ): Promise<{
+      task: Task | null;
+      canComplete: boolean;
+      incompleteChildren: Task[];
+      error?: string;
+    }> => {
+      // First, get current task state and validate user ownership in one query
+      const taskResult = await queryFn(
+        `SELECT t.*, j.user_id as journal_user_id
+         FROM tasks t 
+         JOIN journals j ON t.journal_id = j.id 
+         WHERE t.id = $1 AND j.user_id = $2`,
+        [taskId, userId]
+      );
+
+      const taskRow = taskResult.rows[0];
+      if (!taskRow) {
+        return {
+          task: null,
+          canComplete: false,
+          incompleteChildren: [],
+          error: 'Task not found or unauthorized',
+        };
+      }
+
+      const currentTask = taskRow as Task;
+      const newCompletedState = !currentTask.completed;
+
+      // Use existing validation method directly
+      return repository.completeTaskWithValidation(taskId, newCompletedState);
     },
 
     /**

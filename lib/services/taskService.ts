@@ -68,20 +68,12 @@ export const taskService = {
     userId: number,
     data: Omit<CreateTask, 'user_id'>
   ): Promise<Task | null> => {
-    const journal = await journalRepository.findById(data.journal_id);
-
-    if (!journal) {
-      return null;
-    }
-
-    if (journal.user_id !== userId) {
-      return null;
-    }
-
-    return taskRepository.create({
-      ...data,
-      user_id: userId,
-    });
+    return taskRepository.createWithJournalValidation(
+      userId,
+      data.journal_id,
+      data.title,
+      data.description
+    );
   },
 
   /**
@@ -92,46 +84,14 @@ export const taskService = {
     userId: number,
     data: UpdateTask
   ): Promise<Task | null> => {
-    const task = await taskRepository.findById(id);
-
-    if (!task) {
-      return null;
-    }
-
-    const journal = await journalRepository.findById(task.journal_id);
-
-    if (!journal) {
-      return null;
-    }
-
-    if (journal.user_id !== userId) {
-      return null;
-    }
-
-    return taskRepository.update(id, data);
+    return taskRepository.updateWithUserValidation(id, userId, data);
   },
 
   /**
    * Delete a task
    */
   deleteTask: async (id: string, userId: number): Promise<boolean> => {
-    const task = await taskRepository.findById(id);
-
-    if (!task) {
-      return false;
-    }
-
-    const journal = await journalRepository.findById(task.journal_id);
-
-    if (!journal) {
-      return false;
-    }
-
-    if (journal.user_id !== userId) {
-      return false;
-    }
-
-    return taskRepository.delete(id);
+    return taskRepository.deleteWithUserValidation(id, userId);
   },
 
   /**
@@ -227,13 +187,35 @@ export const taskService = {
     error?: string;
   }> => {
     // Use validation method that checks for incomplete children
-    const result = await taskRepository.completeTaskWithValidation(taskId, completed);
+    const result = await taskRepository.completeTaskWithValidation(
+      taskId,
+      completed
+    );
     return {
       task: result.task,
       canComplete: result.canComplete,
       incompleteChildren: result.incompleteChildren,
       error: result.error,
     };
+  },
+
+  /**
+   * Toggle task completion with optimized database queries
+   * Gets current state and validates user ownership in minimal trips
+   */
+  toggleTaskCompletionOptimized: async (
+    taskId: string,
+    userId: number
+  ): Promise<{
+    task: Task | null;
+    canComplete: boolean;
+    incompleteChildren: Task[];
+    error?: string;
+  }> => {
+    return taskRepository.toggleTaskCompletionWithUserValidation(
+      taskId,
+      userId
+    );
   },
 
   /**

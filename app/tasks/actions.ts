@@ -19,16 +19,11 @@ export async function toggleTaskCompletion(formData: FormData) {
     throw new Error('You must be logged in to toggle task completion');
   }
 
-  // Get current task state to determine what operation we're doing
-  const currentTask = await taskService.getTaskById(taskId, user.id);
-  if (!currentTask) {
-    throw new Error('Task not found');
-  }
-
-  const newCompletedState = !currentTask.completed;
-
-  // Use the enhanced completion logic that validates child tasks
-  const result = await taskService.handleTaskCompletion(taskId, newCompletedState);
+  // Use optimized method that gets current state and performs toggle in minimal DB trips
+  const result = await taskService.toggleTaskCompletionOptimized(
+    taskId,
+    user.id
+  );
 
   // Check if completion was prevented due to incomplete child tasks
   if (!result.canComplete && result.error) {
@@ -52,7 +47,11 @@ export async function deleteTask(formData: FormData) {
     throw new Error('You must be logged in to delete tasks');
   }
 
-  await taskService.deleteTask(taskId, user.id);
+  const success = await taskService.deleteTask(taskId, user.id);
+  if (!success) {
+    throw new Error('Task not found or unauthorized');
+  }
+
   revalidatePath('/tasks');
 }
 
@@ -76,11 +75,18 @@ export async function createTask(formData: FormData) {
     throw new Error('You must be logged in to create tasks');
   }
 
-  await taskService.createTask(user.id, {
+  // Use optimized method that validates journal ownership and creates in a single query
+  const task = await taskService.createTask(user.id, {
     title: title.trim(),
     description: description?.trim() || undefined,
     journal_id: journalId,
   });
+
+  if (!task) {
+    throw new Error(
+      'Failed to create task - journal not found or unauthorized'
+    );
+  }
 
   redirect('/tasks');
 }
@@ -110,10 +116,15 @@ export async function updateTask(formData: FormData) {
     throw new Error('You must be logged in to update tasks');
   }
 
-  await taskService.updateTask(taskId, user.id, {
+  // Use optimized method that validates ownership and updates in a single query
+  const updatedTask = await taskService.updateTask(taskId, user.id, {
     title: title.trim(),
     description: description?.trim() || undefined,
   });
+
+  if (!updatedTask) {
+    throw new Error('Task not found or unauthorized');
+  }
 
   redirect('/tasks');
 }
