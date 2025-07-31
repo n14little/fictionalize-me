@@ -46,9 +46,9 @@ interface UpdateTask {
 3. **Journal Inheritance**: Sub-tasks inherit the parent's journal_id (cannot be changed)
 4. **Priority Ordering**: Sub-tasks are ordered within their parent's context
 5. **Completion Logic**:
-   - Completing a parent task prompts to complete all incomplete sub-tasks
+   - Parent tasks cannot be completed until all child tasks are completed (validation prevents completion with error message)
    - Completing all sub-tasks does NOT auto-complete the parent
-6. **Deletion**: Deleting a parent task promotes sub-tasks to top-level
+6. **Deletion**: Deleting a parent task sets child tasks' parent_task_id to NULL (database CASCADE behavior)
 
 ## Implementation Phases
 
@@ -68,12 +68,12 @@ interface UpdateTask {
 - [x] Update TaskItem to show parent-child relationships
 - [x] Basic visual hierarchy (indentation, icons)
 
-### Phase 3: Advanced Features ✅
+### Phase 3: Advanced Features ⚠️
 
-- [x] Completion logic with user prompts
+- [x] Completion validation logic preventing parent completion until all children are done
 - [x] Prevent invalid parent-child assignments
 - [x] Update priority handling for hierarchical structure
-- [x] Add breadcrumb navigation in edit forms
+- [ ] Add breadcrumb navigation in edit forms (Future enhancement)
 
 ## Database Schema
 
@@ -94,34 +94,33 @@ CREATE INDEX idx_tasks_parent_task_id ON tasks (parent_task_id);
 
 ### Repository Methods
 
-- `findByParentId(parentId: string): Promise<Task[]>` - Get direct children
-- `findHierarchy(userId: number): Promise<Task[]>` - Get all tasks with proper ordering
-- `getTaskAncestors(taskId: string): Promise<Task[]>` - Get path to root
-- `validateParentAssignment(taskId: string, parentId: string): Promise<boolean>` - Prevent cycles
+- `findHierarchyByUserId(userId: number): Promise<Task[]>` - Get all tasks with proper hierarchical ordering
+- `createSubTaskWithValidation(userId: number, parentId: string, title: string, description?: string): Promise<Task | null>` - Create sub-task with validation
+- `getValidParentTasksForTask(taskId: string, userId: number): Promise<Task[]>` - Get valid parent options
+- `completeTaskWithValidation(taskId: string, completed: boolean): Promise<{task: Task | null, canComplete: boolean, incompleteChildren: Task[], error?: string}>` - Complete task with child validation
 
 ### Service Methods
 
-- `createSubTask(userId: number, parentId: string, data: CreateTask): Promise<Task>`
-- `validateTaskHierarchy(taskId: string, newParentId: string): Promise<boolean>`
-- `promoteSubTasksToTopLevel(parentId: string): Promise<void>`
+- `createSubTask(userId: number, parentId: string, data: CreateTask): Promise<Task | null>` - Create sub-task with validation
+- `getValidParentTasks(taskId: string, userId: number): Promise<Task[]>` - Get valid parent tasks for selection
+- `toggleTaskCompletion(id: string, userId: number): Promise<{task: Task | null, canComplete: boolean, incompleteChildren?: Task[], error?: string}>` - Toggle with validation
 
 ## UI/UX Design
 
 ### Visual Hierarchy
 
 - **Indentation**: 20px per level (max 60px for 3 levels)
-- **Icons**:
-  - Parent with children: `📁` (folder icon)
-  - Sub-task: `└─` (tree branch)
-  - Last sub-task: `└─` (same, but could be different)
-- **Visual Grouping**: Sub-tasks immediately follow their parent
+- **Visual Indicators**:
+  - Sub-task: Border line and indentation
+  - Visual connector: Horizontal line for sub-task relationship
+- **Visual Grouping**: Sub-tasks immediately follow their parent in hierarchical order
 
 ### User Interactions
 
-1. **Create Sub-task**: "Add Sub-task" button on each task item
-2. **Edit Parent**: Dropdown in edit form (limited to valid parents)
-3. **Completion**: Modal prompt when completing parent with incomplete children
-4. **Visual Feedback**: Clear parent-child relationships in all views
+1. **Create Sub-task**: "Add Sub-task" button on each task item (if under depth limit)
+2. **Edit Parent**: Dropdown in task creation form (limited to valid parents)
+3. **Completion**: Error message prevents completing parent with incomplete children
+4. **Visual Feedback**: Clear parent-child relationships with indentation and border indicators
 
 ### Responsive Design
 
@@ -141,7 +140,7 @@ CREATE INDEX idx_tasks_parent_task_id ON tasks (parent_task_id);
 ### Database Level
 
 - Foreign key constraint on parent_task_id
-- Cascade behavior: SET NULL on parent deletion (then promote children)
+- Cascade behavior: SET NULL on parent deletion (children become top-level tasks)
 
 ## Testing Strategy
 
@@ -212,6 +211,7 @@ CREATE INDEX idx_tasks_parent_task_id ON tasks (parent_task_id);
 
 ### Phase 4: Advanced Features (Future)
 
+- Breadcrumb navigation in edit forms
 - Drag-and-drop reorganization
 - Bulk operations on hierarchies
 - Template sub-tasks for recurring tasks
@@ -220,6 +220,8 @@ CREATE INDEX idx_tasks_parent_task_id ON tasks (parent_task_id);
 
 ### Potential Improvements
 
+- Task ancestor/breadcrumb display
+- Advanced hierarchy manipulation methods
 - Time tracking inheritance
 - Due date dependencies
 - Automatic completion rules (configurable)
@@ -266,12 +268,12 @@ CREATE INDEX idx_tasks_parent_task_id ON tasks (parent_task_id);
 
 ### Frontend
 
-- [x] Update TaskForm with parent selection
-- [x] Update TasksList with hierarchy display
-- [x] Add "Add Sub-task" buttons
-- [x] Update TaskItem component
-- [x] Add completion logic prompts
-- [x] Update all imports to use path aliases
+- [x] Update TaskForm with parent selection for new tasks
+- [x] Update TasksList with hierarchy display and proper ordering
+- [x] Add "Add Sub-task" buttons with depth limit validation
+- [x] Update TaskItem component with visual hierarchy indicators
+- [x] Add completion validation with error messages
+- [x] Update all task components for consistent hierarchy display
 
 ### Testing
 
