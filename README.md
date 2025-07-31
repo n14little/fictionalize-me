@@ -9,6 +9,7 @@ A modern Next.js implementation of the Fictionalize Me application, featuring Ty
 - Clean architecture with Models, Repositories, and Services
 - API routes implementing a RESTful interface
 - Docker Compose setup for local development
+- Journaling system with hierarchical task management (sub-tasks)
 
 ## Prerequisites
 

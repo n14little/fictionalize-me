@@ -10,6 +10,7 @@ export interface Task {
   priority: number;
   reference_task_id: string | null; // Link to recurring task template
   scheduled_date: Date | null; // When this recurring task instance is due
+  parent_task_id: string | null; // Reference to parent task for sub-tasks
   created_at: Date;
   updated_at: Date;
 }
@@ -22,6 +23,7 @@ export interface CreateTask {
   priority?: number;
   reference_task_id?: string;
   scheduled_date?: Date;
+  parent_task_id?: string;
 }
 
 export interface UpdateTask {
@@ -32,4 +34,5 @@ export interface UpdateTask {
   priority?: number;
   reference_task_id?: string;
   scheduled_date?: Date;
+  parent_task_id?: string;
 }

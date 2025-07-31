@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function JournalTasksSidebar({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const journalId = (await params).id;
 

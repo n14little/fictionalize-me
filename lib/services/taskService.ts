@@ -4,10 +4,10 @@ import { journalRepository } from '../repositories/journalRepository';
 
 export const taskService = {
   /**
-   * Get all tasks for a user
+   * Get all tasks for a user with hierarchical ordering
    */
   getUserTasks: async (userId: number): Promise<Task[]> => {
-    return taskRepository.findByUserId(userId);
+    return taskRepository.findHierarchyByUserId(userId);
   },
 
   /**
@@ -68,20 +68,12 @@ export const taskService = {
     userId: number,
     data: Omit<CreateTask, 'user_id'>
   ): Promise<Task | null> => {
-    const journal = await journalRepository.findById(data.journal_id);
-
-    if (!journal) {
-      return null;
-    }
-
-    if (journal.user_id !== userId) {
-      return null;
-    }
-
-    return taskRepository.create({
-      ...data,
-      user_id: userId,
-    });
+    return taskRepository.createWithJournalValidation(
+      userId,
+      data.journal_id,
+      data.title,
+      data.description
+    );
   },
 
   /**
@@ -92,46 +84,14 @@ export const taskService = {
     userId: number,
     data: UpdateTask
   ): Promise<Task | null> => {
-    const task = await taskRepository.findById(id);
-
-    if (!task) {
-      return null;
-    }
-
-    const journal = await journalRepository.findById(task.journal_id);
-
-    if (!journal) {
-      return null;
-    }
-
-    if (journal.user_id !== userId) {
-      return null;
-    }
-
-    return taskRepository.update(id, data);
+    return taskRepository.updateWithUserValidation(id, userId, data);
   },
 
   /**
    * Delete a task
    */
   deleteTask: async (id: string, userId: number): Promise<boolean> => {
-    const task = await taskRepository.findById(id);
-
-    if (!task) {
-      return false;
-    }
-
-    const journal = await journalRepository.findById(task.journal_id);
-
-    if (!journal) {
-      return false;
-    }
-
-    if (journal.user_id !== userId) {
-      return false;
-    }
-
-    return taskRepository.delete(id);
+    return taskRepository.deleteWithUserValidation(id, userId);
   },
 
   /**
@@ -140,27 +100,122 @@ export const taskService = {
   toggleTaskCompletion: async (
     id: string,
     userId: number
-  ): Promise<Task | null> => {
+  ): Promise<{
+    task: Task | null;
+    canComplete: boolean;
+    incompleteChildren?: Task[];
+    error?: string;
+  }> => {
     const task = await taskRepository.findById(id);
 
     if (!task) {
-      return null;
+      return { task: null, canComplete: false, error: 'Task not found' };
     }
 
     const journal = await journalRepository.findById(task.journal_id);
 
     if (!journal) {
-      return null;
+      return { task: null, canComplete: false, error: 'Journal not found' };
     }
 
     if (journal.user_id !== userId) {
+      return { task: null, canComplete: false, error: 'Unauthorized' };
+    }
+
+    // Use new validation method that checks for incomplete children
+    const result = await taskRepository.completeTaskWithValidation(
+      id,
+      !task.completed
+    );
+
+    return {
+      task: result.task,
+      canComplete: result.canComplete,
+      incompleteChildren: result.incompleteChildren,
+      error: result.error,
+    };
+  },
+
+  // ===== TASK HIERARCHY METHODS =====
+
+  /**
+   * Create a sub-task under a parent task
+   */
+  createSubTask: async (
+    userId: number,
+    parentId: string,
+    data: Omit<CreateTask, 'user_id' | 'parent_task_id'>
+  ): Promise<Task | null> => {
+    // Use single-trip repository method that validates and creates in one query
+    const subTask = await taskRepository.createSubTaskWithValidation(
+      userId,
+      parentId,
+      data.title,
+      data.description
+    );
+
+    if (!subTask) {
+      // Validation failed - either parent doesn't exist, doesn't belong to user, or depth limit exceeded
       return null;
     }
 
-    return taskRepository.update(id, {
-      completed: !task.completed,
-      completed_at: !task.completed ? new Date() : null,
-    });
+    return subTask;
+  },
+
+  /**
+   * Get all possible parent tasks for a given task
+   */
+  getValidParentTasks: async (
+    taskId: string,
+    userId: number
+  ): Promise<Task[]> => {
+    // Use single-trip repository method that gets valid parents in one query
+    return taskRepository.getValidParentTasksForTask(taskId, userId);
+  },
+
+  /**
+   * Handle completion logic for tasks with sub-tasks
+   * Returns information about sub-tasks that need attention
+   */
+  handleTaskCompletion: async (
+    taskId: string,
+    completed: boolean
+  ): Promise<{
+    task: Task | null;
+    canComplete: boolean;
+    incompleteChildren: Task[];
+    error?: string;
+  }> => {
+    // Use validation method that checks for incomplete children
+    const result = await taskRepository.completeTaskWithValidation(
+      taskId,
+      completed
+    );
+    return {
+      task: result.task,
+      canComplete: result.canComplete,
+      incompleteChildren: result.incompleteChildren,
+      error: result.error,
+    };
+  },
+
+  /**
+   * Toggle task completion with optimized database queries
+   * Gets current state and validates user ownership in minimal trips
+   */
+  toggleTaskCompletionOptimized: async (
+    taskId: string,
+    userId: number
+  ): Promise<{
+    task: Task | null;
+    canComplete: boolean;
+    incompleteChildren: Task[];
+    error?: string;
+  }> => {
+    return taskRepository.toggleTaskCompletionWithUserValidation(
+      taskId,
+      userId
+    );
   },
 
   /**

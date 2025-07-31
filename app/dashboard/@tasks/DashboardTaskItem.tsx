@@ -32,6 +32,17 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
         throw error;
       }
       console.error('Error toggling task completion:', error);
+      // Show user-friendly error message
+      if (
+        error instanceof Error &&
+        error.message.includes('child tasks remain incomplete')
+      ) {
+        alert(
+          'Cannot complete this task while child tasks remain incomplete. Please complete all sub-tasks first.'
+        );
+      } else {
+        alert('Failed to update task. Please try again.');
+      }
     } finally {
       setIsToggling(false);
     }
