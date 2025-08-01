@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { TestDatabase } from './testDatabase';
 import { TestFixtures } from './fixtures';
 import { createReferenceTaskService } from '../../lib/services/referenceTaskService';
-import { RecurrenceType } from '../../lib/models/ReferenceTask';
+import { BUCKET_TO_RECURRENCE_TYPE } from '../../lib/models/Task';
 
 describe.sequential('ReferenceTaskService - Integration Tests', () => {
   let testDb: TestDatabase;
@@ -33,7 +33,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         journal_id: testJournal.id,
         title: 'Daily Exercise',
         description: 'Go for a 30 minute walk',
-        recurrence_type: 'daily' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         recurrence_interval: 1,
         starts_on: new Date('2024-01-01'),
       };
@@ -73,7 +73,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         journal_id: testJournal.id,
         title: 'Weekly Team Meeting',
         description: 'Attend the weekly team standup',
-        recurrence_type: 'weekly' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
         recurrence_interval: 1,
         recurrence_days_of_week: [1, 3, 5], // Mon, Wed, Fri
         starts_on: new Date('2024-01-01'),
@@ -87,7 +87,9 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
 
       // Assert
       expect(createdTask).toBeDefined();
-      expect(createdTask.recurrence_type).toBe('weekly');
+      expect(createdTask.recurrence_type).toBe(
+        BUCKET_TO_RECURRENCE_TYPE.weekly
+      );
       expect(createdTask.recurrence_days_of_week).toEqual([1, 3, 5]);
       expect(createdTask.recurrence_interval).toBe(1);
     });
@@ -101,7 +103,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         journal_id: testJournal.id,
         title: 'Monthly Budget Review',
         description: 'Review and update monthly budget',
-        recurrence_type: 'monthly' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.monthly,
         recurrence_interval: 1,
         recurrence_day_of_month: 15,
         starts_on: new Date('2024-01-01'),
@@ -116,7 +118,9 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
 
       // Assert
       expect(createdTask).toBeDefined();
-      expect(createdTask.recurrence_type).toBe('monthly');
+      expect(createdTask.recurrence_type).toBe(
+        BUCKET_TO_RECURRENCE_TYPE.monthly
+      );
       expect(createdTask.recurrence_day_of_month).toBe(15);
       expect(createdTask.ends_on).toEqual(referenceTaskData.ends_on);
     });
@@ -130,7 +134,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         journal_id: testJournal.id,
         title: 'Inactive Task',
         description: 'This task is inactive',
-        recurrence_type: 'daily' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         recurrence_interval: 1,
         starts_on: new Date('2024-01-01'),
         is_active: false,
@@ -157,11 +161,11 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       // Create multiple reference tasks
       await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
         title: 'Daily Task 1',
-        recurrence_type: 'daily',
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
       });
       await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
         title: 'Weekly Task 1',
-        recurrence_type: 'weekly',
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
       });
 
       // Create a reference task for a different user to ensure isolation
@@ -246,7 +250,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         {
           title: 'Original Title',
           description: 'Original Description',
-          recurrence_type: 'daily',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         }
       );
 
@@ -254,7 +258,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         journal_id: testJournal.id,
         title: 'Updated Title',
         description: 'Updated Description',
-        recurrence_type: 'weekly' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
         recurrence_days_of_week: [1, 5], // Mon, Fri
         starts_on: new Date('2024-02-01'),
       };
@@ -291,7 +295,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         {
           title: 'Original Title',
           description: 'Original Description',
-          recurrence_type: 'daily',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
           recurrence_interval: 2,
         }
       );
@@ -299,7 +303,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       const partialUpdate = {
         journal_id: testJournal.id,
         title: 'Updated Title Only',
-        recurrence_type: 'daily' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         starts_on: createdTask.starts_on,
       };
 
@@ -327,7 +331,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       const updatedData = {
         journal_id: testJournal.id,
         title: 'Updated Title',
-        recurrence_type: 'daily' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         starts_on: new Date('2024-01-01'),
       };
 
@@ -356,7 +360,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       const updatedData = {
         journal_id: testJournal2.id,
         title: 'Updated Title',
-        recurrence_type: 'daily' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         starts_on: new Date('2024-01-01'),
       };
 
@@ -379,7 +383,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Daily Task',
-          recurrence_type: 'daily',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
           recurrence_interval: 1,
         }
       );
@@ -387,7 +391,7 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       const updatedData = {
         journal_id: testJournal.id,
         title: 'Monthly Task',
-        recurrence_type: 'monthly' as RecurrenceType,
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.monthly,
         recurrence_interval: 1,
         recurrence_day_of_month: 15,
         starts_on: new Date('2024-01-01'),
@@ -401,7 +405,9 @@ describe.sequential('ReferenceTaskService - Integration Tests', () => {
       );
 
       // Assert
-      expect(updatedTask.recurrence_type).toBe('monthly');
+      expect(updatedTask.recurrence_type).toBe(
+        BUCKET_TO_RECURRENCE_TYPE.monthly
+      );
       expect(updatedTask.recurrence_day_of_month).toBe(15);
       expect(updatedTask.recurrence_days_of_week).toBeNull();
     });

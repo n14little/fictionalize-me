@@ -34,6 +34,7 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 - Ensure forms use the `action` attribute to call server actions (e.g., `<form action={createEntry}>`).
 - Handle form validation server-side within the action, returning errors to the client using `FormData` and revalidation with `revalidatePath` or `revalidateTag`.
 - Use `redirect` from `next/navigation` in server actions to navigate after successful submissions (e.g., `redirect('/journals/[journalId]')`).
+- Make sure that you're not blindly catching errors when the front-end is invoking server actions. NextJS redirects make use of errors so we can't blindly catch them. If you do catch them, make sure to rethrow the error so that NextJS can handle it properly.
 - Avoid client-side form submission libraries unless explicitly requested, as server actions provide a simpler, server-first approach.
 
 ### 5. Dependency Management
@@ -74,7 +75,7 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 
 - Sanitize all user inputs to prevent XSS attacks.
 - Use environment variables (`NEXT_PUBLIC_` for client-side, others for server-side) for sensitive data.
-- Ensure all API routes and server actions are protected with authentication checks if authentication is added later.
+- Ensure all API routes and server actions are protected with authentication.
 
 ### 11. Additional Notes
 
@@ -83,6 +84,8 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 - Do not put comments in the code.
 - Do not type case with the `as` keyword in typescript.
 - Suggest improvements (e.g., adding loading states, optimizing API responses) but do not implement them unless requested.
+- Make sure to use path aliases defined in tsconfig.json.
+- Do not use relative imports
 
 ## Example Scenarios
 

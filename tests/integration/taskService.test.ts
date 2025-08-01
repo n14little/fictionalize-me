@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { TestDatabase } from './testDatabase';
 import { TestFixtures } from './fixtures';
 import { createTaskService } from '../../lib/services/taskService';
+import { BUCKET_TO_RECURRENCE_TYPE } from '../../lib/models/Task';
 
 describe.sequential('TaskService - Integration Tests', () => {
   let testDb: TestDatabase;
@@ -438,7 +439,7 @@ describe.sequential('TaskService - Integration Tests', () => {
 
       await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
         title: 'Daily Reference Task',
-        recurrence_type: 'daily',
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         starts_on: new Date('2024-01-01'),
         is_active: true,
       });
@@ -459,7 +460,7 @@ describe.sequential('TaskService - Integration Tests', () => {
 
       await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
         title: 'Inactive Reference Task',
-        recurrence_type: 'daily',
+        recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
         starts_on: new Date('2024-01-01'),
         is_active: false,
       });

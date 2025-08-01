@@ -9,6 +9,7 @@ export interface Task {
   completed_at: Date | null;
   priority: number;
   reference_task_id: string | null; // Link to recurring task template
+  recurrence_type: number | null; // 1=daily, 2=weekly, 3=monthly, 4=yearly, 5=custom, 6=regular
   scheduled_date: Date | null; // When this recurring task instance is due
   parent_task_id: string | null; // Reference to parent task for sub-tasks
   created_at: Date;
@@ -22,6 +23,7 @@ export interface CreateTask {
   description?: string;
   priority?: number;
   reference_task_id?: string;
+  recurrence_type?: number;
   scheduled_date?: Date;
   parent_task_id?: string;
 }
@@ -33,6 +35,48 @@ export interface UpdateTask {
   completed_at?: Date | null;
   priority?: number;
   reference_task_id?: string;
+  recurrence_type?: number;
   scheduled_date?: Date;
   parent_task_id?: string;
+}
+
+export type TaskBucket =
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+  | 'yearly'
+  | 'custom'
+  | 'regular';
+
+// Mapping from recurrence type integers to bucket names
+export const RECURRENCE_TYPE_TO_BUCKET: Record<number, TaskBucket> = {
+  1: 'daily',
+  2: 'weekly',
+  3: 'monthly',
+  4: 'yearly',
+  5: 'custom',
+  6: 'regular',
+};
+
+// Mapping from bucket names to recurrence type integers
+export const BUCKET_TO_RECURRENCE_TYPE: Record<TaskBucket, number> = {
+  daily: 1,
+  weekly: 2,
+  monthly: 3,
+  yearly: 4,
+  custom: 5,
+  regular: 6,
+};
+
+export interface BucketedTask extends Task {
+  task_bucket: TaskBucket;
+}
+
+export interface TaskBuckets {
+  daily: BucketedTask[];
+  weekly: BucketedTask[];
+  monthly: BucketedTask[];
+  yearly: BucketedTask[];
+  custom: BucketedTask[];
+  regular: BucketedTask[];
 }

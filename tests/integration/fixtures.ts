@@ -1,7 +1,11 @@
 import { QueryFunction } from '../../lib/db/types';
 import { User, CreateUser } from '../../lib/models/User';
 import { Journal } from '../../lib/models/Journal';
-import { Task, CreateTask } from '../../lib/models/Task';
+import {
+  Task,
+  CreateTask,
+  BUCKET_TO_RECURRENCE_TYPE,
+} from '../../lib/models/Task';
 import {
   ReferenceTask,
   CreateReferenceTask,
@@ -63,7 +67,8 @@ export class TestFixtures {
       journal_id: journalId,
       title: overrides.title || `Test Reference Task ${Date.now()}`,
       description: overrides.description || 'A test reference task',
-      recurrence_type: overrides.recurrence_type || 'daily',
+      recurrence_type:
+        overrides.recurrence_type || BUCKET_TO_RECURRENCE_TYPE.daily,
       recurrence_interval: overrides.recurrence_interval || 1,
       recurrence_days_of_week: overrides.recurrence_days_of_week ?? undefined,
       recurrence_day_of_month: overrides.recurrence_day_of_month ?? undefined,
@@ -81,6 +86,15 @@ export class TestFixtures {
     journalId: string,
     overrides: Partial<Omit<CreateTask, 'user_id' | 'journal_id'>> = {}
   ): Promise<Task> {
+    // If reference_task_id is provided, fetch the recurrence_type
+    let recurrenceType: number | undefined;
+    if (overrides.reference_task_id) {
+      const refTask = await this.taskRepository.findReferenceTaskById(
+        overrides.reference_task_id
+      );
+      recurrenceType = refTask?.recurrence_type;
+    }
+
     const taskData: CreateTask = {
       user_id: userId,
       journal_id: journalId,
@@ -88,6 +102,7 @@ export class TestFixtures {
       description: overrides.description || 'A test task',
       priority: overrides.priority || 1,
       reference_task_id: overrides.reference_task_id ?? undefined,
+      recurrence_type: overrides.recurrence_type ?? recurrenceType ?? undefined,
       scheduled_date: overrides.scheduled_date ?? undefined,
       parent_task_id: overrides.parent_task_id ?? undefined,
     };

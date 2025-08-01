@@ -1,9 +1,4 @@
-export type RecurrenceType =
-  | 'daily'
-  | 'weekly'
-  | 'monthly'
-  | 'yearly'
-  | 'custom';
+export type RecurrenceType = number;
 
 export interface ReferenceTask {
   id: string;
@@ -13,7 +8,7 @@ export interface ReferenceTask {
   description: string | null;
 
   // Recurrence settings
-  recurrence_type: RecurrenceType;
+  recurrence_type: number; // 1=daily, 2=weekly, 3=monthly, 4=yearly, 5=custom
   recurrence_interval: number;
   recurrence_days_of_week: number[] | null; // [0-6] where 0=Sunday
   recurrence_day_of_month: number | null; // 1-31
@@ -35,7 +30,7 @@ export interface CreateReferenceTask {
   journal_id: string;
   title: string;
   description?: string;
-  recurrence_type: RecurrenceType;
+  recurrence_type: number; // 1=daily, 2=weekly, 3=monthly, 4=yearly, 5=custom
   recurrence_interval?: number;
   recurrence_days_of_week?: number[];
   recurrence_day_of_month?: number;
@@ -48,7 +43,7 @@ export interface CreateReferenceTask {
 export interface UpdateReferenceTask {
   title?: string;
   description?: string;
-  recurrence_type?: RecurrenceType;
+  recurrence_type?: number; // 1=daily, 2=weekly, 3=monthly, 4=yearly, 5=custom
   recurrence_interval?: number;
   recurrence_days_of_week?: number[];
   recurrence_day_of_month?: number;

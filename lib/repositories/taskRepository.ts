@@ -1,6 +1,6 @@
 import { query } from '../db';
 import { QueryFunction } from '../db/types';
-import { Task, CreateTask, UpdateTask } from '../models/Task';
+import { Task, CreateTask, UpdateTask, BucketedTask } from '../models/Task';
 import { ReferenceTask, CreateReferenceTask } from '../models/ReferenceTask';
 
 export const createTaskRepository = (queryFn: QueryFunction) => {
@@ -41,14 +41,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     create: async (taskData: CreateTask): Promise<Task> => {
       const result = await queryFn(
         `INSERT INTO tasks (
-        journal_id, user_id, title, description, priority, reference_task_id, scheduled_date, parent_task_id
+        journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, parent_task_id
       ) VALUES (
         $1, $2, $3, $4, 
         CASE 
           WHEN $5::INTEGER IS NOT NULL THEN $5::INTEGER
           ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
         END,
-        $6, $7, $8
+        $6, $7, $8, $9
       ) RETURNING *`,
         [
           taskData.journal_id,
@@ -57,6 +57,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           taskData.description || null,
           taskData.priority || null,
           taskData.reference_task_id || null,
+          taskData.recurrence_type || null,
           taskData.scheduled_date || null,
           taskData.parent_task_id || null,
         ]
@@ -110,6 +111,24 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       if (taskData.parent_task_id !== undefined) {
         sets.push(`parent_task_id = $${paramIndex}`);
         values.push(taskData.parent_task_id);
+        paramIndex++;
+      }
+
+      if (taskData.reference_task_id !== undefined) {
+        sets.push(`reference_task_id = $${paramIndex}`);
+        values.push(taskData.reference_task_id);
+        paramIndex++;
+      }
+
+      if (taskData.recurrence_type !== undefined) {
+        sets.push(`recurrence_type = $${paramIndex}`);
+        values.push(taskData.recurrence_type);
+        paramIndex++;
+      }
+
+      if (taskData.scheduled_date !== undefined) {
+        sets.push(`scheduled_date = $${paramIndex}`);
+        values.push(taskData.scheduled_date);
         paramIndex++;
       }
 
@@ -856,7 +875,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         starts_on, ends_on, is_active, next_scheduled_date
       ) VALUES (
         $13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-        calculate_next_scheduled_date($5::recurrence_type_enum, $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
+        calculate_next_scheduled_date(int_to_recurrence_type_enum($5), $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
       )
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
@@ -870,7 +889,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         ends_on = EXCLUDED.ends_on,
         is_active = EXCLUDED.is_active,
         next_scheduled_date = calculate_next_scheduled_date(
-          EXCLUDED.recurrence_type,
+          int_to_recurrence_type_enum(EXCLUDED.recurrence_type),
           EXCLUDED.recurrence_interval,
           EXCLUDED.recurrence_days_of_week,
           EXCLUDED.recurrence_day_of_month,
@@ -887,7 +906,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         starts_on, ends_on, is_active, next_scheduled_date
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-        calculate_next_scheduled_date($5::recurrence_type_enum, $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
+        calculate_next_scheduled_date(int_to_recurrence_type_enum($5), $6::SMALLINT, $7::SMALLINT[], $8::SMALLINT, $10::DATE, $11::DATE, CURRENT_DATE)
       )
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
@@ -901,7 +920,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         ends_on = EXCLUDED.ends_on,
         is_active = EXCLUDED.is_active,
         next_scheduled_date = calculate_next_scheduled_date(
-          EXCLUDED.recurrence_type,
+          int_to_recurrence_type_enum(EXCLUDED.recurrence_type),
           EXCLUDED.recurrence_interval,
           EXCLUDED.recurrence_days_of_week,
           EXCLUDED.recurrence_day_of_month,
@@ -1004,7 +1023,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       // Step 2: Insert tasks for eligible reference tasks that don't already have tasks for this date
       const insertResult = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
         )
         SELECT 
           rt.journal_id,
@@ -1013,6 +1032,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           rt.description,
           COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority,
           rt.id,
+          rt.recurrence_type,
           $2::date
         FROM reference_tasks rt
         WHERE rt.user_id = $1 
@@ -1038,7 +1058,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         await queryFn(
           `UPDATE reference_tasks 
            SET next_scheduled_date = calculate_next_scheduled_date(
-             recurrence_type,
+             int_to_recurrence_type_enum(recurrence_type),
              recurrence_interval,
              recurrence_days_of_week,
              recurrence_day_of_month,
@@ -1091,7 +1111,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       // Step 2: Insert tasks for eligible reference tasks that don't already have tasks for this date
       const insertResult = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, scheduled_date
+          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
         )
         SELECT 
           rt.journal_id,
@@ -1100,6 +1120,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           rt.description,
           COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority,
           rt.id,
+          rt.recurrence_type,
           $1::date
         FROM reference_tasks rt
         WHERE rt.is_active = true 
@@ -1133,7 +1154,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         await queryFn(
           `UPDATE reference_tasks 
            SET next_scheduled_date = calculate_next_scheduled_date(
-             recurrence_type,
+             int_to_recurrence_type_enum(recurrence_type),
              recurrence_interval,
              recurrence_days_of_week,
              recurrence_day_of_month,
@@ -1152,6 +1173,44 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         users_processed: usersProcessed,
         reference_tasks_processed: eligibleTasks.length.toString(),
       };
+    },
+
+    /**
+     * Find tasks for a user with bucketing information based on reference task recurrence type
+     */
+    findBucketedTasksByUserId: async (
+      userId: number,
+      filters?: { completed?: boolean }
+    ): Promise<BucketedTask[]> => {
+      let whereClause = 'WHERE user_id = $1';
+      const params: (number | boolean)[] = [userId];
+
+      if (filters?.completed !== undefined) {
+        whereClause += ` AND completed = $${params.length + 1}`;
+        params.push(filters.completed);
+      }
+
+      const result = await queryFn(
+        `SELECT 
+          *,
+          CASE recurrence_type
+            WHEN 1 THEN 'daily'
+            WHEN 2 THEN 'weekly'
+            WHEN 3 THEN 'monthly'
+            WHEN 4 THEN 'yearly'
+            WHEN 5 THEN 'custom'
+            ELSE 'regular'
+          END as task_bucket
+        FROM tasks
+        ${whereClause}
+        ORDER BY 
+          -- Direct integer ordering - no CASE statement needed!
+          recurrence_type ASC,
+          priority ASC`,
+        params
+      );
+
+      return result.rows as BucketedTask[];
     },
   };
 

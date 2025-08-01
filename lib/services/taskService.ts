@@ -1,4 +1,4 @@
-import { Task, CreateTask, UpdateTask } from '../models/Task';
+import { Task, CreateTask, UpdateTask, TaskBuckets } from '../models/Task';
 import { QueryFunction } from '../db/types';
 import { createTaskRepository } from '../repositories/taskRepository';
 import { createJournalRepository } from '../repositories/journalRepository';
@@ -14,6 +14,22 @@ export const createTaskService = (queryFn: QueryFunction) => {
      */
     getUserTasks: async (userId: number): Promise<Task[]> => {
       return taskRepo.findHierarchyByUserId(userId);
+    },
+
+    /**
+     * Get all tasks for a user organized into buckets based on recurrence type
+     */
+    getUserTasksBucketed: async (userId: number): Promise<TaskBuckets> => {
+      const bucketedTasks = await taskRepo.findBucketedTasksByUserId(userId);
+
+      return {
+        daily: bucketedTasks.filter((task) => task.task_bucket === 'daily'),
+        weekly: bucketedTasks.filter((task) => task.task_bucket === 'weekly'),
+        monthly: bucketedTasks.filter((task) => task.task_bucket === 'monthly'),
+        yearly: bucketedTasks.filter((task) => task.task_bucket === 'yearly'),
+        custom: bucketedTasks.filter((task) => task.task_bucket === 'custom'),
+        regular: bucketedTasks.filter((task) => task.task_bucket === 'regular'),
+      };
     },
 
     /**

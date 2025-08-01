@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { authService } from '@/lib/services/authService';
 import { referenceTaskService } from '@/lib/services/referenceTaskService';
 import { csrfModule } from '@/lib/csrf/csrfModule';
-import { RecurrenceType } from '@/lib/models/ReferenceTask';
 
 export async function updateReferenceTask(formData: FormData) {
   await csrfModule.validateFormData(formData);
@@ -20,7 +19,7 @@ export async function updateReferenceTask(formData: FormData) {
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
   const journal_id = formData.get('journal_id') as string;
-  const recurrence_type = formData.get('recurrence_type') as RecurrenceType;
+  const recurrence_type = parseInt(formData.get('recurrence_type') as string);
   const recurrence_interval =
     parseInt(formData.get('recurrence_interval') as string) || 1;
   const starts_on = formData.get('starts_on') as string;

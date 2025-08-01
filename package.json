@@ -9,7 +9,7 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:start": "docker compose up -d postgres",
+    "db:start": "docker compose up -d postgres && npm run db:migrate",
     "db:migrate": "./db-migrate.sh",
     "type-check": "tsc",
     "check": "concurrently \"npm run lint\" \"npm run type-check\" \"npm run format:check\"",
