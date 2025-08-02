@@ -99,17 +99,20 @@ export function getUtcDaysDifference(date1: Date, date2: Date): number {
  * @param task Task object with scheduled_date and created_at fields
  * @returns Formatted date string for display
  */
-export function formatTaskDate(task: { scheduled_date: Date | null; created_at: Date }): string {
+export function formatTaskDate(task: {
+  scheduled_date: Date | null;
+  created_at: Date;
+}): string {
   if (task.scheduled_date) {
     const schedDate = new Date(task.scheduled_date);
     return schedDate.toLocaleDateString('en-US', {
       timeZone: 'UTC',
       year: 'numeric',
-      month: 'numeric', 
-      day: 'numeric'
+      month: 'numeric',
+      day: 'numeric',
     });
   }
-  
+
   const createdDate = new Date(task.created_at);
   return createdDate.toLocaleDateString();
 }
@@ -125,8 +128,8 @@ export function formatScheduledDate(scheduledDate: Date): string {
   return date.toLocaleDateString('en-US', {
     timeZone: 'UTC',
     year: 'numeric',
-    month: 'numeric', 
-    day: 'numeric'
+    month: 'numeric',
+    day: 'numeric',
   });
 }
 
