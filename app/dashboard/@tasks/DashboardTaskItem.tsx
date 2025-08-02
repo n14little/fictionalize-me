@@ -7,6 +7,7 @@ import {
   deleteTask,
 } from '@/app/dashboard/@tasks/actions';
 import { CsrfTokenInput } from '@/components/CsrfTokenInput';
+import { formatTaskDate } from '@/lib/utils/dateUtils';
 import Link from 'next/link';
 
 interface DashboardTaskItemProps {
@@ -122,7 +123,7 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
             </p>
           )}
           <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-            <span>{new Date(task.created_at).toLocaleDateString()}</span>
+            <span>{formatTaskDate(task)}</span>
             <Link
               href={`/journals/${task.journal_id}`}
               className="text-blue-600 hover:text-blue-800 hover:underline"

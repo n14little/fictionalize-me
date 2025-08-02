@@ -91,3 +91,52 @@ export function getUtcDaysDifference(date1: Date, date2: Date): number {
   const diffTime = Math.abs(utcDate2.getTime() - utcDate1.getTime());
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }
+
+/**
+ * Format a task date for display, prioritizing scheduled_date over created_at
+ * For scheduled tasks, displays the scheduled date without timezone conversion
+ * For regular tasks, displays the created date with local timezone
+ * @param task Task object with scheduled_date and created_at fields
+ * @returns Formatted date string for display
+ */
+export function formatTaskDate(task: { scheduled_date: Date | null; created_at: Date }): string {
+  if (task.scheduled_date) {
+    const schedDate = new Date(task.scheduled_date);
+    return schedDate.toLocaleDateString('en-US', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: 'numeric', 
+      day: 'numeric'
+    });
+  }
+  
+  const createdDate = new Date(task.created_at);
+  return createdDate.toLocaleDateString();
+}
+
+/**
+ * Format a scheduled date for display without timezone conversion
+ * Used for showing when a task is due
+ * @param scheduledDate The scheduled date
+ * @returns Formatted date string for display
+ */
+export function formatScheduledDate(scheduledDate: Date): string {
+  const date = new Date(scheduledDate);
+  return date.toLocaleDateString('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'numeric', 
+    day: 'numeric'
+  });
+}
+
+/**
+ * Format a completion date for display
+ * Shows when a task was completed, using local timezone since it's a timestamp
+ * @param completedAt The completion timestamp
+ * @returns Formatted date string for display
+ */
+export function formatCompletedDate(completedAt: Date): string {
+  const date = new Date(completedAt);
+  return date.toLocaleDateString();
+}

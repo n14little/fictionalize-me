@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { Task } from '@/lib/models/Task';
 import { toggleTaskCompletion, deleteTask } from '@/app/tasks/actions';
 import { CsrfTokenInput } from '@/components/CsrfTokenInput';
+import {
+  formatTaskDate,
+  formatScheduledDate,
+  formatCompletedDate,
+} from '@/lib/utils/dateUtils';
 
 interface TaskItemProps {
   task: Task;
@@ -115,14 +120,11 @@ export function TaskItem({
               <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                 <span>Journal: {journalTitle}</span>
                 {task.scheduled_date && (
-                  <span>
-                    Due: {new Date(task.scheduled_date).toLocaleDateString()}
-                  </span>
+                  <span>Due: {formatScheduledDate(task.scheduled_date)}</span>
                 )}
                 {task.completed_at && (
                   <span>
-                    Completed:{' '}
-                    {new Date(task.completed_at).toLocaleDateString()}
+                    Completed: {formatCompletedDate(task.completed_at)}
                   </span>
                 )}
               </div>

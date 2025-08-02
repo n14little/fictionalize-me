@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Task } from '@/lib/models/Task';
 import { toggleTaskCompletion, deleteTask } from './actions';
 import { CsrfTokenInput } from '@/components/CsrfTokenInput';
+import { formatTaskDate, formatCompletedDate } from '@/lib/utils/dateUtils';
 
 interface TaskItemProps {
   task: Task;
@@ -88,9 +89,9 @@ export function TaskItem({ task, journalId }: TaskItemProps) {
               </p>
             )}
             <div className="text-xs text-gray-400 mt-1">
-              Created {new Date(task.created_at).toLocaleDateString()}
+              Created {formatTaskDate(task)}
               {task.completed_at &&
-                ` • Completed ${new Date(task.completed_at).toLocaleDateString()}`}
+                ` • Completed ${formatCompletedDate(task.completed_at)}`}
             </div>
           </div>
         </div>
