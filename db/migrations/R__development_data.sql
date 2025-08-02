@@ -150,7 +150,7 @@ BEGIN
             uj.journal_id,
             ref_task_data.title,
             ref_task_data.description,
-            ref_task_data.recurrence_type::recurrence_type_enum,
+            ref_task_data.recurrence_type,
             ref_task_data.recurrence_interval,
             CURRENT_DATE,
             CURRENT_DATE + (ref_task_data.next_in_days || ' days')::INTERVAL,
@@ -158,10 +158,10 @@ BEGIN
         FROM user_journal uj
         CROSS JOIN (
             VALUES 
-                ('Weekly Review', 'Review goals, accomplishments, and plan for the upcoming week', 'weekly', 1, '1'),
-                ('Monthly Budget Check', 'Review expenses and adjust budget as needed', 'monthly', 1, '5'),
-                ('Exercise Routine', 'Complete 30-minute workout session', 'daily', 2, '0'),
-                ('Clean Kitchen', 'Deep clean kitchen surfaces and organize pantry', 'weekly', 2, '3')
+                ('Weekly Review', 'Review goals, accomplishments, and plan for the upcoming week', 2, 1, '1'),
+                ('Monthly Budget Check', 'Review expenses and adjust budget as needed', 3, 1, '5'),
+                ('Exercise Routine', 'Complete 30-minute workout session', 1, 2, '0'),
+                ('Clean Kitchen', 'Deep clean kitchen surfaces and organize pantry', 2, 2, '3')
         ) as ref_task_data(title, description, recurrence_type, recurrence_interval, next_in_days)
         WHERE NOT EXISTS (
             SELECT 1 FROM reference_tasks rt 
