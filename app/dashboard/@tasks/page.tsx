@@ -11,11 +11,19 @@ export default async function DashboardTasksSlot() {
     return null;
   }
 
-  // Get all tasks for the user across all journals
-  const allTasks = await taskService.getUserTasks(userId);
+  // Get bucketed tasks for the user
+  const taskBuckets = await taskService.getUserTasksBucketed(userId);
 
-  // Separate pending and completed tasks
-  const pendingTasks = allTasks.filter((task) => !task.completed);
+  // Get completed tasks from all buckets for the completed section
+  const allTasks = [
+    ...taskBuckets.daily,
+    ...taskBuckets.weekly,
+    ...taskBuckets.monthly,
+    ...taskBuckets.yearly,
+    ...taskBuckets.custom,
+    ...taskBuckets.regular,
+  ];
+
   const completedTasks = allTasks
     .filter((task) => task.completed)
     .sort((a, b) => {
@@ -30,7 +38,7 @@ export default async function DashboardTasksSlot() {
 
   return (
     <DashboardTasksList
-      pendingTasks={pendingTasks}
+      taskBuckets={taskBuckets}
       completedTasks={completedTasks}
     />
   );

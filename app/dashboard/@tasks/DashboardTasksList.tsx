@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Task } from '@/lib/models/Task';
+import { TaskBuckets, BucketedTask } from '@/lib/models/Task';
 import {
   NavigableColumn,
   NavigableItem,
@@ -12,12 +12,12 @@ import { SortableTaskItem } from '@/components/SortableTaskItem';
 import { reorderTask } from '@/app/dashboard/@tasks/actions';
 
 interface DashboardTasksListProps {
-  pendingTasks: Task[];
-  completedTasks: Task[];
+  taskBuckets: TaskBuckets;
+  completedTasks: BucketedTask[];
 }
 
 export function DashboardTasksList({
-  pendingTasks,
+  taskBuckets,
   completedTasks,
 }: DashboardTasksListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
@@ -60,42 +60,68 @@ export function DashboardTasksList({
     });
   };
 
-  const renderTask = (task: Task) => (
+  const renderTask = (task: BucketedTask) => (
     <SortableTaskItem key={task.id} id={task.id}>
       <NavigableTaskItem task={task} />
     </SortableTaskItem>
   );
 
-  // Calculate total navigable items
-  const displayedCompletedTasks = showCompleted
-    ? Math.min(completedTasks.length, 3)
-    : 0;
-  const totalNavigableItems =
-    pendingTasks.length +
-    displayedCompletedTasks +
-    (completedTasks.length > 0 ? 1 : 0); // +1 for expand/collapse button
+  // Calculate bucketed pending tasks
+  const pendingBuckets = {
+    daily: taskBuckets.daily.filter((task) => !task.completed),
+    weekly: taskBuckets.weekly.filter((task) => !task.completed),
+    monthly: taskBuckets.monthly.filter((task) => !task.completed),
+    yearly: taskBuckets.yearly.filter((task) => !task.completed),
+    custom: taskBuckets.custom.filter((task) => !task.completed),
+    regular: taskBuckets.regular.filter((task) => !task.completed),
+  };
+
+  // Define bucket display order and labels
+  const bucketOrder: Array<{ key: keyof TaskBuckets; label: string }> = [
+    { key: 'daily', label: 'Daily' },
+    { key: 'weekly', label: 'Weekly' },
+    { key: 'monthly', label: 'Monthly' },
+    { key: 'yearly', label: 'Yearly' },
+    { key: 'custom', label: 'Custom' },
+    { key: 'regular', label: 'Regular' },
+  ];
+
+  // Filter buckets to only show those with tasks
+  const bucketsWithTasks = bucketOrder.filter(
+    (bucket) => pendingBuckets[bucket.key].length > 0
+  );
 
   return (
-    <NavigableColumn column="tasks" itemCount={totalNavigableItems}>
+    <NavigableColumn column="tasks" itemCount={0}>
       <div className="bg-white p-6">
         <h2 className="text-lg font-bold mb-4">Your Tasks</h2>
 
-        {/* Pending Tasks Section */}
+        {/* Pending Tasks Section - Bucketed */}
         <div className="mb-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">
-            Pending ({pendingTasks.length})
-          </h3>
-          {pendingTasks.length === 0 ? (
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Pending</h3>
+          {bucketsWithTasks.length === 0 ? (
             <div className="text-gray-500 text-xs py-2 text-center">
               No pending tasks
             </div>
           ) : (
-            <DraggableTaskList
-              tasks={pendingTasks}
-              onReorder={handleReorder}
-              renderTask={renderTask}
-              className="space-y-2"
-            />
+            <div className="space-y-4">
+              {bucketsWithTasks.map((bucket) => {
+                const bucketTasks = pendingBuckets[bucket.key];
+                return (
+                  <div key={bucket.key} className="space-y-2">
+                    <h4 className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      {bucket.label}
+                    </h4>
+                    <DraggableTaskList
+                      tasks={bucketTasks}
+                      onReorder={handleReorder}
+                      renderTask={(task) => renderTask(task as BucketedTask)}
+                      className="space-y-1"
+                    />
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -106,7 +132,7 @@ export function DashboardTasksList({
               id="completed-toggle"
               column="tasks"
               className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-2 hover:text-gray-600 transition-colors cursor-pointer"
-              ariaLabel={`${showCompleted ? 'Collapse' : 'Expand'} completed tasks (${completedTasks.length})`}
+              ariaLabel={`${showCompleted ? 'Collapse' : 'Expand'} completed tasks`}
               onClick={() => setShowCompleted(!showCompleted)}
             >
               <svg
@@ -122,7 +148,7 @@ export function DashboardTasksList({
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-              Completed ({completedTasks.length})
+              Completed
             </NavigableItem>
 
             {showCompleted && (
