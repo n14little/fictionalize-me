@@ -6,7 +6,6 @@ import { Task } from '@/lib/models/Task';
 import { toggleTaskCompletion, deleteTask } from '@/app/tasks/actions';
 import { CsrfTokenInput } from '@/components/CsrfTokenInput';
 import {
-  formatTaskDate,
   formatScheduledDate,
   formatCompletedDate,
 } from '@/lib/utils/dateUtils';

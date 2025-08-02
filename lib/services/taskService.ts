@@ -19,8 +19,14 @@ export const createTaskService = (queryFn: QueryFunction) => {
     /**
      * Get all tasks for a user organized into buckets based on recurrence type
      */
-    getUserTasksBucketed: async (userId: number): Promise<TaskBuckets> => {
-      const bucketedTasks = await taskRepo.findBucketedTasksByUserId(userId);
+    getUserTasksBucketed: async (
+      userId: number,
+      filters?: { completed?: boolean }
+    ): Promise<TaskBuckets> => {
+      const bucketedTasks = await taskRepo.findBucketedTasksByUserId(
+        userId,
+        filters
+      );
 
       return {
         daily: bucketedTasks.filter((task) => task.task_bucket === 'daily'),
@@ -30,6 +36,17 @@ export const createTaskService = (queryFn: QueryFunction) => {
         custom: bucketedTasks.filter((task) => task.task_bucket === 'custom'),
         regular: bucketedTasks.filter((task) => task.task_bucket === 'regular'),
       };
+    },
+
+    /**
+     * Get all tasks for a user with bucketing information (flat array)
+     * This returns the raw bucketed tasks in their proper order
+     */
+    getUserTasksBucketedFlat: async (
+      userId: number,
+      filters?: { completed?: boolean }
+    ) => {
+      return taskRepo.findBucketedTasksByUserId(userId, filters);
     },
 
     /**

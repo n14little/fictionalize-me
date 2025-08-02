@@ -2,21 +2,18 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { TestDatabase } from './testDatabase';
 import { TestFixtures } from './fixtures';
 import { createTaskService } from '../../lib/services/taskService';
-import { createTaskRepository } from '../../lib/repositories/taskRepository';
 import { BucketedTask, BUCKET_TO_RECURRENCE_TYPE } from '../../lib/models/Task';
 
 describe.sequential('Task Bucketing - Integration Tests', () => {
   let testDb: TestDatabase;
   let fixtures: TestFixtures;
   let taskService: ReturnType<typeof createTaskService>;
-  let taskRepository: ReturnType<typeof createTaskRepository>;
 
   beforeEach(async () => {
     testDb = TestDatabase.getInstance();
     const query = testDb.getQueryFunction();
     fixtures = new TestFixtures(query);
     taskService = createTaskService(query);
-    taskRepository = createTaskRepository(query);
 
     await testDb.cleanup();
   });
@@ -168,7 +165,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       ]);
 
       // Test the bucketing query directly
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -364,7 +361,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         }
       );
 
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -462,7 +459,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         priority: 150,
       });
 
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -498,7 +495,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         reference_task_id: customRefTask.id,
       });
 
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -539,33 +536,37 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       );
 
       // Mark one task as completed
-      await taskRepository.update(completedTask.id, {
+      await taskService.updateTask(completedTask.id, testUser.id, {
         completed: true,
         completed_at: new Date(),
       });
 
       // Test pending tasks only
-      const pendingBucketedTasks =
-        await taskRepository.findBucketedTasksByUserId(testUser.id, {
+      const pendingBucketedTasks = await taskService.getUserTasksBucketedFlat(
+        testUser.id,
+        {
           completed: false,
-        });
+        }
+      );
 
       expect(pendingBucketedTasks).toHaveLength(1);
       expect(pendingBucketedTasks[0].id).toBe(pendingTask.id);
       expect(pendingBucketedTasks[0].completed).toBe(false);
 
       // Test completed tasks only
-      const completedBucketedTasks =
-        await taskRepository.findBucketedTasksByUserId(testUser.id, {
+      const completedBucketedTasks = await taskService.getUserTasksBucketedFlat(
+        testUser.id,
+        {
           completed: true,
-        });
+        }
+      );
 
       expect(completedBucketedTasks).toHaveLength(1);
       expect(completedBucketedTasks[0].id).toBe(completedTask.id);
       expect(completedBucketedTasks[0].completed).toBe(true);
 
       // Test all tasks
-      const allBucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const allBucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -587,7 +588,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         priority: 200,
       });
 
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -620,7 +621,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         reference_task_id: refTask.id,
       });
 
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -884,8 +885,8 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         }),
       ]);
 
-      // Test the raw bucketed ordering from repository
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      // Test the raw bucketed ordering from service
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
 
@@ -982,7 +983,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       await Promise.all(taskPromises);
 
       const startTime = Date.now();
-      const bucketedTasks = await taskRepository.findBucketedTasksByUserId(
+      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
         testUser.id
       );
       const endTime = Date.now();
