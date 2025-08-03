@@ -10,19 +10,26 @@ import {
   ReferenceTask,
   CreateReferenceTask,
 } from '../../lib/models/ReferenceTask';
+import {
+  WaitlistEntry,
+  CreateWaitlistEntry,
+} from '../../lib/models/WaitlistEntry';
 import { createUserRepository } from '../../lib/repositories/userRepository';
 import { createJournalRepository } from '../../lib/repositories/journalRepository';
 import { createTaskRepository } from '../../lib/repositories/taskRepository';
+import { createWaitlistRepository } from '../../lib/repositories/waitlistRepository';
 
 export class TestFixtures {
   private userRepository;
   private journalRepository;
   private taskRepository;
+  private waitlistRepository;
 
   constructor(private query: QueryFunction) {
     this.userRepository = createUserRepository(query);
     this.journalRepository = createJournalRepository(query);
     this.taskRepository = createTaskRepository(query);
+    this.waitlistRepository = createWaitlistRepository(query);
   }
 
   async createTestUser(overrides: Partial<CreateUser> = {}): Promise<User> {
@@ -109,5 +116,18 @@ export class TestFixtures {
 
     // Use the create method from the task repository
     return await this.taskRepository.create(taskData);
+  }
+
+  async createTestWaitlistEntry(
+    overrides: Partial<CreateWaitlistEntry> = {}
+  ): Promise<WaitlistEntry> {
+    const waitlistData: CreateWaitlistEntry = {
+      email:
+        overrides.email ||
+        `testuser${Date.now()}-${Math.random().toString(36).substring(2, 11)}@example.com`,
+      interest: overrides.interest || 'Testing the application',
+    };
+
+    return await this.waitlistRepository.create(waitlistData);
   }
 }

@@ -1,31 +1,33 @@
+import { QueryFunction } from '../db/types';
 import { WaitlistEntry } from '../models/WaitlistEntry';
-import { waitlistRepository } from '../repositories/waitlistRepository';
+import { createWaitlistRepository } from '../repositories/waitlistRepository';
+import { query } from '../db';
 
-export const waitlistService = {
-  /**
-   * Get all waitlist entries
-   */
-  getAllEntries: async (): Promise<WaitlistEntry[]> => {
-    return waitlistRepository.findAll();
-  },
+export const createWaitlistService = (query: QueryFunction) => {
+  const waitlistRepository = createWaitlistRepository(query);
 
-  /**
-   * Add a new entry to the waitlist
-   */
-  addToWaitlist: async (
-    email: string,
-    interest?: string
-  ): Promise<WaitlistEntry | null> => {
-    // Check if the email already exists in the waitlist
-    const existingEntry = await waitlistRepository.findByEmail(email);
-    if (existingEntry) {
-      return existingEntry;
-    }
+  return {
+    /**
+     * Get all waitlist entries
+     */
+    getAllEntries: async (): Promise<WaitlistEntry[]> => {
+      return waitlistRepository.findAll();
+    },
 
-    // Create a new waitlist entry
-    return waitlistRepository.create({
-      email,
-      interest,
-    });
-  },
+    /**
+     * Add a new entry to the waitlist
+     */
+    addToWaitlist: async (
+      email: string,
+      interest?: string
+    ): Promise<WaitlistEntry | null> => {
+      // Repository handles upsert with ON CONFLICT DO NOTHING
+      return waitlistRepository.create({
+        email,
+        interest,
+      });
+    },
+  };
 };
+
+export const waitlistService = createWaitlistService(query);

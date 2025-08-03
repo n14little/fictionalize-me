@@ -54,6 +54,7 @@ export class TestDatabase {
       await query(
         "DELETE FROM users WHERE email LIKE 'testuser%@example.com' OR external_user_id LIKE 'test_%'"
       );
+      await query('DELETE FROM waitlist_entries WHERE 1=1');
       await query('COMMIT');
     } catch (error) {
       await query('ROLLBACK');

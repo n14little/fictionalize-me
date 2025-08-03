@@ -46,6 +46,7 @@ The following integration test files are available:
 
 - **`journalService.test.ts`** - Tests for journal creation, retrieval, updating, and user isolation
 - **`referenceTaskService.test.ts`** - Tests for reference task CRUD operations, recurrence patterns, task generation, and scheduling
+- **`waitlistService.test.ts`** - Tests for waitlist entry creation, retrieval, email validation, and duplicate handling
 
 ## Test Structure
 

@@ -1,7 +1,8 @@
 import { query } from '../db';
+import { QueryFunction } from '../db/types';
 import { WaitlistEntry, CreateWaitlistEntry } from '../models/WaitlistEntry';
 
-export const waitlistRepository = {
+export const createWaitlistRepository = (query: QueryFunction) => ({
   /**
    * Find all waitlist entries
    */
@@ -9,7 +10,7 @@ export const waitlistRepository = {
     const result = await query(
       'SELECT * FROM waitlist_entries ORDER BY created_at DESC'
     );
-    return result.rows;
+    return result.rows as WaitlistEntry[];
   },
 
   /**
@@ -19,7 +20,7 @@ export const waitlistRepository = {
     const result = await query('SELECT * FROM waitlist_entries WHERE id = $1', [
       id,
     ]);
-    return result.rows[0] || null;
+    return (result.rows[0] as WaitlistEntry) || null;
   },
 
   /**
@@ -30,17 +31,24 @@ export const waitlistRepository = {
       'SELECT * FROM waitlist_entries WHERE email = $1',
       [email]
     );
-    return result.rows[0] || null;
+    return (result.rows[0] as WaitlistEntry) || null;
   },
 
   /**
-   * Create a new waitlist entry
+   * Create a new waitlist entry (upsert - updates if email already exists)
    */
   create: async (entryData: CreateWaitlistEntry): Promise<WaitlistEntry> => {
     const result = await query(
-      'INSERT INTO waitlist_entries (email, interest) VALUES ($1, $2) RETURNING *',
+      `INSERT INTO waitlist_entries (email, interest) 
+       VALUES ($1, $2) 
+       ON CONFLICT (email) DO UPDATE SET 
+         interest = EXCLUDED.interest 
+       RETURNING *`,
       [entryData.email, entryData.interest || null]
     );
-    return result.rows[0];
+
+    return result.rows[0] as WaitlistEntry;
   },
-};
+});
+
+export const waitlistRepository = createWaitlistRepository(query);
