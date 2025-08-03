@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { authService } from '@/lib/services/authService';
 import { referenceTaskService } from '@/lib/services/referenceTaskService';
 import { csrfModule } from '@/lib/csrf/csrfModule';
+import { BUCKET_TO_RECURRENCE_TYPE, TaskBucket } from '@/lib/models/Task';
 
 export async function createReferenceTask(formData: FormData) {
   await csrfModule.validateFormData(formData);
@@ -18,7 +19,7 @@ export async function createReferenceTask(formData: FormData) {
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
   const journal_id = formData.get('journal_id') as string;
-  const recurrence_type = parseInt(formData.get('recurrence_type') as string);
+  const recurrence_type_string = formData.get('recurrence_type') as string;
   const recurrence_interval =
     parseInt(formData.get('recurrence_interval') as string) || 1;
   const starts_on = formData.get('starts_on') as string;
@@ -33,8 +34,14 @@ export async function createReferenceTask(formData: FormData) {
     throw new Error('Journal is required');
   }
 
-  if (!recurrence_type) {
+  if (!recurrence_type_string) {
     throw new Error('Recurrence type is required');
+  }
+
+  const recurrence_type =
+    BUCKET_TO_RECURRENCE_TYPE[recurrence_type_string as TaskBucket];
+  if (!recurrence_type) {
+    throw new Error('Invalid recurrence type');
   }
 
   if (!starts_on) {
