@@ -153,10 +153,20 @@ export async function logout(page: Page) {
  */
 export async function createJournal(page: Page, title: string) {
   await page.goto('/journals/new');
+
+  // Wait for CSRF token to load (CsrfTokenInput component)
+  await page.waitForFunction(() => {
+    const csrfInput = document.querySelector(
+      'input[name="csrf_token"]'
+    ) as HTMLInputElement;
+    return csrfInput && csrfInput.value && csrfInput.value.length > 0;
+  });
+
   await page.fill('input[name="title"]', title);
   await page.click('button[type="submit"]');
+
   // Wait for redirect to the new journal page
-  await page.waitForURL(/\/journals\/\d+/);
+  await page.waitForURL(/\/journals\/[a-f0-9-]+$/);
   return page.url().split('/').pop(); // Returns the journal ID
 }
 

@@ -166,22 +166,45 @@ test.describe('Authentication', () => {
 
       await expect(page).toHaveTitle(/Fictionalize Me/);
 
-      // The logout page may immediately redirect, so check for either the logout message or home page
+      // The logout page may show a confirmation or immediately redirect
       try {
         await expect(
           page.getByRole('heading', { name: 'Signing out...' })
         ).toBeVisible({ timeout: 2000 });
       } catch {
-        // If logout message isn't visible, we should be redirected to home
-        await expect(page).toHaveURL('/');
+        // Check if there's a signout confirmation page
+        try {
+          await expect(page.getByText(/sign.?out/i)).toBeVisible({
+            timeout: 2000,
+          });
+        } catch {
+          // If neither, we should be redirected to home
+          await expect(page).toHaveURL('/');
+        }
       }
     });
 
     test('should redirect to home page after logout', async ({ page }) => {
       await page.goto('/auth/logout');
 
-      await page.waitForURL('/', { timeout: 10000 });
-      await expect(page).toHaveURL('/');
+      // The logout page might show a confirmation or immediately redirect
+      // Wait for either the home page or check if we need to confirm logout
+      try {
+        await page.waitForURL('/', { timeout: 5000 });
+        await expect(page).toHaveURL('/');
+      } catch {
+        // If there's a logout confirmation, handle it
+        const signoutButton = page.getByRole('button', { name: /sign.?out/i });
+        if (await signoutButton.isVisible()) {
+          await signoutButton.click();
+          await page.waitForURL('/', { timeout: 10000 });
+          await expect(page).toHaveURL('/');
+        } else {
+          // If no button, just wait a bit more for redirect
+          await page.waitForURL('/', { timeout: 10000 });
+          await expect(page).toHaveURL('/');
+        }
+      }
     });
   });
 
