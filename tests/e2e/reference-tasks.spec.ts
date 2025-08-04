@@ -49,6 +49,7 @@ test.describe('Reference Tasks', () => {
       page,
     }) => {
       await page.goto('/reference-tasks');
+      await page.waitForURL('/reference-tasks');
 
       await expect(page).toHaveTitle(/Fictionalize Me/);
       await expect(
