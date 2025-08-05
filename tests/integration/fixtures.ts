@@ -88,6 +88,20 @@ export class TestFixtures {
     return await this.taskRepository.upsertReferenceTask(referenceTaskData);
   }
 
+  /**
+   * Update the next_scheduled_date for a reference task to a specific date
+   * This is useful for testing scenarios where we need specific scheduling dates
+   */
+  async updateReferenceTaskNextScheduledDate(
+    referenceTaskId: string,
+    nextScheduledDate: Date
+  ): Promise<void> {
+    await this.query(
+      'UPDATE reference_tasks SET next_scheduled_date = $1 WHERE id = $2',
+      [nextScheduledDate, referenceTaskId]
+    );
+  }
+
   async createTestTask(
     userId: number,
     journalId: string,

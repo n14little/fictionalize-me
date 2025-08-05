@@ -4,6 +4,47 @@ import { TestFixtures } from './fixtures';
 import { createTaskService } from '../../lib/services/taskService';
 import { BUCKET_TO_RECURRENCE_TYPE } from '../../lib/models/Task';
 
+// Utility function to create date-only objects (no time component)
+function createDateOnly(date?: Date | string | number): Date {
+  const d = date ? new Date(date) : new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// Utility functions for relative dates
+function getToday(): Date {
+  return createDateOnly();
+}
+
+function getYesterday(): Date {
+  const date = createDateOnly();
+  date.setDate(date.getDate() - 1);
+  return date;
+}
+
+function getTomorrow(): Date {
+  const date = createDateOnly();
+  date.setDate(date.getDate() + 1);
+  return date;
+}
+
+function getDaysFromToday(days: number): Date {
+  const date = createDateOnly();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+function getMonthsFromToday(months: number): Date {
+  const date = createDateOnly();
+  date.setMonth(date.getMonth() + months);
+  return date;
+}
+
+function getYearsFromToday(years: number): Date {
+  const date = createDateOnly();
+  date.setFullYear(date.getFullYear() + years);
+  return date;
+}
+
 describe.sequential('TaskService - Integration Tests', () => {
   let testDb: TestDatabase;
   let fixtures: TestFixtures;
@@ -472,6 +513,729 @@ describe.sequential('TaskService - Integration Tests', () => {
       );
 
       expect(parseInt(result.tasks_created)).toBe(0);
+    });
+
+    describe('Weekly Recurrence Task Creation', () => {
+      it('should create weekly tasks only on the correct recurrence intervals', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Weekly Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
+          recurrence_interval: 1,
+          starts_on: today,
+          is_active: true,
+        });
+
+        const tomorrow = getTomorrow();
+        const dayAfter = getDaysFromToday(2);
+        const threeDaysLater = getDaysFromToday(3);
+        const fourDaysLater = getDaysFromToday(4);
+        const fiveDaysLater = getDaysFromToday(5);
+        const oneWeekLater = getDaysFromToday(7);
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          tomorrow
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          dayAfter
+        );
+        expect(parseInt(result3.tasks_created)).toBe(0);
+
+        const result4 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          threeDaysLater
+        );
+        expect(parseInt(result4.tasks_created)).toBe(0);
+
+        const result5 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          fourDaysLater
+        );
+        expect(parseInt(result5.tasks_created)).toBe(0);
+
+        const result6 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          fiveDaysLater
+        );
+        expect(parseInt(result6.tasks_created)).toBe(0);
+
+        const result7 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          oneWeekLater
+        );
+        expect(parseInt(result7.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const weeklyTasks = userTasks.filter((task) => task.reference_task_id);
+        expect(weeklyTasks).toHaveLength(2);
+
+        expect(weeklyTasks[0].scheduled_date).toEqual(today);
+        expect(weeklyTasks[1].scheduled_date).toEqual(oneWeekLater);
+      });
+
+      it('should create bi-weekly tasks only every two weeks', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Bi-Weekly Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
+          recurrence_interval: 2,
+          starts_on: today,
+          is_active: true,
+        });
+
+        const oneWeekLater = getDaysFromToday(7);
+        const twoWeeksLater = getDaysFromToday(14);
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          oneWeekLater
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          twoWeeksLater
+        );
+        expect(parseInt(result3.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const biWeeklyTasks = userTasks.filter(
+          (task) => task.reference_task_id
+        );
+        expect(biWeeklyTasks).toHaveLength(2);
+
+        expect(biWeeklyTasks[0].scheduled_date).toEqual(today);
+        expect(biWeeklyTasks[1].scheduled_date).toEqual(twoWeeksLater);
+      });
+
+      it('should create weekly tasks on specific days of the week', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Get today's day of the week (0 = Sunday, 1 = Monday, etc.)
+        const todayDayOfWeek = today.getDay();
+        const tomorrowDayOfWeek = (todayDayOfWeek + 1) % 7;
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Specific Days Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
+          recurrence_interval: 1,
+          recurrence_days_of_week: [todayDayOfWeek, tomorrowDayOfWeek],
+          starts_on: yesterday,
+          is_active: true,
+        });
+
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfter = new Date();
+        dayAfter.setDate(dayAfter.getDate() + 2);
+        const threeDaysLater = new Date();
+        threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+
+        const resultToday =
+          await taskService.createTasksFromReferenceTasksForUser(
+            testUser.id,
+            today
+          );
+        expect(parseInt(resultToday.tasks_created)).toBe(1);
+
+        const resultTomorrow =
+          await taskService.createTasksFromReferenceTasksForUser(
+            testUser.id,
+            tomorrow
+          );
+        expect(parseInt(resultTomorrow.tasks_created)).toBe(1);
+
+        const resultDayAfter =
+          await taskService.createTasksFromReferenceTasksForUser(
+            testUser.id,
+            dayAfter
+          );
+        expect(parseInt(resultDayAfter.tasks_created)).toBe(0);
+
+        const resultThreeDaysLater =
+          await taskService.createTasksFromReferenceTasksForUser(
+            testUser.id,
+            threeDaysLater
+          );
+        expect(parseInt(resultThreeDaysLater.tasks_created)).toBe(0);
+
+        const resultOneWeekLater =
+          await taskService.createTasksFromReferenceTasksForUser(
+            testUser.id,
+            oneWeekLater
+          );
+        expect(parseInt(resultOneWeekLater.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const weeklyTasks = userTasks.filter((task) => task.reference_task_id);
+        expect(weeklyTasks).toHaveLength(3);
+
+        // Create dates without time components for comparison
+        const todayDate = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate()
+        );
+        const tomorrowDate = new Date(
+          tomorrow.getFullYear(),
+          tomorrow.getMonth(),
+          tomorrow.getDate()
+        );
+        const oneWeekLaterDate = new Date(
+          oneWeekLater.getFullYear(),
+          oneWeekLater.getMonth(),
+          oneWeekLater.getDate()
+        );
+
+        expect(weeklyTasks[0].scheduled_date).toEqual(todayDate);
+        expect(weeklyTasks[1].scheduled_date).toEqual(tomorrowDate);
+        expect(weeklyTasks[2].scheduled_date).toEqual(oneWeekLaterDate);
+      });
+    });
+
+    describe('Monthly Recurrence Task Creation', () => {
+      it('should create monthly tasks only on the correct monthly intervals', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+        const todayDayOfMonth = today.getDate();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Monthly Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.monthly,
+          recurrence_interval: 1,
+          recurrence_day_of_month: todayDayOfMonth,
+          starts_on: today,
+          is_active: true,
+        });
+
+        const tomorrow = getTomorrow();
+        const oneMonthLater = getMonthsFromToday(1);
+        const twoMonthsLater = getMonthsFromToday(2);
+
+        console.log('Test dates:', {
+          today: today.toISOString().split('T')[0],
+          tomorrow: tomorrow.toISOString().split('T')[0],
+          oneMonthLater: oneMonthLater.toISOString().split('T')[0],
+          twoMonthsLater: twoMonthsLater.toISOString().split('T')[0],
+          dayOfMonth: todayDayOfMonth,
+        });
+
+        // First call: should create task for today and update next_scheduled_date to next month
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        // Tomorrow: should not create any tasks (not the monthly recurrence date)
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          tomorrow
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+
+        // One month later: should create task and update next_scheduled_date to following month
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          oneMonthLater
+        );
+        expect(parseInt(result3.tasks_created)).toBe(1);
+
+        // Two months later: should create task
+        const result4 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          twoMonthsLater
+        );
+        console.log('result4:', result4);
+        expect(parseInt(result4.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const monthlyTasks = userTasks.filter((task) => task.reference_task_id);
+        expect(monthlyTasks).toHaveLength(3);
+      });
+
+      it('should create quarterly tasks only every three months', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+        const todayDayOfMonth = today.getDate();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Quarterly Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.monthly,
+          recurrence_interval: 3,
+          recurrence_day_of_month: todayDayOfMonth,
+          starts_on: today,
+          is_active: true,
+        });
+
+        const oneMonthLater = getMonthsFromToday(1);
+        const twoMonthsLater = getMonthsFromToday(2);
+        const threeMonthsLater = getMonthsFromToday(3);
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          oneMonthLater
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          twoMonthsLater
+        );
+        expect(parseInt(result3.tasks_created)).toBe(0);
+
+        const result4 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          threeMonthsLater
+        );
+        expect(parseInt(result4.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const quarterlyTasks = userTasks.filter(
+          (task) => task.reference_task_id
+        );
+        expect(quarterlyTasks).toHaveLength(2);
+        expect(quarterlyTasks[0].scheduled_date).toEqual(today);
+        expect(quarterlyTasks[1].scheduled_date).toEqual(threeMonthsLater);
+      });
+    });
+
+    describe('Daily Recurrence Task Creation', () => {
+      it('should create daily tasks every day', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        // Use dates relative to today for realistic testing
+        const yesterday = getYesterday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Daily Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: yesterday, // Started yesterday
+          is_active: true,
+        });
+
+        const today = getToday();
+        const tomorrow = getTomorrow();
+        const dayAfter = getDaysFromToday(2);
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          tomorrow
+        );
+        expect(parseInt(result2.tasks_created)).toBe(1);
+
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          dayAfter
+        );
+        expect(parseInt(result3.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const dailyTasks = userTasks.filter((task) => task.reference_task_id);
+        expect(dailyTasks).toHaveLength(3);
+      });
+
+      it('should create every-other-day tasks only on correct intervals', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        // For every-other-day, start "today" so tomorrow is the first scheduled day
+        const today = getToday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Every Other Day Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 2,
+          starts_on: today, // Start today
+          is_active: true,
+        });
+
+        const tomorrow = getTomorrow();
+        const dayAfter = getDaysFromToday(2);
+        const threeDaysLater = getDaysFromToday(3);
+        const fourDaysLater = getDaysFromToday(4);
+
+        // Today (day 0) - should create first task immediately since starts_on is today
+        const result0 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result0.tasks_created)).toBe(1);
+
+        // Tomorrow (day 1) - should not create (not an even interval)
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          tomorrow
+        );
+        expect(parseInt(result1.tasks_created)).toBe(0);
+
+        // Day after tomorrow (day 2) - should create (even interval)
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          dayAfter
+        );
+        expect(parseInt(result2.tasks_created)).toBe(1);
+
+        // Three days later (day 3) - should not create (odd interval)
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          threeDaysLater
+        );
+        expect(parseInt(result3.tasks_created)).toBe(0);
+
+        // Four days later (day 4) - should create (even interval)
+        const result4 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          fourDaysLater
+        );
+        expect(parseInt(result4.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const everyOtherDayTasks = userTasks.filter(
+          (task) => task.reference_task_id
+        );
+        expect(everyOtherDayTasks).toHaveLength(3); // Today, day after tomorrow, and four days later
+        expect(everyOtherDayTasks[0].scheduled_date).toEqual(today);
+        expect(everyOtherDayTasks[1].scheduled_date).toEqual(dayAfter);
+        expect(everyOtherDayTasks[2].scheduled_date).toEqual(fourDaysLater);
+      });
+    });
+
+    describe('Yearly Recurrence Task Creation', () => {
+      it('should create yearly tasks only once per year', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Annual Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.yearly,
+          recurrence_interval: 1,
+          starts_on: today,
+          is_active: true,
+        });
+
+        const oneMonthLater = getMonthsFromToday(1);
+        const sixMonthsLater = getMonthsFromToday(6);
+        const oneYearLater = getYearsFromToday(1);
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          oneMonthLater
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+
+        const result3 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          sixMonthsLater
+        );
+        expect(parseInt(result3.tasks_created)).toBe(0);
+
+        const result4 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          oneYearLater
+        );
+        expect(parseInt(result4.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const yearlyTasks = userTasks.filter((task) => task.reference_task_id);
+        expect(yearlyTasks).toHaveLength(2);
+        expect(yearlyTasks[0].scheduled_date).toEqual(today);
+        expect(yearlyTasks[1].scheduled_date).toEqual(oneYearLater);
+      });
+    });
+
+    describe('Task Duplication Prevention', () => {
+      it('should not create duplicate tasks for the same date', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Daily Reference Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: today,
+          is_active: true,
+        });
+
+        // First call: should create task and update next_scheduled_date
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+        expect(parseInt(result1.tasks_skipped)).toBe(0);
+
+        // Second call with same date: should not create anything (no reference tasks due today anymore)
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+        expect(parseInt(result2.tasks_skipped)).toBe(0);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const createdTasks = userTasks.filter(
+          (task) =>
+            task.reference_task_id &&
+            task.scheduled_date?.toDateString() === today.toDateString()
+        );
+        expect(createdTasks).toHaveLength(1);
+      });
+
+      it('should handle multiple reference tasks without creating duplicates', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Daily Task 1',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: today,
+          is_active: true,
+        });
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Daily Task 2',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: today,
+          is_active: true,
+        });
+
+        // First call: should create tasks for both reference tasks and update their next_scheduled_dates
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(2);
+        expect(parseInt(result1.tasks_skipped)).toBe(0);
+
+        // Second call with same date: should not create anything (no reference tasks due today anymore)
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+        expect(parseInt(result2.tasks_skipped)).toBe(0);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const createdTasks = userTasks.filter(
+          (task) =>
+            task.reference_task_id &&
+            task.scheduled_date?.toDateString() === today.toDateString()
+        );
+        expect(createdTasks).toHaveLength(2);
+      });
+    });
+
+    describe('Reference Task Properties Inheritance', () => {
+      it('should create tasks with correct properties from reference task', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const today = getToday();
+
+        const referenceTask = await fixtures.createTestReferenceTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Test Reference Task Title',
+            description: 'Test Reference Task Description',
+            recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly,
+            recurrence_interval: 1,
+            starts_on: today,
+            is_active: true,
+          }
+        );
+
+        const result = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+
+        expect(parseInt(result.tasks_created)).toBe(1);
+
+        const userTasks = await taskService.getUserTasks(testUser.id);
+        const createdTask = userTasks.find(
+          (task) => task.reference_task_id === referenceTask.id
+        );
+
+        expect(createdTask).toBeDefined();
+        expect(createdTask!.title).toBe('Test Reference Task Title');
+        expect(createdTask!.description).toBe(
+          'Test Reference Task Description'
+        );
+        expect(createdTask!.journal_id).toBe(testJournal.id);
+        expect(createdTask!.user_id).toBe(testUser.id);
+        expect(createdTask!.recurrence_type).toBe(
+          BUCKET_TO_RECURRENCE_TYPE.weekly
+        );
+        expect(createdTask!.scheduled_date).toEqual(today);
+        expect(createdTask!.completed).toBe(false);
+        expect(createdTask!.reference_task_id).toBe(referenceTask.id);
+      });
+    });
+
+    describe('Edge Cases and Error Handling', () => {
+      it('should handle reference tasks with end dates', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        await fixtures.createTestReferenceTask(testUser.id, testJournal.id, {
+          title: 'Limited Duration Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: yesterday,
+          ends_on: tomorrow,
+          is_active: true,
+        });
+
+        const today = new Date();
+        const threeDaysLater = new Date();
+        threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const resultTomorrow =
+          await taskService.createTasksFromReferenceTasksForUser(
+            testUser.id,
+            tomorrow
+          );
+        expect(parseInt(resultTomorrow.tasks_created)).toBe(1);
+
+        const result2 = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          threeDaysLater
+        );
+        expect(parseInt(result2.tasks_created)).toBe(0);
+      });
+
+      it('should return zero results for user with no reference tasks', async () => {
+        const testUser = await fixtures.createTestUser();
+        const today = new Date();
+
+        const result = await taskService.createTasksFromReferenceTasksForUser(
+          testUser.id,
+          today
+        );
+
+        expect(parseInt(result.tasks_created)).toBe(0);
+        expect(parseInt(result.tasks_skipped)).toBe(0);
+      });
+
+      it('should only process tasks for the specified user', async () => {
+        const user1 = await fixtures.createTestUser();
+        const user2 = await fixtures.createTestUser();
+        const journal1 = await fixtures.createTestJournal(user1.id);
+        const journal2 = await fixtures.createTestJournal(user2.id);
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        await fixtures.createTestReferenceTask(user1.id, journal1.id, {
+          title: 'User 1 Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: yesterday,
+          is_active: true,
+        });
+
+        await fixtures.createTestReferenceTask(user2.id, journal2.id, {
+          title: 'User 2 Task',
+          recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          recurrence_interval: 1,
+          starts_on: yesterday,
+          is_active: true,
+        });
+
+        const today = new Date();
+
+        const result1 = await taskService.createTasksFromReferenceTasksForUser(
+          user1.id,
+          today
+        );
+        expect(parseInt(result1.tasks_created)).toBe(1);
+
+        const user1Tasks = await taskService.getUserTasks(user1.id);
+        const user2Tasks = await taskService.getUserTasks(user2.id);
+
+        expect(
+          user1Tasks.filter((task) => task.reference_task_id)
+        ).toHaveLength(1);
+        expect(
+          user2Tasks.filter((task) => task.reference_task_id)
+        ).toHaveLength(0);
+      });
     });
   });
 });

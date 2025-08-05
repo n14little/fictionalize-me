@@ -895,7 +895,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           EXCLUDED.recurrence_day_of_month,
           EXCLUDED.starts_on,
           EXCLUDED.ends_on,
-          CURRENT_DATE
+          GREATEST(EXCLUDED.starts_on, CURRENT_DATE)
         ),
         updated_at = NOW()
       RETURNING *`;
@@ -926,7 +926,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           EXCLUDED.recurrence_day_of_month,
           EXCLUDED.starts_on,
           EXCLUDED.ends_on,
-          CURRENT_DATE
+          GREATEST(EXCLUDED.starts_on, CURRENT_DATE)
         ),
         updated_at = NOW()
       RETURNING *`;
