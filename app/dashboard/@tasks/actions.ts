@@ -73,9 +73,8 @@ export async function reorderTask(formData: FormData) {
     }
 
     // Use the optimized method that handles everything in a single transaction
-    const descendantIdsList = hasDescendants && descendantIds 
-      ? descendantIds.split(',') 
-      : undefined;
+    const descendantIdsList =
+      hasDescendants && descendantIds ? descendantIds.split(',') : undefined;
 
     const result = await taskService.reorderPendingTaskWithDescendants(
       taskId,

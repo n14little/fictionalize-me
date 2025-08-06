@@ -83,11 +83,11 @@ export const createTaskService = (queryFn: QueryFunction) => {
       }
 
       if (journal.public) {
-        return taskRepo.findByJournalId(journalId);
+        return taskRepo.findByJournalIdHierarchical(journalId);
       }
 
       if (userId && journal.user_id === userId) {
-        return taskRepo.findByJournalId(journalId);
+        return taskRepo.findByJournalIdHierarchical(journalId);
       }
 
       return [];

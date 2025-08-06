@@ -150,6 +150,8 @@ export async function reorderTask(formData: FormData) {
   const referenceTaskId = formData.get('referenceTaskId') as string;
   const position = formData.get('position') as 'above' | 'below';
   const journalId = formData.get('journalId') as string;
+  const hasDescendants = formData.get('hasDescendants') === 'true';
+  const descendantIds = formData.get('descendantIds') as string;
 
   try {
     const user = await authService.getCurrentUser();
@@ -157,7 +159,21 @@ export async function reorderTask(formData: FormData) {
       throw new Error('You must be logged in to reorder tasks');
     }
 
-    await taskService.reorderTask(taskId, user.id, referenceTaskId, position);
+    // Use the optimized method that handles everything in a single transaction
+    const descendantIdsList =
+      hasDescendants && descendantIds ? descendantIds.split(',') : undefined;
+
+    const result = await taskService.reorderPendingTaskWithDescendants(
+      taskId,
+      user.id,
+      referenceTaskId,
+      position,
+      descendantIdsList
+    );
+
+    if (!result) {
+      throw new Error('Failed to reorder task');
+    }
 
     // Revalidate the journal page and dashboard
     revalidatePath(`/journals/${journalId}`);

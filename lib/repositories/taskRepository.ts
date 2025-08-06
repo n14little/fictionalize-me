@@ -28,6 +28,33 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     },
 
     /**
+     * Find all tasks for a specific journal with hierarchical ordering
+     * Returns tasks ordered by hierarchy (parent tasks followed by their children)
+     */
+    findByJournalIdHierarchical: async (journalId: string): Promise<Task[]> => {
+      const result = await queryFn(
+        `WITH RECURSIVE task_hierarchy AS (
+          -- Start with top-level tasks (no parent)
+          SELECT *, 0 as level, ARRAY[priority] as sort_path
+          FROM tasks 
+          WHERE journal_id = $1 AND parent_task_id IS NULL
+          
+          UNION ALL
+          
+          -- Recursively find children
+          SELECT t.*, th.level + 1, th.sort_path || t.priority
+          FROM tasks t
+          INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
+          WHERE th.level < 3  -- Prevent infinite recursion, max 3 levels
+        )
+        SELECT * FROM task_hierarchy 
+        ORDER BY sort_path`,
+        [journalId]
+      );
+      return result.rows as Task[];
+    },
+
+    /**
      * Find a task by ID
      */
     findById: async (id: string): Promise<Task | null> => {
@@ -1188,7 +1215,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     ): Promise<Task | null> => {
       // Use a transaction to ensure atomicity
       await queryFn('BEGIN');
-      
+
       try {
         // First, get the new priority for the parent task
         const newPriorityResult = await queryFn(
@@ -1232,7 +1259,9 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           return null;
         }
 
-        const newPriority = (newPriorityResult.rows[0] as { new_priority: number }).new_priority;
+        const newPriority = (
+          newPriorityResult.rows[0] as { new_priority: number }
+        ).new_priority;
 
         // Update the parent task priority
         const parentResult = await queryFn(
@@ -1249,18 +1278,27 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         // If there are descendants, update their priorities in a batch
         if (descendantIds && descendantIds.length > 0) {
           // Calculate the proper spacing to ensure descendants fit between parent and adjacent task
-          const adjacentPriority = (newPriorityResult.rows[0] as { ref_priority: number; adj_priority: number | null }).adj_priority;
-          
+          const adjacentPriority = (
+            newPriorityResult.rows[0] as {
+              ref_priority: number;
+              adj_priority: number | null;
+            }
+          ).adj_priority;
+
           let priorityOffsets: number[];
-          
+
           if (adjacentPriority !== null) {
             // We have an adjacent task, so we need to fit all descendants between parent and adjacent
             const availableSpace = adjacentPriority - newPriority;
             const increment = availableSpace / (descendantIds.length + 1);
-            priorityOffsets = descendantIds.map((_, index) => increment * (index + 1));
+            priorityOffsets = descendantIds.map(
+              (_, index) => increment * (index + 1)
+            );
           } else {
             // No adjacent task, so we can use simple increments
-            priorityOffsets = descendantIds.map((_, index) => (index + 1) * 100);
+            priorityOffsets = descendantIds.map(
+              (_, index) => (index + 1) * 100
+            );
           }
 
           const descendantIdsArray = descendantIds;
