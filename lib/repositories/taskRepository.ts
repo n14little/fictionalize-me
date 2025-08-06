@@ -1176,6 +1176,113 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     },
 
     /**
+     * Reorder a pending task with descendants in a single transaction
+     * This handles the entire hierarchical reorder operation atomically
+     */
+    reorderPendingTaskWithDescendants: async (
+      taskId: string,
+      userId: number,
+      referenceTaskId: string,
+      position: 'above' | 'below',
+      descendantIds?: string[]
+    ): Promise<Task | null> => {
+      // Use a transaction to ensure atomicity
+      await queryFn('BEGIN');
+      
+      try {
+        // First, get the new priority for the parent task
+        const newPriorityResult = await queryFn(
+          `WITH reference_task AS (
+            SELECT priority as ref_priority
+            FROM tasks
+            WHERE id = $2 AND user_id = $1
+          ),
+          adjacent_priority AS (
+            SELECT 
+              CASE 
+                WHEN $4 = 'above' THEN 
+                  (SELECT priority FROM tasks 
+                   WHERE user_id = $1 AND completed = false AND id != $3 
+                     AND priority < (SELECT ref_priority FROM reference_task)
+                   ORDER BY priority DESC LIMIT 1)
+                ELSE 
+                  (SELECT priority FROM tasks 
+                   WHERE user_id = $1 AND completed = false AND id != $3 
+                     AND priority > (SELECT ref_priority FROM reference_task)
+                   ORDER BY priority ASC LIMIT 1)
+              END as adj_priority
+          )
+          SELECT 
+            ref_priority,
+            adj_priority,
+            CASE 
+              WHEN adj_priority IS NOT NULL THEN 
+                (ref_priority + adj_priority) / 2.0
+              WHEN $4 = 'above' THEN 
+                ref_priority - 1000
+              ELSE 
+                ref_priority + 1000
+            END as new_priority
+          FROM reference_task, adjacent_priority`,
+          [userId, referenceTaskId, taskId, position]
+        );
+
+        if (!newPriorityResult.rows[0]) {
+          await queryFn('ROLLBACK');
+          return null;
+        }
+
+        const newPriority = (newPriorityResult.rows[0] as { new_priority: number }).new_priority;
+
+        // Update the parent task priority
+        const parentResult = await queryFn(
+          'UPDATE tasks SET priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+          [newPriority, taskId]
+        );
+
+        const parentTask = (parentResult.rows[0] as Task) || null;
+        if (!parentTask) {
+          await queryFn('ROLLBACK');
+          return null;
+        }
+
+        // If there are descendants, update their priorities in a batch
+        if (descendantIds && descendantIds.length > 0) {
+          // Calculate the proper spacing to ensure descendants fit between parent and adjacent task
+          const adjacentPriority = (newPriorityResult.rows[0] as { ref_priority: number; adj_priority: number | null }).adj_priority;
+          
+          let priorityOffsets: number[];
+          
+          if (adjacentPriority !== null) {
+            // We have an adjacent task, so we need to fit all descendants between parent and adjacent
+            const availableSpace = adjacentPriority - newPriority;
+            const increment = availableSpace / (descendantIds.length + 1);
+            priorityOffsets = descendantIds.map((_, index) => increment * (index + 1));
+          } else {
+            // No adjacent task, so we can use simple increments
+            priorityOffsets = descendantIds.map((_, index) => (index + 1) * 100);
+          }
+
+          const descendantIdsArray = descendantIds;
+
+          await queryFn(
+            `UPDATE tasks 
+             SET priority = $1 + priority_offset, updated_at = NOW()
+             FROM UNNEST($2::uuid[], $3::numeric[]) AS t(id, priority_offset)
+             WHERE tasks.id = t.id`,
+            [newPriority, descendantIdsArray, priorityOffsets]
+          );
+        }
+
+        await queryFn('COMMIT');
+        return parentTask;
+      } catch (error) {
+        await queryFn('ROLLBACK');
+        throw error;
+      }
+    },
+
+    /**
      * Find tasks for a user with bucketing information based on reference task recurrence type
      */
     findBucketedTasksByUserId: async (

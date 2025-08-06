@@ -356,6 +356,26 @@ export const createTaskService = (queryFn: QueryFunction) => {
     },
 
     /**
+     * Reorder a pending task with descendants in a single transaction
+     * This handles the entire hierarchical reorder operation atomically
+     */
+    reorderPendingTaskWithDescendants: async (
+      taskId: string,
+      userId: number,
+      referenceTaskId: string,
+      position: 'above' | 'below',
+      descendantIds?: string[]
+    ): Promise<Task | null> => {
+      return taskRepo.reorderPendingTaskWithDescendants(
+        taskId,
+        userId,
+        referenceTaskId,
+        position,
+        descendantIds
+      );
+    },
+
+    /**
      * Create tasks from reference tasks for a specific user and date
      * This processes all active reference tasks for the user that are due on the target date
      */
