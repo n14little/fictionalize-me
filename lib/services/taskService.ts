@@ -39,6 +39,26 @@ export const createTaskService = (queryFn: QueryFunction) => {
     },
 
     /**
+     * Get all tasks for a user organized into buckets with hierarchical ordering preserved
+     */
+    getUserTasksBucketedHierarchical: async (
+      userId: number,
+      filters?: { completed?: boolean }
+    ): Promise<TaskBuckets> => {
+      const bucketedTasks =
+        await taskRepo.findBucketedTasksByUserIdHierarchical(userId, filters);
+
+      return {
+        daily: bucketedTasks.filter((task) => task.task_bucket === 'daily'),
+        weekly: bucketedTasks.filter((task) => task.task_bucket === 'weekly'),
+        monthly: bucketedTasks.filter((task) => task.task_bucket === 'monthly'),
+        yearly: bucketedTasks.filter((task) => task.task_bucket === 'yearly'),
+        custom: bucketedTasks.filter((task) => task.task_bucket === 'custom'),
+        regular: bucketedTasks.filter((task) => task.task_bucket === 'regular'),
+      };
+    },
+
+    /**
      * Get all tasks for a user with bucketing information (flat array)
      * This returns the raw bucketed tasks in their proper order
      */

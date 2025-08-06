@@ -1212,6 +1212,65 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
 
       return result.rows as BucketedTask[];
     },
+
+    /**
+     * Find tasks for a user with bucketing information AND hierarchical ordering
+     * This preserves parent-child relationships within each bucket
+     */
+    findBucketedTasksByUserIdHierarchical: async (
+      userId: number,
+      filters?: { completed?: boolean }
+    ): Promise<BucketedTask[]> => {
+      let whereClause = 'WHERE t.user_id = $1';
+      const params: (number | boolean)[] = [userId];
+
+      if (filters?.completed !== undefined) {
+        whereClause += ` AND t.completed = $${params.length + 1}`;
+        params.push(filters.completed);
+      }
+
+      const result = await queryFn(
+        `WITH RECURSIVE task_hierarchy AS (
+          -- Start with top-level tasks (no parent)
+          SELECT 
+            t.*,
+            CASE t.recurrence_type
+              WHEN 1 THEN 'daily'
+              WHEN 2 THEN 'weekly'
+              WHEN 3 THEN 'monthly'
+              WHEN 4 THEN 'yearly'
+              WHEN 5 THEN 'custom'
+              ELSE 'regular'
+            END as task_bucket,
+            0 as level, 
+            ARRAY[
+              -- First sort by bucket priority (reference tasks before regular)
+              CASE WHEN t.recurrence_type IS NOT NULL THEN t.recurrence_type ELSE 999 END,
+              -- Then by task priority within bucket
+              t.priority
+            ] as sort_path
+          FROM tasks t
+          ${whereClause} AND t.parent_task_id IS NULL
+          
+          UNION ALL
+          
+          -- Recursively find children
+          SELECT 
+            t.*,
+            th.task_bucket, -- Children inherit parent's bucket
+            th.level + 1,
+            th.sort_path || t.priority
+          FROM tasks t
+          INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
+          WHERE th.level < 3  -- Prevent infinite recursion, max 3 levels
+        )
+        SELECT * FROM task_hierarchy 
+        ORDER BY sort_path`,
+        params
+      );
+
+      return result.rows as BucketedTask[];
+    },
   };
 
   return repository;

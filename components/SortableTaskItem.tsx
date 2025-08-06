@@ -8,12 +8,14 @@ interface SortableTaskItemProps {
   id: string;
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export function SortableTaskItem({
   id,
   children,
   className = '',
+  style: customStyle,
 }: SortableTaskItemProps) {
   const {
     attributes,
@@ -28,6 +30,7 @@ export function SortableTaskItem({
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
     opacity: isDragging ? 0.8 : 1,
+    ...customStyle, // Apply custom styles like marginLeft for indentation
   };
 
   return (

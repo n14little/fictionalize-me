@@ -23,6 +23,24 @@ export function DashboardTasksList({
   const [showCompleted, setShowCompleted] = useState(false);
   const [, startTransition] = useTransition();
 
+  // Calculate indentation level for hierarchical display
+  const getTaskLevel = (
+    task: BucketedTask,
+    allTasks: BucketedTask[]
+  ): number => {
+    let level = 0;
+    let currentTask = task;
+
+    while (currentTask.parent_task_id) {
+      level++;
+      const parent = allTasks.find((t) => t.id === currentTask.parent_task_id);
+      if (!parent) break; // Safety check
+      currentTask = parent;
+    }
+
+    return level;
+  };
+
   const handleReorder = async (
     taskId: string,
     referenceTaskId: string,
@@ -31,6 +49,40 @@ export function DashboardTasksList({
     return new Promise<void>((resolve, reject) => {
       startTransition(async () => {
         try {
+          // Get all tasks from all buckets to find hierarchical relationships
+          const allTasks = [
+            ...taskBuckets.daily,
+            ...taskBuckets.weekly,
+            ...taskBuckets.monthly,
+            ...taskBuckets.yearly,
+            ...taskBuckets.custom,
+            ...taskBuckets.regular,
+          ];
+
+          // Find the task being moved
+          const draggedTask = allTasks.find((t) => t.id === taskId);
+          if (!draggedTask) {
+            reject(new Error('Dragged task not found'));
+            return;
+          }
+
+          // If dragging a parent task, we need to move all its descendants too
+          const getDescendants = (parentId: string): BucketedTask[] => {
+            const descendants: BucketedTask[] = [];
+            const children = allTasks.filter(
+              (t) => t.parent_task_id === parentId
+            );
+
+            for (const child of children) {
+              descendants.push(child);
+              descendants.push(...getDescendants(child.id));
+            }
+
+            return descendants;
+          };
+
+          const descendants = getDescendants(taskId);
+
           const formData = new FormData();
           formData.append('taskId', taskId);
           formData.append('referenceTaskId', referenceTaskId);
@@ -40,6 +92,15 @@ export function DashboardTasksList({
           const csrfResponse = await fetch('/api/csrf');
           const csrfData = await csrfResponse.json();
           formData.append('csrf_token', csrfData.csrfToken);
+
+          // If there are descendants, we need to handle them specially
+          if (descendants.length > 0) {
+            formData.append('hasDescendants', 'true');
+            formData.append(
+              'descendantIds',
+              descendants.map((d) => d.id).join(',')
+            );
+          }
 
           await reorderTask(formData);
           resolve();
@@ -60,11 +121,24 @@ export function DashboardTasksList({
     });
   };
 
-  const renderTask = (task: BucketedTask) => (
-    <SortableTaskItem key={task.id} id={task.id}>
-      <NavigableTaskItem task={task} />
-    </SortableTaskItem>
-  );
+  const renderTask = (task: BucketedTask, allBucketTasks: BucketedTask[]) => {
+    const level = getTaskLevel(task, allBucketTasks);
+    const isSubTask = level > 0;
+
+    return (
+      <SortableTaskItem
+        key={task.id}
+        id={task.id}
+        className={isSubTask ? 'relative' : ''}
+        style={{ marginLeft: `${level * 12}px` }}
+      >
+        {isSubTask && (
+          <div className="absolute -left-3 top-4 w-2 h-0.5 bg-gray-300"></div>
+        )}
+        <NavigableTaskItem task={task} />
+      </SortableTaskItem>
+    );
+  };
 
   // Calculate bucketed pending tasks
   const pendingBuckets = {
@@ -115,7 +189,9 @@ export function DashboardTasksList({
                     <DraggableTaskList
                       tasks={bucketTasks}
                       onReorder={handleReorder}
-                      renderTask={(task) => renderTask(task as BucketedTask)}
+                      renderTask={(task) =>
+                        renderTask(task as BucketedTask, bucketTasks)
+                      }
                       className="space-y-1"
                     />
                   </div>
