@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -44,6 +44,11 @@ export function DraggableTaskList({
 }: DraggableTaskListProps) {
   const [localTasks, setLocalTasks] = useState(tasks);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -107,21 +112,25 @@ export function DraggableTaskList({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-    >
-      <SortableContext
-        items={localTasks.map((task) => task.id)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className={className}>
-          {localTasks.map((task) => renderTask(task))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <div className={className}>
+      {isMounted ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+        >
+          <SortableContext
+            items={localTasks.map((task) => task.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {localTasks.map((task) => renderTask(task))}
+          </SortableContext>
+        </DndContext>
+      ) : (
+        localTasks.map((task) => renderTask(task))
+      )}
+    </div>
   );
 }
