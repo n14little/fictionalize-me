@@ -580,7 +580,13 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(parseInt(result7.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
-        const weeklyTasks = userTasks.filter((task) => task.reference_task_id);
+        const weeklyTasks = userTasks
+          .filter((task) => task.reference_task_id)
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_date!).getTime() -
+              new Date(b.scheduled_date!).getTime()
+          );
         expect(weeklyTasks).toHaveLength(2);
 
         expect(weeklyTasks[0].scheduled_date).toEqual(today);
@@ -623,9 +629,13 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(parseInt(result3.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
-        const biWeeklyTasks = userTasks.filter(
-          (task) => task.reference_task_id
-        );
+        const biWeeklyTasks = userTasks
+          .filter((task) => task.reference_task_id)
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_date!).getTime() -
+              new Date(b.scheduled_date!).getTime()
+          );
         expect(biWeeklyTasks).toHaveLength(2);
 
         expect(biWeeklyTasks[0].scheduled_date).toEqual(today);
@@ -698,7 +708,13 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(parseInt(resultOneWeekLater.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
-        const weeklyTasks = userTasks.filter((task) => task.reference_task_id);
+        const weeklyTasks = userTasks
+          .filter((task) => task.reference_task_id)
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_date!).getTime() -
+              new Date(b.scheduled_date!).getTime()
+          );
         expect(weeklyTasks).toHaveLength(3);
 
         // Create dates without time components for comparison
@@ -823,9 +839,13 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(parseInt(result4.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
-        const quarterlyTasks = userTasks.filter(
-          (task) => task.reference_task_id
-        );
+        const quarterlyTasks = userTasks
+          .filter((task) => task.reference_task_id)
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_date!).getTime() -
+              new Date(b.scheduled_date!).getTime()
+          );
         expect(quarterlyTasks).toHaveLength(2);
         expect(quarterlyTasks[0].scheduled_date).toEqual(today);
         expect(quarterlyTasks[1].scheduled_date).toEqual(threeMonthsLater);
@@ -931,9 +951,13 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(parseInt(result4.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
-        const everyOtherDayTasks = userTasks.filter(
-          (task) => task.reference_task_id
-        );
+        const everyOtherDayTasks = userTasks
+          .filter((task) => task.reference_task_id)
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_date!).getTime() -
+              new Date(b.scheduled_date!).getTime()
+          );
         expect(everyOtherDayTasks).toHaveLength(3); // Today, day after tomorrow, and four days later
         expect(everyOtherDayTasks[0].scheduled_date).toEqual(today);
         expect(everyOtherDayTasks[1].scheduled_date).toEqual(dayAfter);
@@ -985,7 +1009,13 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(parseInt(result4.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
-        const yearlyTasks = userTasks.filter((task) => task.reference_task_id);
+        const yearlyTasks = userTasks
+          .filter((task) => task.reference_task_id)
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_date!).getTime() -
+              new Date(b.scheduled_date!).getTime()
+          );
         expect(yearlyTasks).toHaveLength(2);
         expect(yearlyTasks[0].scheduled_date).toEqual(today);
         expect(yearlyTasks[1].scheduled_date).toEqual(oneYearLater);

@@ -136,6 +136,42 @@ export const createTaskService = (queryFn: QueryFunction) => {
     },
 
     /**
+     * Create a new task with specific priority position
+     * Use this when you want to insert a task at a specific position relative to other tasks
+     */
+    createTaskAtPosition: async (
+      userId: number,
+      data: Omit<CreateTask, 'user_id'>,
+      referenceTaskId?: string,
+      position?: 'above' | 'below'
+    ): Promise<Task | null> => {
+      let priority: number | undefined;
+
+      if (referenceTaskId && position) {
+        // Calculate priority based on reference task
+        const calculatedPriority = await taskRepo.calculateNewPriority(
+          userId,
+          '', // We don't have a task ID yet, but this is for calculation only
+          referenceTaskId,
+          position
+        );
+
+        if (calculatedPriority === null) {
+          return null; // Reference task not found or invalid
+        }
+
+        priority = calculatedPriority;
+      }
+
+      // Create task with calculated priority
+      return taskRepo.create({
+        ...data,
+        user_id: userId,
+        priority: priority,
+      });
+    },
+
+    /**
      * Update a task
      */
     updateTask: async (
@@ -299,7 +335,7 @@ export const createTaskService = (queryFn: QueryFunction) => {
       if (newPriority === null) {
         return null;
       }
-
+      //
       return taskRepo.updatePriority(taskId, newPriority);
     },
 

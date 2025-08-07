@@ -67,15 +67,12 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     create: async (taskData: CreateTask): Promise<Task> => {
       const result = await queryFn(
         `INSERT INTO tasks (
-        journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, parent_task_id
-      ) VALUES (
-        $1, $2, $3, $4, 
-        CASE 
-          WHEN $5::INTEGER IS NOT NULL THEN $5::INTEGER
-          ELSE COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $2), 0) + 1000
-        END,
-        $6, $7, $8, $9
-      ) RETURNING *`,
+          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, parent_task_id
+        ) VALUES (
+          $1, $2, $3, $4, 
+          COALESCE($5, calculate_next_priority($2)), 
+          $6, $7, $8, $9
+        ) RETURNING *`,
         [
           taskData.journal_id,
           taskData.user_id,
@@ -287,7 +284,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     ): Promise<Task | null> => {
       const result = await queryFn(
         `INSERT INTO tasks (journal_id, user_id, title, description, priority)
-         SELECT $2, $1, $3, $4, COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $1), 0) + 1000
+         SELECT $2, $1, $3, $4, calculate_next_priority($1)
          FROM journals j
          WHERE j.id = $2 AND j.user_id = $1
          RETURNING *`,
@@ -340,7 +337,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           $1,
           $3,
           $4,
-          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $1), 0) + 1000,
+          calculate_subtask_priority($1, $2, 'end'),
           $2,
           pv.recurrence_type,
           pv.reference_task_id
@@ -608,6 +605,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
 
     /**
      * Calculate new priority for a task relative to a reference task
+     * Uses database function for single-query operation
      */
     calculateNewPriority: async (
       userId: number,
@@ -615,64 +613,17 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       referenceTaskId: string,
       position: 'above' | 'below'
     ): Promise<number | null> => {
-      // Get the reference task priority
-      const referenceResult = await queryFn(
-        'SELECT priority FROM tasks WHERE id = $1 AND user_id = $2',
-        [referenceTaskId, userId]
+      const result = await queryFn(
+        'SELECT calculate_priority_relative_to_task($1, $2, $3, $4) as new_priority',
+        [userId, referenceTaskId, position, taskId]
       );
 
-      if (!referenceResult.rows[0]) {
-        return null;
-      }
-
-      const referencePriority = (
-        referenceResult.rows[0] as { priority: number }
-      ).priority;
-
-      if (position === 'above') {
-        // To place above the reference task, find the task immediately before it
-        const beforeResult = await queryFn(
-          `SELECT priority FROM tasks 
-         WHERE user_id = $1 AND priority < $2 AND id != $3
-         ORDER BY priority DESC LIMIT 1`,
-          [userId, referencePriority, taskId]
-        );
-
-        if (beforeResult.rows[0]) {
-          // Place between the before task and reference task
-          const beforePriority = (beforeResult.rows[0] as { priority: number })
-            .priority;
-          return (beforePriority + referencePriority) / 2;
-        } else {
-          // No task before reference - place at the very beginning
-          return referencePriority - 1000;
-        }
-      } else {
-        // position === 'below'
-        // To place below the reference task, find the task immediately after it
-        const afterResult = await queryFn(
-          `SELECT priority FROM tasks 
-         WHERE user_id = $1 AND priority > $2 AND id != $3
-         ORDER BY priority ASC LIMIT 1`,
-          [userId, referencePriority, taskId]
-        );
-
-        if (afterResult.rows[0]) {
-          // Place between reference task and the task after it
-          const afterPriority = (afterResult.rows[0] as { priority: number })
-            .priority;
-          return (referencePriority + afterPriority) / 2;
-        } else {
-          // No task after reference - place at the very end
-          return referencePriority + 1000;
-        }
-      }
+      return (result.rows[0] as { new_priority: number })?.new_priority || null;
     },
 
     /**
      * Calculate new priority for a task relative to a reference task, considering only pending tasks
-     * This ensures that completed tasks do not interfere with pending task ordering
-     * Uses a single query to avoid concurrency issues
+     * Uses database function for single-query operation with completion filtering
      */
     calculateNewPriorityForPendingTasks: async (
       userId: number,
@@ -681,49 +632,11 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       position: 'above' | 'below'
     ): Promise<number | null> => {
       const result = await queryFn(
-        `WITH reference_task AS (
-        SELECT priority as ref_priority
-        FROM tasks
-        WHERE id = $2 AND user_id = $1
-      ),
-      adjacent_priority AS (
-        SELECT 
-          CASE 
-            WHEN $4 = 'above' THEN 
-              (SELECT priority FROM tasks 
-               WHERE user_id = $1 AND completed = false AND id != $3 
-                 AND priority < (SELECT ref_priority FROM reference_task)
-               ORDER BY priority DESC LIMIT 1)
-            ELSE 
-              (SELECT priority FROM tasks 
-               WHERE user_id = $1 AND completed = false AND id != $3 
-                 AND priority > (SELECT ref_priority FROM reference_task)
-               ORDER BY priority ASC LIMIT 1)
-          END as adj_priority
-      )
-      SELECT 
-        ref_priority,
-        adj_priority,
-        CASE 
-          WHEN adj_priority IS NOT NULL THEN 
-            (ref_priority + adj_priority) / 2.0
-          WHEN $4 = 'above' THEN 
-            ref_priority - 1000
-          ELSE 
-            ref_priority + 1000
-        END as new_priority
-      FROM reference_task, adjacent_priority`,
-        [userId, referenceTaskId, taskId, position]
+        'SELECT calculate_priority_relative_to_task($1, $2, $3, $4, false) as new_priority',
+        [userId, referenceTaskId, position, taskId]
       );
 
-      if (
-        !result.rows[0] ||
-        (result.rows[0] as { ref_priority: number }).ref_priority === null
-      ) {
-        return null;
-      }
-
-      return (result.rows[0] as { new_priority: number }).new_priority;
+      return (result.rows[0] as { new_priority: number })?.new_priority || null;
     },
 
     // ===== TASK HIERARCHY METHODS =====
@@ -987,6 +900,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       }
 
       // Step 2: Insert tasks for eligible reference tasks that don't already have tasks for this date
+      // Use database function to calculate priorities automatically
       const insertResult = await queryFn(
         `INSERT INTO tasks (
           journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
@@ -996,7 +910,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           rt.user_id,
           rt.title,
           rt.description,
-          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority,
+          calculate_next_priority(rt.user_id) + (ROW_NUMBER() OVER (ORDER BY rt.id) - 1) * 10,
           rt.id,
           rt.recurrence_type,
           $2::date
@@ -1075,6 +989,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       }
 
       // Step 2: Insert tasks for eligible reference tasks that don't already have tasks for this date
+      // Use database function to calculate priorities automatically with proper spacing per user
       const insertResult = await queryFn(
         `INSERT INTO tasks (
           journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
@@ -1084,7 +999,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           rt.user_id,
           rt.title,
           rt.description,
-          COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = rt.user_id), 0) + 1000 as priority,
+          calculate_next_priority(rt.user_id) + (ROW_NUMBER() OVER (PARTITION BY rt.user_id ORDER BY rt.id) - 1) * 10,
           rt.id,
           rt.recurrence_type,
           $1::date
@@ -1143,7 +1058,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
 
     /**
      * Reorder a pending task with descendants in a single transaction
-     * This handles the entire hierarchical reorder operation atomically
+     * This handles the entire hierarchical reorder operation atomically using database functions
      */
     reorderPendingTaskWithDescendants: async (
       taskId: string,
@@ -1156,56 +1071,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       await queryFn('BEGIN');
 
       try {
-        // First, get the new priority for the parent task
-        const newPriorityResult = await queryFn(
-          `WITH reference_task AS (
-            SELECT priority as ref_priority
-            FROM tasks
-            WHERE id = $2 AND user_id = $1
-          ),
-          adjacent_priority AS (
-            SELECT 
-              CASE 
-                WHEN $4 = 'above' THEN 
-                  (SELECT priority FROM tasks 
-                   WHERE user_id = $1 AND completed = false AND id != $3 
-                     AND priority < (SELECT ref_priority FROM reference_task)
-                   ORDER BY priority DESC LIMIT 1)
-                ELSE 
-                  (SELECT priority FROM tasks 
-                   WHERE user_id = $1 AND completed = false AND id != $3 
-                     AND priority > (SELECT ref_priority FROM reference_task)
-                   ORDER BY priority ASC LIMIT 1)
-              END as adj_priority
-          )
-          SELECT 
-            ref_priority,
-            adj_priority,
-            CASE 
-              WHEN adj_priority IS NOT NULL THEN 
-                (ref_priority + adj_priority) / 2.0
-              WHEN $4 = 'above' THEN 
-                ref_priority - 1000
-              ELSE 
-                ref_priority + 1000
-            END as new_priority
-          FROM reference_task, adjacent_priority`,
-          [userId, referenceTaskId, taskId, position]
-        );
-
-        if (!newPriorityResult.rows[0]) {
-          await queryFn('ROLLBACK');
-          return null;
-        }
-
-        const newPriority = (
-          newPriorityResult.rows[0] as { new_priority: number }
-        ).new_priority;
-
-        // Update the parent task priority
+        // Update the parent task priority using database function
         const parentResult = await queryFn(
-          'UPDATE tasks SET priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-          [newPriority, taskId]
+          `UPDATE tasks 
+           SET priority = calculate_priority_relative_to_task($2, $3, $4, $1, false),
+               updated_at = NOW()
+           WHERE id = $1 AND user_id = $2
+           RETURNING *`,
+          [taskId, userId, referenceTaskId, position]
         );
 
         const parentTask = (parentResult.rows[0] as Task) || null;
@@ -1214,40 +1087,40 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           return null;
         }
 
-        // If there are descendants, update their priorities in a batch
+        // If there are descendants, recalculate their priorities relative to the new parent position
         if (descendantIds && descendantIds.length > 0) {
-          // Calculate the proper spacing to ensure descendants fit between parent and adjacent task
-          const adjacentPriority = (
-            newPriorityResult.rows[0] as {
-              ref_priority: number;
-              adj_priority: number | null;
-            }
-          ).adj_priority;
-
-          let priorityOffsets: number[];
-
-          if (adjacentPriority !== null) {
-            // We have an adjacent task, so we need to fit all descendants between parent and adjacent
-            const availableSpace = adjacentPriority - newPriority;
-            const increment = availableSpace / (descendantIds.length + 1);
-            priorityOffsets = descendantIds.map(
-              (_, index) => increment * (index + 1)
-            );
-          } else {
-            // No adjacent task, so we can use simple increments
-            priorityOffsets = descendantIds.map(
-              (_, index) => (index + 1) * 100
-            );
-          }
-
-          const descendantIdsArray = descendantIds;
-
+          // Update all sub-task priorities to maintain proper spacing relative to the new parent position
           await queryFn(
-            `UPDATE tasks 
-             SET priority = $1 + priority_offset, updated_at = NOW()
-             FROM UNNEST($2::uuid[], $3::numeric[]) AS t(id, priority_offset)
-             WHERE tasks.id = t.id`,
-            [newPriority, descendantIdsArray, priorityOffsets]
+            `WITH sub_tasks_ordered AS (
+              SELECT id, ROW_NUMBER() OVER (ORDER BY priority ASC) as sub_order
+              FROM tasks 
+              WHERE parent_task_id = $1 
+              ORDER BY priority ASC
+            ),
+            next_root_task AS (
+              SELECT priority as next_priority
+              FROM tasks 
+              WHERE user_id = $2 
+                AND parent_task_id IS NULL 
+                AND priority > $3
+              ORDER BY priority ASC 
+              LIMIT 1
+            ),
+            priority_spacing AS (
+              SELECT 
+                COALESCE(
+                  (SELECT next_priority FROM next_root_task), 
+                  GREATEST($3 * 2, $3 + 1000)
+                ) as next_boundary,
+                $3 as parent_priority,
+                (SELECT COUNT(*) FROM tasks WHERE parent_task_id = $1) as total_subtasks
+            )
+            UPDATE tasks 
+            SET priority = ps.parent_priority + (sto.sub_order * ((ps.next_boundary - ps.parent_priority) / (ps.total_subtasks + 1))),
+                updated_at = NOW()
+            FROM sub_tasks_ordered sto, priority_spacing ps
+            WHERE tasks.id = sto.id`,
+            [taskId, userId, parentTask.priority]
           );
         }
 
