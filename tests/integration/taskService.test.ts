@@ -745,14 +745,6 @@ describe.sequential('TaskService - Integration Tests', () => {
         const oneMonthLater = getMonthsFromToday(1);
         const twoMonthsLater = getMonthsFromToday(2);
 
-        console.log('Test dates:', {
-          today: today.toISOString().split('T')[0],
-          tomorrow: tomorrow.toISOString().split('T')[0],
-          oneMonthLater: oneMonthLater.toISOString().split('T')[0],
-          twoMonthsLater: twoMonthsLater.toISOString().split('T')[0],
-          dayOfMonth: todayDayOfMonth,
-        });
-
         // First call: should create task for today and update next_scheduled_date to next month
         const result1 = await taskService.createTasksFromReferenceTasksForUser(
           testUser.id,
@@ -779,7 +771,6 @@ describe.sequential('TaskService - Integration Tests', () => {
           testUser.id,
           twoMonthsLater
         );
-        console.log('result4:', result4);
         expect(parseInt(result4.tasks_created)).toBe(1);
 
         const userTasks = await taskService.getUserTasks(testUser.id);
@@ -1235,6 +1226,456 @@ describe.sequential('TaskService - Integration Tests', () => {
         expect(
           user2Tasks.filter((task) => task.reference_task_id)
         ).toHaveLength(0);
+      });
+    });
+  });
+
+  describe('Hierarchical Task Operations', () => {
+    describe('createSubTask', () => {
+      it('should create a sub-task under a parent task', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        // Create parent task
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+
+        const subTaskData = {
+          title: 'Sub Task',
+          description: 'Sub task description',
+          journal_id: testJournal.id, // This will be inherited from parent
+        };
+
+        const createdSubTask = await taskService.createSubTask(
+          testUser.id,
+          parentTask.id,
+          subTaskData
+        );
+
+        expect(createdSubTask).toBeDefined();
+        expect(createdSubTask!.title).toBe(subTaskData.title);
+        expect(createdSubTask!.description).toBe(subTaskData.description);
+        expect(createdSubTask!.parent_task_id).toBe(parentTask.id);
+        expect(createdSubTask!.user_id).toBe(testUser.id);
+        expect(createdSubTask!.journal_id).toBe(testJournal.id);
+      });
+
+      it('should return null when parent task does not exist', async () => {
+        const testUser = await fixtures.createTestUser();
+        const nonExistentParentId = '00000000-0000-0000-0000-000000000000';
+
+        const subTaskData = {
+          title: 'Sub Task',
+          journal_id: 'some-journal-id',
+        };
+
+        const result = await taskService.createSubTask(
+          testUser.id,
+          nonExistentParentId,
+          subTaskData
+        );
+
+        expect(result).toBeNull();
+      });
+
+      it('should return null when user does not own parent task', async () => {
+        const owner = await fixtures.createTestUser();
+        const otherUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(owner.id);
+
+        const parentTask = await fixtures.createTestTask(
+          owner.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+
+        const subTaskData = {
+          title: 'Sub Task',
+          journal_id: testJournal.id,
+        };
+
+        const result = await taskService.createSubTask(
+          otherUser.id,
+          parentTask.id,
+          subTaskData
+        );
+
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('getValidParentTasks', () => {
+      it('should return valid parent tasks for a given task', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        // Create several tasks
+        const task1 = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Task 1',
+          }
+        );
+        await fixtures.createTestTask(testUser.id, testJournal.id, {
+          title: 'Task 2',
+        });
+        await fixtures.createTestTask(testUser.id, testJournal.id, {
+          title: 'Task 3',
+        });
+
+        const validParents = await taskService.getValidParentTasks(
+          task1.id,
+          testUser.id
+        );
+
+        expect(validParents).toHaveLength(2);
+        const parentTitles = validParents.map((t) => t.title).sort();
+        expect(parentTitles).toEqual(['Task 2', 'Task 3']);
+
+        // Should not include the task itself
+        expect(validParents.some((t) => t.id === task1.id)).toBe(false);
+      });
+
+      it('should exclude tasks that would create cycles', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        // Create parent and child tasks
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+        const childTask = await taskService.createSubTask(
+          testUser.id,
+          parentTask.id,
+          { title: 'Child Task', journal_id: testJournal.id }
+        );
+        const siblingTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Sibling Task',
+          }
+        );
+
+        // Get valid parents for the parent task - should not include its own child
+        const validParents = await taskService.getValidParentTasks(
+          parentTask.id,
+          testUser.id
+        );
+
+        expect(validParents.some((t) => t.id === childTask!.id)).toBe(false);
+        expect(validParents.some((t) => t.id === parentTask.id)).toBe(false);
+        expect(validParents.some((t) => t.id === siblingTask.id)).toBe(true);
+      });
+
+      it('should return empty array for user with no other tasks', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const onlyTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Only Task',
+          }
+        );
+
+        const validParents = await taskService.getValidParentTasks(
+          onlyTask.id,
+          testUser.id
+        );
+
+        expect(validParents).toHaveLength(0);
+      });
+    });
+
+    describe('handleTaskCompletion', () => {
+      it('should complete task when no incomplete sub-tasks exist', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+
+        const result = await taskService.handleTaskCompletion(
+          parentTask.id,
+          true
+        );
+
+        expect(result.task).toBeDefined();
+        expect(result.task!.completed).toBe(true);
+        expect(result.canComplete).toBe(true);
+        expect(result.incompleteChildren).toHaveLength(0);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should allow completion even when incomplete sub-tasks exist', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+        await taskService.createSubTask(testUser.id, parentTask.id, {
+          title: 'Incomplete Sub Task',
+          journal_id: testJournal.id,
+        });
+
+        const result = await taskService.handleTaskCompletion(
+          parentTask.id,
+          true
+        );
+
+        expect(result.task).toBeDefined();
+        expect(result.task!.completed).toBe(true);
+        expect(result.canComplete).toBe(true);
+        expect(result.incompleteChildren).toHaveLength(0);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should allow completion when all sub-tasks are completed', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+        const subTask = await taskService.createSubTask(
+          testUser.id,
+          parentTask.id,
+          { title: 'Sub Task', journal_id: testJournal.id }
+        );
+
+        // Complete the sub-task first
+        await taskService.toggleTaskCompletion(subTask!.id, testUser.id);
+
+        // Now try to complete the parent
+        const result = await taskService.handleTaskCompletion(
+          parentTask.id,
+          true
+        );
+
+        expect(result.task).toBeDefined();
+        expect(result.task!.completed).toBe(true);
+        expect(result.canComplete).toBe(true);
+        expect(result.incompleteChildren).toHaveLength(0);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should allow uncompleting a task regardless of sub-task status', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+          }
+        );
+
+        // Complete the parent task first
+        await taskService.toggleTaskCompletion(parentTask.id, testUser.id);
+
+        await taskService.createSubTask(testUser.id, parentTask.id, {
+          title: 'Incomplete Sub Task',
+          journal_id: testJournal.id,
+        });
+
+        const result = await taskService.handleTaskCompletion(
+          parentTask.id,
+          false
+        );
+
+        expect(result.task).toBeDefined();
+        expect(result.task!.completed).toBe(false);
+        expect(result.task!.completed_at).toBeNull();
+        expect(result.canComplete).toBe(true);
+        expect(result.incompleteChildren).toHaveLength(0);
+        expect(result.error).toBeUndefined();
+      });
+    });
+
+    describe('getUserTasksBucketedHierarchical', () => {
+      it('should return tasks with hierarchical ordering preserved within buckets', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        // Create reference tasks for different buckets
+        const dailyRefTask = await fixtures.createTestReferenceTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Daily Habit',
+            recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily,
+          }
+        );
+
+        // Create tasks with hierarchy
+        const dailyParentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Daily Parent Task',
+            reference_task_id: dailyRefTask.id,
+            priority: 100,
+          }
+        );
+
+        await taskService.createSubTask(testUser.id, dailyParentTask.id, {
+          title: 'Daily Sub Task',
+          journal_id: testJournal.id,
+        });
+
+        const regularParentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Regular Parent Task',
+            priority: 200,
+          }
+        );
+
+        await taskService.createSubTask(testUser.id, regularParentTask.id, {
+          title: 'Regular Sub Task',
+          journal_id: testJournal.id,
+        });
+
+        const buckets = await taskService.getUserTasksBucketedHierarchical(
+          testUser.id
+        );
+
+        // Check daily bucket has hierarchical ordering
+        expect(buckets.daily).toHaveLength(2);
+        expect(buckets.daily[0].title).toBe('Daily Parent Task');
+        expect(buckets.daily[1].title).toBe('Daily Sub Task');
+        expect(buckets.daily[1].parent_task_id).toBe(buckets.daily[0].id);
+
+        // Check regular bucket has hierarchical ordering
+        expect(buckets.regular).toHaveLength(2);
+        expect(buckets.regular[0].title).toBe('Regular Parent Task');
+        expect(buckets.regular[1].title).toBe('Regular Sub Task');
+        expect(buckets.regular[1].parent_task_id).toBe(buckets.regular[0].id);
+
+        // Other buckets should be empty
+        expect(buckets.weekly).toHaveLength(0);
+        expect(buckets.monthly).toHaveLength(0);
+        expect(buckets.yearly).toHaveLength(0);
+        expect(buckets.custom).toHaveLength(0);
+      });
+
+      it('should filter by completion status while preserving hierarchy', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+            priority: 100,
+          }
+        );
+
+        const completedSubTask = await taskService.createSubTask(
+          testUser.id,
+          parentTask.id,
+          { title: 'Completed Sub Task', journal_id: testJournal.id }
+        );
+
+        await taskService.createSubTask(testUser.id, parentTask.id, {
+          title: 'Pending Sub Task',
+          journal_id: testJournal.id,
+        });
+
+        // Complete one sub-task
+        await taskService.toggleTaskCompletion(
+          completedSubTask!.id,
+          testUser.id
+        );
+
+        // Test pending tasks only
+        const pendingBuckets =
+          await taskService.getUserTasksBucketedHierarchical(testUser.id, {
+            completed: false,
+          });
+
+        expect(pendingBuckets.regular).toHaveLength(2);
+        expect(pendingBuckets.regular.map((t) => t.title)).toEqual([
+          'Parent Task',
+          'Pending Sub Task',
+        ]);
+
+        // Test completed tasks only
+        const completedBuckets =
+          await taskService.getUserTasksBucketedHierarchical(testUser.id, {
+            completed: true,
+          });
+
+        expect(completedBuckets.regular).toHaveLength(1);
+        expect(completedBuckets.regular[0].title).toBe('Completed Sub Task');
+      });
+
+      it('should handle deep hierarchies correctly', async () => {
+        const testUser = await fixtures.createTestUser();
+        const testJournal = await fixtures.createTestJournal(testUser.id);
+
+        const parentTask = await fixtures.createTestTask(
+          testUser.id,
+          testJournal.id,
+          {
+            title: 'Parent Task',
+            priority: 100,
+          }
+        );
+
+        const level1Task = await taskService.createSubTask(
+          testUser.id,
+          parentTask.id,
+          { title: 'Level 1 Task', journal_id: testJournal.id }
+        );
+
+        await taskService.createSubTask(testUser.id, level1Task!.id, {
+          title: 'Level 2 Task',
+          journal_id: testJournal.id,
+        });
+
+        const buckets = await taskService.getUserTasksBucketedHierarchical(
+          testUser.id
+        );
+
+        expect(buckets.regular).toHaveLength(3);
+        expect(buckets.regular[0].title).toBe('Parent Task');
+        expect(buckets.regular[0].parent_task_id).toBeNull();
+        expect(buckets.regular[1].title).toBe('Level 1 Task');
+        expect(buckets.regular[1].parent_task_id).toBe(parentTask.id);
+        expect(buckets.regular[2].title).toBe('Level 2 Task');
+        expect(buckets.regular[2].parent_task_id).toBe(level1Task!.id);
       });
     });
   });

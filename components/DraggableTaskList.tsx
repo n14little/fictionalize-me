@@ -92,21 +92,6 @@ export function DraggableTaskList({
         position = 'above';
       }
 
-      console.log('Drag and drop calculation:', {
-        activeId: active.id,
-        overId: over.id,
-        oldIndex,
-        newIndex,
-        referenceTaskId,
-        position,
-        newTasksLength: newTasks.length,
-        scenario: oldIndex < newIndex ? 'moving down' : 'moving up',
-        activeTask: localTasks.find((t) => t.id === active.id),
-        referenceTask: localTasks.find((t) => t.id === over.id),
-        beforeTask: oldIndex < newIndex ? null : newTasks[newIndex - 1],
-        afterTask: oldIndex < newIndex ? newTasks[newIndex + 1] : null,
-      });
-
       try {
         await onReorder(active.id as string, referenceTaskId, position);
       } catch (error) {

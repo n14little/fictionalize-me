@@ -300,13 +300,6 @@ export const createTaskService = (queryFn: QueryFunction) => {
         return null;
       }
 
-      console.log('Reordering task:', {
-        taskId,
-        referenceTaskId,
-        position,
-        newPriority,
-      });
-
       return taskRepo.updatePriority(taskId, newPriority);
     },
 
@@ -327,7 +320,6 @@ export const createTaskService = (queryFn: QueryFunction) => {
 
       // Ensure we're only reordering pending tasks
       if (task.completed) {
-        console.log('Cannot reorder completed task:', taskId);
         return null;
       }
 
@@ -342,15 +334,6 @@ export const createTaskService = (queryFn: QueryFunction) => {
       if (newPriority === null) {
         return null;
       }
-
-      console.log('Reordering pending task:', {
-        taskId,
-        referenceTaskId,
-        position,
-        newPriority,
-        taskTitle: task.title,
-        oldPriority: task.priority,
-      });
 
       return taskRepo.updatePriority(taskId, newPriority);
     },

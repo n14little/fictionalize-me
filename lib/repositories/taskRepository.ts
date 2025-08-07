@@ -45,7 +45,6 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           SELECT t.*, th.level + 1, th.sort_path || t.priority
           FROM tasks t
           INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
-          WHERE th.level < 3  -- Prevent infinite recursion, max 3 levels
         )
         SELECT * FROM task_hierarchy 
         ORDER BY sort_path`,
@@ -314,6 +313,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     /**
      * Create a sub-task with validation in a single query
      * Returns null if validation fails, otherwise returns the created task
+     * Sub-tasks inherit recurrence_type and reference_task_id from parent for bucket consistency
      */
     createSubTaskWithValidation: async (
       userId: number,
@@ -327,24 +327,13 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
             t.id,
             t.user_id,
             t.journal_id,
-            COALESCE(
-              (WITH RECURSIVE task_depth AS (
-                SELECT t.id, 0 as depth
-                FROM tasks t
-                WHERE t.id = $2
-                UNION ALL
-                SELECT p.id, td.depth + 1
-                FROM tasks p
-                JOIN task_depth td ON p.parent_task_id = td.id
-                WHERE td.depth < 10
-              )
-              SELECT MAX(depth) FROM task_depth), 0
-            ) as current_depth
+            t.recurrence_type,
+            t.reference_task_id
           FROM tasks t
           WHERE t.id = $2 AND t.user_id = $1
         )
         INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, parent_task_id
+          journal_id, user_id, title, description, priority, parent_task_id, recurrence_type, reference_task_id
         )
         SELECT 
           pv.journal_id,
@@ -352,9 +341,11 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           $3,
           $4,
           COALESCE((SELECT MAX(priority) FROM tasks WHERE user_id = $1), 0) + 1000,
-          $2
+          $2,
+          pv.recurrence_type,
+          pv.reference_task_id
         FROM parent_validation pv
-        WHERE pv.id IS NOT NULL AND pv.current_depth < 2
+        WHERE pv.id IS NOT NULL
         RETURNING *`,
         [userId, parentId, title, description || null]
       );
@@ -370,30 +361,6 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     ): Promise<Task[]> => {
       const result = await queryFn(
         `WITH RECURSIVE 
-        -- Calculate depth for each task
-        task_depths AS (
-          SELECT 
-            t.id, 
-            t.parent_task_id,
-            CASE 
-              WHEN t.parent_task_id IS NULL THEN 0
-              ELSE (
-                WITH RECURSIVE depth_calc AS (
-                  SELECT id, parent_task_id, 0 as depth
-                  FROM tasks 
-                  WHERE id = t.id
-                  UNION ALL
-                  SELECT p.id, p.parent_task_id, dc.depth + 1
-                  FROM tasks p
-                  JOIN depth_calc dc ON p.id = dc.parent_task_id
-                  WHERE dc.depth < 10
-                )
-                SELECT MAX(depth) FROM depth_calc
-              )
-            END as depth
-          FROM tasks t
-          WHERE t.user_id = $2
-        ),
         -- Get all descendants of the target task to avoid cycles
         task_descendants AS (
           SELECT $1::uuid as id
@@ -404,11 +371,9 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         )
         SELECT t.*
         FROM tasks t
-        JOIN task_depths td ON t.id = td.id
         WHERE t.user_id = $2
         AND t.id != $1  -- Can't be parent of itself
         AND t.id NOT IN (SELECT id FROM task_descendants WHERE id != $1)  -- Avoid cycles
-        AND td.depth < 2  -- Not at max depth
         ORDER BY t.title`,
         [taskId, userId]
       );
@@ -476,7 +441,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     },
 
     /**
-     * Complete a task only if it has no incomplete child tasks
+     * Complete a task (simplified - no child task validation)
      */
     completeTaskWithValidation: async (
       taskId: string,
@@ -487,36 +452,12 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       incompleteChildren: Task[];
       error?: string;
     }> => {
-      // If uncompleting, skip validation
-      if (!completed) {
-        const updateResult = await queryFn(
-          'UPDATE tasks SET completed = $1, completed_at = NULL WHERE id = $2 RETURNING *',
-          [completed, taskId]
-        );
-        const task = (updateResult.rows[0] as Task) || null;
-        return { task, canComplete: true, incompleteChildren: [] };
-      }
-
-      // Check if task can be completed (no incomplete children)
-      const childResult = await queryFn(
-        'SELECT * FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY priority ASC',
-        [taskId]
-      );
-
-      const incompleteChildren = childResult.rows as Task[];
-
-      if (incompleteChildren.length > 0) {
-        return {
-          task: null,
-          canComplete: false,
-          incompleteChildren,
-          error: 'Cannot complete task while child tasks remain incomplete',
-        };
-      }
-
-      // Complete the task
+      // Simply update the task completion status
       const updateResult = await queryFn(
-        'UPDATE tasks SET completed = $1, completed_at = NOW() WHERE id = $2 RETURNING *',
+        `UPDATE tasks 
+         SET completed = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END 
+         WHERE id = $2 
+         RETURNING *`,
         [completed, taskId]
       );
 
@@ -816,7 +757,6 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           SELECT t.*, th.level + 1, th.sort_path || t.priority
           FROM tasks t
           INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
-          WHERE th.level < 3  -- Prevent infinite recursion, max 3 levels
         )
         SELECT * FROM task_hierarchy 
         ORDER BY sort_path`,
@@ -842,7 +782,6 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           SELECT t.id, t.completed, td.level + 1
           FROM tasks t
           INNER JOIN task_descendants td ON t.parent_task_id = td.id
-          WHERE td.level < 3  -- Max 3 levels deep
         )
         SELECT 1 FROM task_descendants WHERE completed = false LIMIT 1`,
         [taskId]
@@ -1366,51 +1305,56 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       userId: number,
       filters?: { completed?: boolean }
     ): Promise<BucketedTask[]> => {
-      let whereClause = 'WHERE t.user_id = $1';
       const params: (number | boolean)[] = [userId];
+      let filterClause = '';
 
       if (filters?.completed !== undefined) {
-        whereClause += ` AND t.completed = $${params.length + 1}`;
         params.push(filters.completed);
+        filterClause = ` AND t.completed = $${params.length}`;
       }
 
+      // Build hierarchy information for ALL tasks first, then filter while preserving order
       const result = await queryFn(
-        `WITH RECURSIVE task_hierarchy AS (
-          -- Start with top-level tasks (no parent)
+        `WITH RECURSIVE hierarchy_info AS (
+          -- Get all top-level tasks with their sort path as text for proper ordering
           SELECT 
-            t.*,
-            CASE t.recurrence_type
-              WHEN 1 THEN 'daily'
-              WHEN 2 THEN 'weekly'
-              WHEN 3 THEN 'monthly'
-              WHEN 4 THEN 'yearly'
-              WHEN 5 THEN 'custom'
-              ELSE 'regular'
-            END as task_bucket,
-            0 as level, 
-            ARRAY[
-              -- First sort by bucket priority (reference tasks before regular)
-              CASE WHEN t.recurrence_type IS NOT NULL THEN t.recurrence_type ELSE 999 END,
-              -- Then by task priority within bucket
-              t.priority
-            ] as sort_path
-          FROM tasks t
-          ${whereClause} AND t.parent_task_id IS NULL
+            id, parent_task_id, 0 as level, 
+            LPAD(priority::text, 10, '0') as sort_path,
+            priority as root_priority
+          FROM tasks 
+          WHERE parent_task_id IS NULL AND user_id = $1
           
           UNION ALL
           
-          -- Recursively find children
+          -- Recursively build hierarchy for ALL tasks
           SELECT 
-            t.*,
-            th.task_bucket, -- Children inherit parent's bucket
-            th.level + 1,
-            th.sort_path || t.priority
+            t.id, t.parent_task_id, h.level + 1,
+            h.sort_path || '.' || LPAD(t.priority::text, 10, '0'),
+            h.root_priority
           FROM tasks t
-          INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
-          WHERE th.level < 3  -- Prevent infinite recursion, max 3 levels
+          INNER JOIN hierarchy_info h ON t.parent_task_id = h.id
+          WHERE t.user_id = $1
         )
-        SELECT * FROM task_hierarchy 
-        ORDER BY sort_path`,
+        SELECT 
+          t.*,
+          CASE t.recurrence_type
+            WHEN 1 THEN 'daily'
+            WHEN 2 THEN 'weekly'
+            WHEN 3 THEN 'monthly'
+            WHEN 4 THEN 'yearly'
+            WHEN 5 THEN 'custom'
+            ELSE 'regular'
+          END as task_bucket,
+          h.level,
+          h.sort_path
+        FROM tasks t
+        INNER JOIN hierarchy_info h ON t.id = h.id
+        WHERE t.user_id = $1${filterClause}
+        ORDER BY 
+          -- First by hierarchical sort path to maintain parent-child relationships  
+          h.sort_path,
+          -- Then by bucket type as tiebreaker (shouldn't be needed with proper hierarchy)
+          CASE WHEN t.recurrence_type IS NOT NULL THEN t.recurrence_type ELSE 999 END`,
         params
       );
 
