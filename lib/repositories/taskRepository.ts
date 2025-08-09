@@ -67,11 +67,21 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     create: async (taskData: CreateTask): Promise<Task> => {
       const result = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, parent_task_id
+          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, parent_task_id, missed_at
         ) VALUES (
           $1, $2, $3, $4, 
           COALESCE($5, calculate_next_priority($2)), 
-          $6, $7, $8, $9
+          $6, $7, $8, $9,
+          calculate_missed_date(
+            NOW(),
+            COALESCE($7::SMALLINT, 6::SMALLINT),
+            NULL::SMALLINT,
+            NULL::SMALLINT[],
+            NULL::SMALLINT,
+            NULL::DATE,
+            NULL::DATE,
+            CURRENT_DATE
+          )
         ) RETURNING *`,
         [
           taskData.journal_id,
@@ -283,8 +293,18 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       description?: string
     ): Promise<Task | null> => {
       const result = await queryFn(
-        `INSERT INTO tasks (journal_id, user_id, title, description, priority)
-         SELECT $2, $1, $3, $4, calculate_next_priority($1)
+        `INSERT INTO tasks (journal_id, user_id, title, description, priority, missed_at)
+         SELECT $2, $1, $3, $4, calculate_next_priority($1),
+           calculate_missed_date(
+             NOW(),
+             6::SMALLINT,
+             NULL::SMALLINT,
+             NULL::SMALLINT[],
+             NULL::SMALLINT,
+             NULL::DATE,
+             NULL::DATE,
+             CURRENT_DATE
+           )
          FROM journals j
          WHERE j.id = $2 AND j.user_id = $1
          RETURNING *`,
@@ -330,7 +350,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           WHERE t.id = $2 AND t.user_id = $1
         )
         INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, parent_task_id, recurrence_type, reference_task_id
+          journal_id, user_id, title, description, priority, parent_task_id, recurrence_type, reference_task_id, missed_at
         )
         SELECT 
           pv.journal_id,
@@ -340,7 +360,17 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           calculate_subtask_priority($1, $2, 'end'),
           $2,
           pv.recurrence_type,
-          pv.reference_task_id
+          pv.reference_task_id,
+          calculate_missed_date(
+            NOW(),
+            COALESCE(pv.recurrence_type, 6)::SMALLINT,
+            NULL::SMALLINT,
+            NULL::SMALLINT[],
+            NULL::SMALLINT,
+            NULL::DATE,
+            NULL::DATE,
+            CURRENT_DATE
+          )
         FROM parent_validation pv
         WHERE pv.id IS NOT NULL
         RETURNING *`,
@@ -903,7 +933,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       // Use database function to calculate priorities automatically
       const insertResult = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
+          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, missed_at
         )
         SELECT 
           rt.journal_id,
@@ -913,7 +943,17 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           calculate_next_priority(rt.user_id) + (ROW_NUMBER() OVER (ORDER BY rt.id) - 1) * 10,
           rt.id,
           rt.recurrence_type,
-          $2::date
+          $2::date,
+          calculate_missed_date(
+            NOW(),
+            rt.recurrence_type,
+            rt.recurrence_interval,
+            rt.recurrence_days_of_week,
+            rt.recurrence_day_of_month,
+            rt.starts_on,
+            rt.ends_on,
+            $2::date
+          )
         FROM reference_tasks rt
         WHERE rt.user_id = $1 
         AND rt.is_active = true 
@@ -992,7 +1032,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       // Use database function to calculate priorities automatically with proper spacing per user
       const insertResult = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
+          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, missed_at
         )
         SELECT
           rt.journal_id,
@@ -1002,7 +1042,17 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           calculate_next_priority(rt.user_id) + (ROW_NUMBER() OVER (PARTITION BY rt.user_id ORDER BY rt.id) - 1) * 10,
           rt.id,
           rt.recurrence_type,
-          $1::date
+          $1::date,
+          calculate_missed_date(
+            NOW(),
+            rt.recurrence_type,
+            rt.recurrence_interval,
+            rt.recurrence_days_of_week,
+            rt.recurrence_day_of_month,
+            rt.starts_on,
+            rt.ends_on,
+            $1::date
+          )
         FROM reference_tasks rt
         WHERE rt.is_active = true 
         AND rt.next_scheduled_date = $1::date

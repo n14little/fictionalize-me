@@ -78,6 +78,7 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 - Ensure all API routes and server actions are protected with authentication.
 
 ### 11. Database
+
 - Please refer to the db/schema.sql file for the database schema.
 - Please make every attempt to make only one database query per action.
 

@@ -26,6 +26,7 @@ ALTER TABLE IF EXISTS ONLY public.reference_tasks DROP CONSTRAINT IF EXISTS refe
 ALTER TABLE IF EXISTS ONLY public.journals DROP CONSTRAINT IF EXISTS journals_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.journal_streaks DROP CONSTRAINT IF EXISTS journal_streaks_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.journal_entries DROP CONSTRAINT IF EXISTS journal_entries_journal_id_fkey;
+DROP INDEX IF EXISTS public.idx_tasks_user_missed_at;
 DROP INDEX IF EXISTS public.idx_tasks_user_id;
 DROP INDEX IF EXISTS public.idx_tasks_user_bucketing_type;
 DROP INDEX IF EXISTS public.idx_tasks_reference_task_id;
@@ -81,6 +82,7 @@ DROP FUNCTION IF EXISTS public.calculate_priority_relative_to_task(p_user_id int
 DROP FUNCTION IF EXISTS public.calculate_priority_between(p_user_id integer, p_after_task_id uuid, p_before_task_id uuid);
 DROP FUNCTION IF EXISTS public.calculate_next_scheduled_date(p_recurrence_type public.recurrence_type_enum, p_recurrence_interval smallint, p_recurrence_days_of_week smallint[], p_recurrence_day_of_month smallint, p_starts_on date, p_ends_on date, p_from_date date);
 DROP FUNCTION IF EXISTS public.calculate_next_priority(p_user_id integer);
+DROP FUNCTION IF EXISTS public.calculate_missed_date(p_created_at timestamp with time zone, p_recurrence_type smallint, p_recurrence_interval smallint, p_recurrence_days_of_week smallint[], p_recurrence_day_of_month smallint, p_starts_on date, p_ends_on date, p_from_date date);
 DROP TYPE IF EXISTS public.recurrence_type_enum;
 DROP EXTENSION IF EXISTS "uuid-ossp";
 --
@@ -101,6 +103,38 @@ CREATE TYPE public.recurrence_type_enum AS ENUM (
     'yearly',
     'custom'
 );
+
+
+--
+-- Name: calculate_missed_date(timestamp with time zone, smallint, smallint, smallint[], smallint, date, date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.calculate_missed_date(p_created_at timestamp with time zone, p_recurrence_type smallint, p_recurrence_interval smallint DEFAULT NULL::smallint, p_recurrence_days_of_week smallint[] DEFAULT NULL::smallint[], p_recurrence_day_of_month smallint DEFAULT NULL::smallint, p_starts_on date DEFAULT NULL::date, p_ends_on date DEFAULT NULL::date, p_from_date date DEFAULT CURRENT_DATE) RETURNS date
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    missed_date DATE;
+BEGIN
+    -- Check if this is a recurring task (recurrence_type 1-5) or regular task (recurrence_type 6)
+    IF p_recurrence_type IN (1, 2, 3, 4, 5) THEN
+        -- Recurring task: delegate to calculate_next_scheduled_date function
+        missed_date := calculate_next_scheduled_date(
+            int_to_recurrence_type_enum(p_recurrence_type),
+            p_recurrence_interval,
+            p_recurrence_days_of_week,
+            p_recurrence_day_of_month,
+            p_starts_on,
+            p_ends_on,
+            p_from_date
+        );
+    ELSE
+        -- Regular task: 3 days from creation date
+        missed_date := p_created_at::DATE + INTERVAL '3 days';
+    END IF;
+    
+    RETURN missed_date;
+END;
+$$;
 
 
 --
@@ -697,7 +731,8 @@ CREATE TABLE public.tasks (
     reference_task_id uuid,
     scheduled_date date,
     parent_task_id uuid,
-    recurrence_type smallint DEFAULT 6
+    recurrence_type smallint DEFAULT 6,
+    missed_at date
 );
 
 
@@ -1031,6 +1066,13 @@ CREATE INDEX idx_tasks_user_bucketing_type ON public.tasks USING btree (user_id,
 --
 
 CREATE INDEX idx_tasks_user_id ON public.tasks USING btree (user_id);
+
+
+--
+-- Name: idx_tasks_user_missed_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tasks_user_missed_at ON public.tasks USING btree (user_id, missed_at);
 
 
 --
