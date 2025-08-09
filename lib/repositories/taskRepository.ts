@@ -1240,25 +1240,23 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       const result = await queryFn(
         `WITH RECURSIVE hierarchy_info AS (
           -- Get all top-level tasks with their sort path as text for proper ordering
-          SELECT 
+          SELECT
             id, parent_task_id, 0 as level, 
-            LPAD(priority::text, 10, '0') as sort_path,
             priority as root_priority
-          FROM tasks 
+          FROM tasks
           WHERE parent_task_id IS NULL AND user_id = $1
-          
+
           UNION ALL
-          
+
           -- Recursively build hierarchy for ALL tasks
-          SELECT 
+          SELECT
             t.id, t.parent_task_id, h.level + 1,
-            h.sort_path || '.' || LPAD(t.priority::text, 10, '0'),
             h.root_priority
           FROM tasks t
           INNER JOIN hierarchy_info h ON t.parent_task_id = h.id
           WHERE t.user_id = $1
         )
-        SELECT 
+        SELECT
           t.*,
           CASE t.recurrence_type
             WHEN 1 THEN 'daily'
@@ -1268,16 +1266,12 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
             WHEN 5 THEN 'custom'
             ELSE 'regular'
           END as task_bucket,
-          h.level,
-          h.sort_path
+          h.level
         FROM tasks t
         INNER JOIN hierarchy_info h ON t.id = h.id
         WHERE t.user_id = $1${filterClause}
-        ORDER BY 
-          -- First by hierarchical sort path to maintain parent-child relationships  
-          h.sort_path,
-          -- Then by bucket type as tiebreaker (shouldn't be needed with proper hierarchy)
-          CASE WHEN t.recurrence_type IS NOT NULL THEN t.recurrence_type ELSE 999 END`,
+        ORDER BY
+          t.priority ASC`,
         params
       );
 
