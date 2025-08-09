@@ -69,7 +69,7 @@ BEGIN
             JOIN test_user tu ON j.user_id = tu.id 
             WHERE j.title = 'My Test Journal'
         )
-        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, created_at)
+        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, created_at, missed_at)
         SELECT 
             uj.user_id,
             uj.journal_id,
@@ -77,7 +77,17 @@ BEGIN
             task_data.description,
             task_data.completed,
             task_data.priority,
-            CURRENT_TIMESTAMP - (task_data.days_ago || ' days')::INTERVAL
+            CURRENT_TIMESTAMP - (task_data.days_ago || ' days')::INTERVAL,
+            calculate_missed_date(
+                CURRENT_TIMESTAMP - (task_data.days_ago || ' days')::INTERVAL,
+                6::smallint,
+                NULL::smallint,
+                NULL::smallint[],
+                NULL::smallint,
+                NULL::date,
+                NULL::date,
+                CURRENT_DATE
+            )
         FROM user_journal uj
         CROSS JOIN (
             VALUES 
@@ -111,7 +121,7 @@ BEGIN
             JOIN user_journal uj ON t.user_id = uj.user_id
             WHERE t.title IN ('Update project documentation', 'Review dashboard layout')
         )
-        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, parent_task_id, created_at)
+        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, parent_task_id, created_at, missed_at)
         SELECT 
             pt.user_id,
             pt.journal_id,
@@ -120,7 +130,17 @@ BEGIN
             subtask_data.completed,
             subtask_data.priority,
             pt.parent_id,
-            CURRENT_TIMESTAMP - (subtask_data.days_ago || ' days')::INTERVAL
+            CURRENT_TIMESTAMP - (subtask_data.days_ago || ' days')::INTERVAL,
+            calculate_missed_date(
+                CURRENT_TIMESTAMP - (subtask_data.days_ago || ' days')::INTERVAL,
+                6::smallint,
+                NULL::smallint,
+                NULL::smallint[],
+                NULL::smallint,
+                NULL::date,
+                NULL::date,
+                CURRENT_DATE
+            )
         FROM parent_tasks pt
         CROSS JOIN (
             VALUES 
@@ -164,7 +184,7 @@ BEGIN
                 ('Clean Kitchen', 'Deep clean kitchen surfaces and organize pantry', 2, 2, '3')
         ) as ref_task_data(title, description, recurrence_type, recurrence_interval, next_in_days)
         WHERE NOT EXISTS (
-            SELECT 1 FROM reference_tasks rt 
+            SELECT 1 FROM reference_tasks rt
             WHERE rt.user_id = uj.user_id AND rt.title = ref_task_data.title
         );
         
