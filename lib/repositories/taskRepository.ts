@@ -33,21 +33,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      */
     findByJournalIdHierarchical: async (journalId: string): Promise<Task[]> => {
       const result = await queryFn(
-        `WITH RECURSIVE task_hierarchy AS (
-          -- Start with top-level tasks (no parent)
-          SELECT *, 0 as level, ARRAY[priority] as sort_path
-          FROM tasks 
-          WHERE journal_id = $1 AND parent_task_id IS NULL
-          
-          UNION ALL
-          
-          -- Recursively find children
-          SELECT t.*, th.level + 1, th.sort_path || t.priority
-          FROM tasks t
-          INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
-        )
-        SELECT * FROM task_hierarchy 
-        ORDER BY sort_path`,
+        'SELECT * FROM tasks WHERE journal_id = $1 ORDER BY priority ASC',
         [journalId]
       );
       return result.rows as Task[];
@@ -688,21 +674,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      */
     findHierarchyByUserId: async (userId: number): Promise<Task[]> => {
       const result = await queryFn(
-        `WITH RECURSIVE task_hierarchy AS (
-          -- Start with top-level tasks (no parent)
-          SELECT *, 0 as level, ARRAY[priority] as sort_path
-          FROM tasks 
-          WHERE user_id = $1 AND parent_task_id IS NULL
-          
-          UNION ALL
-          
-          -- Recursively find children
-          SELECT t.*, th.level + 1, th.sort_path || t.priority
-          FROM tasks t
-          INNER JOIN task_hierarchy th ON t.parent_task_id = th.id
-        )
-        SELECT * FROM task_hierarchy 
-        ORDER BY sort_path`,
+        'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
         [userId]
       );
       return result.rows as Task[];
