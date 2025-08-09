@@ -77,7 +77,11 @@ This document provides instructions for an LLM (e.g., GitHub Copilot) to assist 
 - Use environment variables (`NEXT_PUBLIC_` for client-side, others for server-side) for sensitive data.
 - Ensure all API routes and server actions are protected with authentication.
 
-### 11. Additional Notes
+### 11. Database
+- Please refer to the db/schema.sql file for the database schema.
+- Please make every attempt to make only one database query per action.
+
+### 12. Additional Notes
 
 - Always generate code that matches the existing app's functionality (e.g., journal entry creation/editing).
 - If unsure about a feature, ask for clarification rather than making assumptions.

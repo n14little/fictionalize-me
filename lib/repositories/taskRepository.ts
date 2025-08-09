@@ -994,7 +994,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         `INSERT INTO tasks (
           journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date
         )
-        SELECT 
+        SELECT
           rt.journal_id,
           rt.user_id,
           rt.title,
