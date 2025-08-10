@@ -17,28 +17,6 @@ export const createTaskService = (queryFn: QueryFunction) => {
     },
 
     /**
-     * Get all tasks for a user organized into buckets based on recurrence type
-     */
-    getUserTasksBucketed: async (
-      userId: number,
-      filters?: { completed?: boolean }
-    ): Promise<TaskBuckets> => {
-      const bucketedTasks = await taskRepo.findBucketedTasksByUserId(
-        userId,
-        filters
-      );
-
-      return {
-        daily: bucketedTasks.filter((task) => task.task_bucket === 'daily'),
-        weekly: bucketedTasks.filter((task) => task.task_bucket === 'weekly'),
-        monthly: bucketedTasks.filter((task) => task.task_bucket === 'monthly'),
-        yearly: bucketedTasks.filter((task) => task.task_bucket === 'yearly'),
-        custom: bucketedTasks.filter((task) => task.task_bucket === 'custom'),
-        regular: bucketedTasks.filter((task) => task.task_bucket === 'regular'),
-      };
-    },
-
-    /**
      * Get all tasks for a user organized into buckets with hierarchical ordering preserved
      */
     getUserTasksBucketedHierarchical: async (
@@ -55,18 +33,8 @@ export const createTaskService = (queryFn: QueryFunction) => {
         yearly: bucketedTasks.filter((task) => task.task_bucket === 'yearly'),
         custom: bucketedTasks.filter((task) => task.task_bucket === 'custom'),
         regular: bucketedTasks.filter((task) => task.task_bucket === 'regular'),
+        missed: bucketedTasks.filter((task) => task.task_bucket === 'missed'),
       };
-    },
-
-    /**
-     * Get all tasks for a user with bucketing information (flat array)
-     * This returns the raw bucketed tasks in their proper order
-     */
-    getUserTasksBucketedFlat: async (
-      userId: number,
-      filters?: { completed?: boolean }
-    ) => {
-      return taskRepo.findBucketedTasksByUserId(userId, filters);
     },
 
     /**
@@ -133,42 +101,6 @@ export const createTaskService = (queryFn: QueryFunction) => {
         data.title,
         data.description
       );
-    },
-
-    /**
-     * Create a new task with specific priority position
-     * Use this when you want to insert a task at a specific position relative to other tasks
-     */
-    createTaskAtPosition: async (
-      userId: number,
-      data: Omit<CreateTask, 'user_id'>,
-      referenceTaskId?: string,
-      position?: 'above' | 'below'
-    ): Promise<Task | null> => {
-      let priority: number | undefined;
-
-      if (referenceTaskId && position) {
-        // Calculate priority based on reference task
-        const calculatedPriority = await taskRepo.calculateNewPriority(
-          userId,
-          '', // We don't have a task ID yet, but this is for calculation only
-          referenceTaskId,
-          position
-        );
-
-        if (calculatedPriority === null) {
-          return null; // Reference task not found or invalid
-        }
-
-        priority = calculatedPriority;
-      }
-
-      // Create task with calculated priority
-      return taskRepo.create({
-        ...data,
-        user_id: userId,
-        priority: priority,
-      });
     },
 
     /**
@@ -269,32 +201,6 @@ export const createTaskService = (queryFn: QueryFunction) => {
     },
 
     /**
-     * Handle completion logic for tasks with sub-tasks
-     * Returns information about sub-tasks that need attention
-     */
-    handleTaskCompletion: async (
-      taskId: string,
-      completed: boolean
-    ): Promise<{
-      task: Task | null;
-      canComplete: boolean;
-      incompleteChildren: Task[];
-      error?: string;
-    }> => {
-      // Use validation method that checks for incomplete children
-      const result = await taskRepo.completeTaskWithValidation(
-        taskId,
-        completed
-      );
-      return {
-        task: result.task,
-        canComplete: result.canComplete,
-        incompleteChildren: result.incompleteChildren,
-        error: result.error,
-      };
-    },
-
-    /**
      * Toggle task completion with optimized database queries
      * Gets current state and validates user ownership in minimal trips
      */
@@ -312,6 +218,7 @@ export const createTaskService = (queryFn: QueryFunction) => {
 
     /**
      * Reorder a task relative to another task
+     * [TODO]: Candidate for deletion
      */
     reorderTask: async (
       taskId: string,
@@ -342,6 +249,7 @@ export const createTaskService = (queryFn: QueryFunction) => {
     /**
      * Reorder a pending task relative to another task, considering only pending tasks
      * This is used specifically for dashboard drag-and-drop where only pending tasks are shown
+     * [TODO]: candidate for deletion
      */
     reorderPendingTask: async (
       taskId: string,

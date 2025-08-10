@@ -46,7 +46,8 @@ export type TaskBucket =
   | 'monthly'
   | 'yearly'
   | 'custom'
-  | 'regular';
+  | 'regular'
+  | 'missed';
 
 // Mapping from recurrence type integers to bucket names
 export const RECURRENCE_TYPE_TO_BUCKET: Record<number, TaskBucket> = {
@@ -56,6 +57,7 @@ export const RECURRENCE_TYPE_TO_BUCKET: Record<number, TaskBucket> = {
   4: 'yearly',
   5: 'custom',
   6: 'regular',
+  7: 'missed',
 };
 
 // Mapping from bucket names to recurrence type integers
@@ -66,6 +68,7 @@ export const BUCKET_TO_RECURRENCE_TYPE: Record<TaskBucket, number> = {
   yearly: 4,
   custom: 5,
   regular: 6,
+  missed: 7,
 };
 
 export interface BucketedTask extends Task {
@@ -79,4 +82,5 @@ export interface TaskBuckets {
   yearly: BucketedTask[];
   custom: BucketedTask[];
   regular: BucketedTask[];
+  missed: BucketedTask[];
 }

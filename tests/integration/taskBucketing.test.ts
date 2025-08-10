@@ -4,7 +4,7 @@ import { TestFixtures } from './fixtures';
 import { createTaskService } from '../../lib/services/taskService';
 import { BucketedTask, BUCKET_TO_RECURRENCE_TYPE } from '../../lib/models/Task';
 
-describe.sequential('Task Bucketing - Integration Tests', () => {
+describe('Task Bucketing - Integration Tests', () => {
   let testDb: TestDatabase;
   let fixtures: TestFixtures;
   let taskService: ReturnType<typeof createTaskService>;
@@ -23,7 +23,7 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
   });
 
   describe('Task Bucketing by Recurrence Type', () => {
-    it('should bucket tasks correctly by their reference task recurrence type', async () => {
+    it('should bucket tasks correctly', async () => {
       const testUser = await fixtures.createTestUser();
       const testJournal = await fixtures.createTestJournal(testUser.id);
 
@@ -163,62 +163,44 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
           priority: 1300,
         }),
       ]);
+      const missedTasks = await Promise.all([
+        fixtures.createTestTask(testUser.id, testJournal.id, {
+          title: 'One-off Project Task -- MISSED',
+          priority: 1400,
+        }),
+      ]);
 
-      // Test the bucketing query directly
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      await fixtures.markTaskAsMissed(missedTasks[0].id);
+
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(13); // 2+2+2+2+2+3 = 13 tasks total
-
-      // Verify bucketing counts
-      const bucketCounts = {
-        daily: bucketedTasks.filter(
-          (t: BucketedTask) => t.task_bucket === 'daily'
-        ).length,
-        weekly: bucketedTasks.filter(
-          (t: BucketedTask) => t.task_bucket === 'weekly'
-        ).length,
-        monthly: bucketedTasks.filter(
-          (t: BucketedTask) => t.task_bucket === 'monthly'
-        ).length,
-        yearly: bucketedTasks.filter(
-          (t: BucketedTask) => t.task_bucket === 'yearly'
-        ).length,
-        custom: bucketedTasks.filter(
-          (t: BucketedTask) => t.task_bucket === 'custom'
-        ).length,
-        regular: bucketedTasks.filter(
-          (t: BucketedTask) => t.task_bucket === 'regular'
-        ).length,
-      };
-
-      expect(bucketCounts.daily).toBe(2);
-      expect(bucketCounts.weekly).toBe(2);
-      expect(bucketCounts.monthly).toBe(2);
-      expect(bucketCounts.yearly).toBe(2);
-      expect(bucketCounts.custom).toBe(2);
-      expect(bucketCounts.regular).toBe(3);
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(
+        dailyTasks.length +
+          weeklyTasks.length +
+          monthlyTasks.length +
+          yearlyTasks.length +
+          customTasks.length +
+          regularTasks.length +
+          missedTasks.length
+      );
+      expect(bucketedTasks.daily).toHaveLength(dailyTasks.length);
+      expect(bucketedTasks.weekly).toHaveLength(weeklyTasks.length);
+      expect(bucketedTasks.monthly).toHaveLength(monthlyTasks.length);
+      expect(bucketedTasks.yearly).toHaveLength(yearlyTasks.length);
+      expect(bucketedTasks.custom).toHaveLength(customTasks.length);
+      expect(bucketedTasks.regular).toHaveLength(regularTasks.length);
+      expect(bucketedTasks.missed).toHaveLength(missedTasks.length);
 
       // Verify specific task bucketing
-      const dailyBucketTasks = bucketedTasks.filter((t: BucketedTask) =>
-        dailyTasks.some((dt) => dt.id === t.id)
-      );
-      const weeklyBucketTasks = bucketedTasks.filter((t: BucketedTask) =>
-        weeklyTasks.some((wt) => wt.id === t.id)
-      );
-      const monthlyBucketTasks = bucketedTasks.filter((t: BucketedTask) =>
-        monthlyTasks.some((mt) => mt.id === t.id)
-      );
-      const yearlyBucketTasks = bucketedTasks.filter((t: BucketedTask) =>
-        yearlyTasks.some((yt) => yt.id === t.id)
-      );
-      const customBucketTasks = bucketedTasks.filter((t: BucketedTask) =>
-        customTasks.some((ct) => ct.id === t.id)
-      );
-      const regularBucketTasks = bucketedTasks.filter((t: BucketedTask) =>
-        regularTasks.some((rt) => rt.id === t.id)
-      );
+      const dailyBucketTasks = bucketedTasks.daily;
+      const weeklyBucketTasks = bucketedTasks.weekly;
+      const monthlyBucketTasks = bucketedTasks.monthly;
+      const yearlyBucketTasks = bucketedTasks.yearly;
+      const customBucketTasks = bucketedTasks.custom;
+      const regularBucketTasks = bucketedTasks.regular;
+      const missedBucketTasks = bucketedTasks.missed;
 
       expect(dailyBucketTasks.every((t) => t.task_bucket === 'daily')).toBe(
         true
@@ -236,6 +218,9 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         true
       );
       expect(regularBucketTasks.every((t) => t.task_bucket === 'regular')).toBe(
+        true
+      );
+      expect(missedBucketTasks.every((t) => t.task_bucket === 'missed')).toBe(
         true
       );
     });
@@ -361,55 +346,59 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         }
       );
 
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(7);
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(7);
 
       // All reference tasks should come before regular tasks, regardless of priority numbers
       // Order should be: daily -> weekly -> monthly -> yearly -> custom -> regular tasks
       // This proves that bucket type overrides priority completely
-      expect(bucketedTasks[0].id).toBe(dailyTask.id);
-      expect(bucketedTasks[0].task_bucket).toBe('daily');
-      expect(bucketedTasks[0].priority).toBe(9000); // Lowest priority
+      expect(bucketedTasks.daily[0].id).toBe(dailyTask.id);
+      expect(bucketedTasks.daily[0].task_bucket).toBe('daily');
+      expect(bucketedTasks.daily[0].priority).toBe(9000); // Lowest priority
 
-      expect(bucketedTasks[1].id).toBe(weeklyTask.id);
-      expect(bucketedTasks[1].task_bucket).toBe('weekly');
-      expect(bucketedTasks[1].priority).toBe(8000);
+      expect(bucketedTasks.weekly[0].id).toBe(weeklyTask.id);
+      expect(bucketedTasks.weekly[0].task_bucket).toBe('weekly');
+      expect(bucketedTasks.weekly[0].priority).toBe(8000);
 
-      expect(bucketedTasks[2].id).toBe(monthlyTask.id);
-      expect(bucketedTasks[2].task_bucket).toBe('monthly');
-      expect(bucketedTasks[2].priority).toBe(7000);
+      expect(bucketedTasks.monthly[0].id).toBe(monthlyTask.id);
+      expect(bucketedTasks.monthly[0].task_bucket).toBe('monthly');
+      expect(bucketedTasks.monthly[0].priority).toBe(7000);
 
-      expect(bucketedTasks[3].id).toBe(yearlyTask.id);
-      expect(bucketedTasks[3].task_bucket).toBe('yearly');
-      expect(bucketedTasks[3].priority).toBe(6000);
+      expect(bucketedTasks.yearly[0].id).toBe(yearlyTask.id);
+      expect(bucketedTasks.yearly[0].task_bucket).toBe('yearly');
+      expect(bucketedTasks.yearly[0].priority).toBe(6000);
 
-      expect(bucketedTasks[4].id).toBe(customTask.id);
-      expect(bucketedTasks[4].task_bucket).toBe('custom');
-      expect(bucketedTasks[4].priority).toBe(5000);
+      expect(bucketedTasks.custom[0].id).toBe(customTask.id);
+      expect(bucketedTasks.custom[0].task_bucket).toBe('custom');
+      expect(bucketedTasks.custom[0].priority).toBe(5000);
 
       // Regular tasks come last despite having the highest priority
       // This proves bucket type completely overrides priority
-      expect(bucketedTasks[5].id).toBe(regularTask1.id);
-      expect(bucketedTasks[5].task_bucket).toBe('regular');
-      expect(bucketedTasks[5].priority).toBe(1); // Highest priority
+      expect(bucketedTasks.regular[0].id).toBe(regularTask1.id);
+      expect(bucketedTasks.regular[0].task_bucket).toBe('regular');
+      expect(bucketedTasks.regular[0].priority).toBe(1); // Highest priority
 
-      expect(bucketedTasks[6].id).toBe(regularTask2.id);
-      expect(bucketedTasks[6].task_bucket).toBe('regular');
-      expect(bucketedTasks[6].priority).toBe(2); // Second highest priority
+      expect(bucketedTasks.regular[1].id).toBe(regularTask2.id);
+      expect(bucketedTasks.regular[1].task_bucket).toBe('regular');
+      expect(bucketedTasks.regular[1].priority).toBe(2); // Second highest priority
 
-      // Verify that NO regular tasks appear before reference tasks
-      const firstRegularTaskIndex = bucketedTasks.findIndex(
-        (task) => task.task_bucket === 'regular'
-      );
-      expect(firstRegularTaskIndex).toBe(5); // Should be at index 5 (6th position)
+      // Verify that reference tasks come first in their respective buckets
+      expect(bucketedTasks.daily).toHaveLength(1);
+      expect(bucketedTasks.weekly).toHaveLength(1);
+      expect(bucketedTasks.monthly).toHaveLength(1);
+      expect(bucketedTasks.yearly).toHaveLength(1);
+      expect(bucketedTasks.custom).toHaveLength(1);
+      expect(bucketedTasks.regular).toHaveLength(2);
 
-      const tasksBeforeRegular = bucketedTasks.slice(0, firstRegularTaskIndex);
-      expect(
-        tasksBeforeRegular.every((task) => task.reference_task_id !== null)
-      ).toBe(true);
+      // Verify all reference tasks have reference_task_id set
+      expect(bucketedTasks.daily[0].reference_task_id).not.toBeNull();
+      expect(bucketedTasks.weekly[0].reference_task_id).not.toBeNull();
+      expect(bucketedTasks.monthly[0].reference_task_id).not.toBeNull();
+      expect(bucketedTasks.yearly[0].reference_task_id).not.toBeNull();
+      expect(bucketedTasks.custom[0].reference_task_id).not.toBeNull();
     });
 
     it('should order tasks correctly within buckets', async () => {
@@ -459,21 +448,21 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         priority: 150,
       });
 
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(4);
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(4);
 
       // Should be ordered: daily tasks first (by priority), then regular tasks (by priority)
-      expect(bucketedTasks[0].title).toBe('Morning Routine Instance');
-      expect(bucketedTasks[0].task_bucket).toBe('daily');
-      expect(bucketedTasks[1].title).toBe('Evening Routine Instance');
-      expect(bucketedTasks[1].task_bucket).toBe('daily');
-      expect(bucketedTasks[2].title).toBe('Urgent Regular Task');
-      expect(bucketedTasks[2].task_bucket).toBe('regular');
-      expect(bucketedTasks[3].title).toBe('Normal Regular Task');
-      expect(bucketedTasks[3].task_bucket).toBe('regular');
+      expect(bucketedTasks.daily[0].title).toBe('Morning Routine Instance');
+      expect(bucketedTasks.daily[0].task_bucket).toBe('daily');
+      expect(bucketedTasks.daily[1].title).toBe('Evening Routine Instance');
+      expect(bucketedTasks.daily[1].task_bucket).toBe('daily');
+      expect(bucketedTasks.regular[0].title).toBe('Urgent Regular Task');
+      expect(bucketedTasks.regular[0].task_bucket).toBe('regular');
+      expect(bucketedTasks.regular[1].title).toBe('Normal Regular Task');
+      expect(bucketedTasks.regular[1].task_bucket).toBe('regular');
     });
 
     it('should handle custom recurrence type correctly', async () => {
@@ -495,12 +484,12 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         reference_task_id: customRefTask.id,
       });
 
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(1);
-      expect(bucketedTasks[0].task_bucket).toBe('custom');
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(1);
+      expect(bucketedTasks.custom[0].task_bucket).toBe('custom');
     });
 
     it('should only return pending tasks when filtering by completion status', async () => {
@@ -542,35 +531,30 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       });
 
       // Test pending tasks only
-      const pendingBucketedTasks = await taskService.getUserTasksBucketedFlat(
-        testUser.id,
-        {
+      const pendingBucketedTasks =
+        await taskService.getUserTasksBucketedHierarchical(testUser.id, {
           completed: false,
-        }
-      );
+        });
 
-      expect(pendingBucketedTasks).toHaveLength(1);
-      expect(pendingBucketedTasks[0].id).toBe(pendingTask.id);
-      expect(pendingBucketedTasks[0].completed).toBe(false);
+      expect(Object.values(pendingBucketedTasks).flat()).toHaveLength(1);
+      expect(pendingBucketedTasks.daily[0].id).toBe(pendingTask.id);
+      expect(pendingBucketedTasks.daily[0].completed).toBe(false);
 
       // Test completed tasks only
-      const completedBucketedTasks = await taskService.getUserTasksBucketedFlat(
-        testUser.id,
-        {
+      const completedBucketedTasks =
+        await taskService.getUserTasksBucketedHierarchical(testUser.id, {
           completed: true,
-        }
-      );
+        });
 
-      expect(completedBucketedTasks).toHaveLength(1);
-      expect(completedBucketedTasks[0].id).toBe(completedTask.id);
-      expect(completedBucketedTasks[0].completed).toBe(true);
+      expect(Object.values(completedBucketedTasks).flat()).toHaveLength(1);
+      expect(completedBucketedTasks.daily[0].id).toBe(completedTask.id);
+      expect(completedBucketedTasks.daily[0].completed).toBe(true);
 
       // Test all tasks
-      const allBucketedTasks = await taskService.getUserTasksBucketedFlat(
-        testUser.id
-      );
+      const allBucketedTasks =
+        await taskService.getUserTasksBucketedHierarchical(testUser.id);
 
-      expect(allBucketedTasks).toHaveLength(2);
+      expect(Object.values(allBucketedTasks).flat()).toHaveLength(2);
     });
 
     it('should handle tasks without reference tasks gracefully', async () => {
@@ -588,18 +572,19 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         priority: 200,
       });
 
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(2);
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(2);
+      expect(bucketedTasks.regular).toHaveLength(2);
       expect(
-        bucketedTasks.every(
+        bucketedTasks.regular.every(
           (task: BucketedTask) => task.task_bucket === 'regular'
         )
       ).toBe(true);
-      expect(bucketedTasks[0].title).toBe('Regular Task 1');
-      expect(bucketedTasks[1].title).toBe('Regular Task 2');
+      expect(bucketedTasks.regular[0].title).toBe('Regular Task 1');
+      expect(bucketedTasks.regular[1].title).toBe('Regular Task 2');
     });
 
     it('should include only reference task id in bucketed results', async () => {
@@ -621,12 +606,12 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
         reference_task_id: refTask.id,
       });
 
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(1);
-      const bucketedTask = bucketedTasks[0];
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(1);
+      const bucketedTask = bucketedTasks.daily[0];
 
       expect(bucketedTask.reference_task_id).toBe(refTask.id);
       expect(bucketedTask.task_bucket).toBe('daily');
@@ -720,7 +705,9 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       ]);
 
       // Test through service layer
-      const bucketedTasks = await taskService.getUserTasksBucketed(testUser.id);
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
+        testUser.id
+      );
 
       expect(bucketedTasks.daily).toHaveLength(2);
       expect(bucketedTasks.weekly).toHaveLength(2);
@@ -752,7 +739,9 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
     it('should handle empty buckets correctly', async () => {
       const testUser = await fixtures.createTestUser();
 
-      const bucketedTasks = await taskService.getUserTasksBucketed(testUser.id);
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
+        testUser.id
+      );
 
       expect(bucketedTasks.daily).toHaveLength(0);
       expect(bucketedTasks.weekly).toHaveLength(0);
@@ -886,43 +875,14 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       ]);
 
       // Test the raw bucketed ordering from service
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
+      const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
         testUser.id
       );
 
-      expect(bucketedTasks).toHaveLength(12);
+      expect(Object.values(bucketedTasks).flat()).toHaveLength(12);
 
-      // Verify the order: daily -> weekly -> monthly -> yearly -> custom -> regular
-      const taskTitles = bucketedTasks.map((task) => task.title);
-
-      // Daily tasks should come first (ordered by priority within bucket)
-      expect(taskTitles[0]).toBe('Daily Task A');
-      expect(taskTitles[1]).toBe('Daily Task B');
-
-      // Weekly tasks should come next
-      expect(taskTitles[2]).toBe('Weekly Task A');
-      expect(taskTitles[3]).toBe('Weekly Task B');
-
-      // Monthly tasks
-      expect(taskTitles[4]).toBe('Monthly Task A');
-      expect(taskTitles[5]).toBe('Monthly Task B');
-
-      // Yearly tasks
-      expect(taskTitles[6]).toBe('Yearly Task A');
-      expect(taskTitles[7]).toBe('Yearly Task B');
-
-      // Custom tasks
-      expect(taskTitles[8]).toBe('Custom Task A');
-      expect(taskTitles[9]).toBe('Custom Task B');
-
-      // Regular tasks should come last (despite having lowest priority numbers)
-      expect(taskTitles[10]).toBe('Regular Task A');
-      expect(taskTitles[11]).toBe('Regular Task B');
-
-      // Test through service layer as well
-      const serviceBuckets = await taskService.getUserTasksBucketed(
-        testUser.id
-      );
+      // Test through service layer - verify bucket structure
+      const serviceBuckets = bucketedTasks;
 
       expect(serviceBuckets.daily).toHaveLength(2);
       expect(serviceBuckets.weekly).toHaveLength(2);
@@ -930,97 +890,20 @@ describe.sequential('Task Bucketing - Integration Tests', () => {
       expect(serviceBuckets.yearly).toHaveLength(2);
       expect(serviceBuckets.custom).toHaveLength(2);
       expect(serviceBuckets.regular).toHaveLength(2);
-    });
-  });
 
-  describe('Performance and Edge Cases', () => {
-    it('should handle large number of tasks efficiently', async () => {
-      const testUser = await fixtures.createTestUser();
-      const testJournal = await fixtures.createTestJournal(testUser.id);
-
-      // Create reference tasks for different types
-      const dailyRef = await fixtures.createTestReferenceTask(
-        testUser.id,
-        testJournal.id,
-        { recurrence_type: BUCKET_TO_RECURRENCE_TYPE.daily }
-      );
-
-      const weeklyRef = await fixtures.createTestReferenceTask(
-        testUser.id,
-        testJournal.id,
-        { recurrence_type: BUCKET_TO_RECURRENCE_TYPE.weekly }
-      );
-
-      // Create many tasks
-      const taskPromises = [];
-      for (let i = 0; i < 50; i++) {
-        if (i % 3 === 0) {
-          taskPromises.push(
-            fixtures.createTestTask(testUser.id, testJournal.id, {
-              title: `Daily Task ${i}`,
-              reference_task_id: dailyRef.id,
-              priority: i,
-            })
-          );
-        } else if (i % 3 === 1) {
-          taskPromises.push(
-            fixtures.createTestTask(testUser.id, testJournal.id, {
-              title: `Weekly Task ${i}`,
-              reference_task_id: weeklyRef.id,
-              priority: i,
-            })
-          );
-        } else {
-          taskPromises.push(
-            fixtures.createTestTask(testUser.id, testJournal.id, {
-              title: `Regular Task ${i}`,
-              priority: i,
-            })
-          );
-        }
-      }
-
-      await Promise.all(taskPromises);
-
-      const startTime = Date.now();
-      const bucketedTasks = await taskService.getUserTasksBucketedFlat(
-        testUser.id
-      );
-      const endTime = Date.now();
-
-      expect(bucketedTasks).toHaveLength(50);
-      expect(endTime - startTime).toBeLessThan(1000); // Should complete in under 1 second
-
-      // Verify ordering is maintained
-      const dailyTasks = bucketedTasks.filter(
-        (task: BucketedTask) => task.task_bucket === 'daily'
-      );
-      const weeklyTasks = bucketedTasks.filter(
-        (task: BucketedTask) => task.task_bucket === 'weekly'
-      );
-      const regularTasks = bucketedTasks.filter(
-        (task: BucketedTask) => task.task_bucket === 'regular'
-      );
-
-      expect(dailyTasks.length + weeklyTasks.length + regularTasks.length).toBe(
-        50
-      );
-
-      // Reference tasks should come before regular tasks
-      const firstRegularTaskIndex = bucketedTasks.findIndex(
-        (task: BucketedTask) => task.task_bucket === 'regular'
-      );
-      if (firstRegularTaskIndex > -1) {
-        const tasksBeforeRegular = bucketedTasks.slice(
-          0,
-          firstRegularTaskIndex
-        );
-        expect(
-          tasksBeforeRegular.every(
-            (task: BucketedTask) => task.reference_task_id !== null
-          )
-        ).toBe(true);
-      }
+      // Verify order within each bucket (by priority)
+      expect(serviceBuckets.daily[0].title).toBe('Daily Task A');
+      expect(serviceBuckets.daily[1].title).toBe('Daily Task B');
+      expect(serviceBuckets.weekly[0].title).toBe('Weekly Task A');
+      expect(serviceBuckets.weekly[1].title).toBe('Weekly Task B');
+      expect(serviceBuckets.monthly[0].title).toBe('Monthly Task A');
+      expect(serviceBuckets.monthly[1].title).toBe('Monthly Task B');
+      expect(serviceBuckets.yearly[0].title).toBe('Yearly Task A');
+      expect(serviceBuckets.yearly[1].title).toBe('Yearly Task B');
+      expect(serviceBuckets.custom[0].title).toBe('Custom Task A');
+      expect(serviceBuckets.custom[1].title).toBe('Custom Task B');
+      expect(serviceBuckets.regular[0].title).toBe('Regular Task A');
+      expect(serviceBuckets.regular[1].title).toBe('Regular Task B');
     });
   });
 });

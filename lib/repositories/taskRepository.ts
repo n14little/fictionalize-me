@@ -1172,12 +1172,13 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       const result = await queryFn(
         `SELECT 
           *,
-          CASE recurrence_type
-            WHEN 1 THEN 'daily'
-            WHEN 2 THEN 'weekly'
-            WHEN 3 THEN 'monthly'
-            WHEN 4 THEN 'yearly'
-            WHEN 5 THEN 'custom'
+          CASE
+            WHEN missed_at IS NOT NULL AND missed_at < CURRENT_DATE AND completed_at IS NULL THEN 'missed'
+            WHEN recurrence_type = 1 THEN 'daily'
+            WHEN recurrence_type = 2 THEN 'weekly'
+            WHEN recurrence_type = 3 THEN 'monthly'
+            WHEN recurrence_type = 4 THEN 'yearly'
+            WHEN recurrence_type = 5 THEN 'custom'
             ELSE 'regular'
           END as task_bucket
         FROM tasks
@@ -1230,12 +1231,13 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         )
         SELECT
           t.*,
-          CASE t.recurrence_type
-            WHEN 1 THEN 'daily'
-            WHEN 2 THEN 'weekly'
-            WHEN 3 THEN 'monthly'
-            WHEN 4 THEN 'yearly'
-            WHEN 5 THEN 'custom'
+          CASE 
+            WHEN t.missed_at IS NOT NULL AND t.missed_at < CURRENT_DATE AND t.completed_at IS NULL THEN 'missed'
+            WHEN t.recurrence_type = 1 THEN 'daily'
+            WHEN t.recurrence_type = 2 THEN 'weekly'
+            WHEN t.recurrence_type = 3 THEN 'monthly'
+            WHEN t.recurrence_type = 4 THEN 'yearly'
+            WHEN t.recurrence_type = 5 THEN 'custom'
             ELSE 'regular'
           END as task_bucket,
           h.level

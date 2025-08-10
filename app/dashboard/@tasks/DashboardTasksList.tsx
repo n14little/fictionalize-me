@@ -148,6 +148,7 @@ export function DashboardTasksList({
     yearly: taskBuckets.yearly.filter((task) => !task.completed),
     custom: taskBuckets.custom.filter((task) => !task.completed),
     regular: taskBuckets.regular.filter((task) => !task.completed),
+    missed: taskBuckets.missed.filter((task) => !task.completed),
   };
 
   // Define bucket display order and labels
@@ -158,6 +159,7 @@ export function DashboardTasksList({
     { key: 'yearly', label: 'Yearly' },
     { key: 'custom', label: 'Custom' },
     { key: 'regular', label: 'Regular' },
+    { key: 'missed', label: 'Missed' },
   ];
 
   // Filter buckets to only show those with tasks

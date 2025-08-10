@@ -144,4 +144,19 @@ export class TestFixtures {
 
     return await this.waitlistRepository.create(waitlistData);
   }
+
+  /**
+   * Mark a task as missed (test-only helper)
+   * @param taskId - The ID of the task to mark as missed
+   * @param missedDate - Optional specific date, defaults to yesterday
+   */
+  async markTaskAsMissed(taskId: string, missedDate?: Date): Promise<void> {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    await this.query('UPDATE tasks SET missed_at = $1 WHERE id = $2', [
+      missedDate || yesterday,
+      taskId,
+    ]);
+  }
 }
