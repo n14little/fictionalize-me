@@ -113,7 +113,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Verify initial state - reference task should have higher priority (lower number = higher priority)
       expect(referencePriority).toBeLessThan(initialTaskPriority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         taskToPosition!.id,
         testUser.id,
         referenceTask!.id,
@@ -149,7 +149,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Verify initial state - reference should have lower priority (higher number) than task
       expect(referencePriority).toBeGreaterThan(initialTaskPriority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         taskToPosition!.id,
         testUser.id,
         referenceTask!.id,
@@ -200,7 +200,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(topTaskPriority).toBeGreaterThan(initialMiddleTaskPriority);
       expect(bottomTaskPriority).toBeGreaterThan(initialMiddleTaskPriority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         middleTask!.id,
         testUser.id,
         topTask.id,
@@ -243,7 +243,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Verify initial state - firstTask should have higher priority (lower number) than newTask
       expect(firstTaskPriority).toBeLessThan(initialNewTaskPriority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         newTask!.id,
         testUser.id,
         firstTask.id,
@@ -283,7 +283,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Verify initial state - newTask should have higher priority (lower number) than lastTask
       expect(lastTaskPriority).toBeGreaterThan(initialNewTaskPriority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         newTask!.id,
         testUser.id,
         lastTask.id,
@@ -345,7 +345,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(pendingTask1Priority).toBeGreaterThan(initialNewTaskPriority);
       expect(pendingTask2Priority).toBeGreaterThan(initialNewTaskPriority);
 
-      const reorderedTask = await taskService.reorderPendingTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         newTask!.id,
         testUser.id,
         pendingTask1.id,
@@ -392,7 +392,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(task1Priority).toBeLessThan(initialTask3Priority);
       expect(task2Priority).toBeLessThan(initialTask3Priority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         task3.id,
         testUser.id,
         task1.id,
@@ -411,7 +411,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(reorderedTask!.priority).toBe(expectedPriority);
     });
 
-    it('should return null for invalid reference task', async () => {
+    it('should throw for invalid reference task', async () => {
       const testUser = await fixtures.createTestUser();
       const testJournal = await fixtures.createTestJournal(testUser.id);
 
@@ -421,15 +421,16 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       });
 
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
-
-      const result = await taskService.reorderTask(
-        taskToMove!.id,
-        testUser.id,
-        nonExistentId,
-        'above'
+      await expect(
+        taskService.reorderPendingTaskWithDescendants(
+          taskToMove!.id,
+          testUser.id,
+          nonExistentId,
+          'above'
+        )
+      ).rejects.toThrowError(
+        'null value in column "priority" of relation "tasks" violates not-null constraint'
       );
-
-      expect(result).toBeNull();
     });
 
     it('should return null when user does not own the task', async () => {
@@ -448,7 +449,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         title: 'User 2 Task',
       });
 
-      const result = await taskService.reorderTask(
+      const result = await taskService.reorderPendingTaskWithDescendants(
         user1Task!.id,
         user2.id, // Wrong user
         user2Task!.id,
@@ -895,7 +896,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Verify initial state - both tasks have the same priority
       expect(task1Priority).toBe(task2Priority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         task1.id,
         testUser.id,
         task2.id,
@@ -934,7 +935,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Verify initial state - anotherTask should have higher priority (lower number)
       expect(singleTaskPriority).toBeGreaterThan(initialAnotherTaskPriority);
 
-      const reorderedTask = await taskService.reorderTask(
+      const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         anotherTask!.id,
         testUser.id,
         singleTask.id,
