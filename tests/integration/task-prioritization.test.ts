@@ -953,4 +953,748 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(reorderedTask!.priority).toBe(singleTask.priority + 100);
     });
   });
+
+  describe('Parent-Child Task Reordering with descendantIds', () => {
+    it('should reorder parent task with its sub-tasks maintaining hierarchy', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create parent task
+      const parentTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Parent Task',
+          priority: 200,
+        }
+      );
+
+      // Create sub-tasks
+      const subTask1 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 1',
+          priority: 210,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTask2 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 2',
+          priority: 220,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTask3 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 3',
+          priority: 230,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      // Create reference task to move parent above
+      const referenceTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task',
+          priority: 100,
+        }
+      );
+
+      const originalParentPriority = parentTask.priority;
+
+      // Move parent task above reference task
+      const reorderedParent =
+        await taskService.reorderPendingTaskWithDescendants(
+          parentTask.id,
+          testUser.id,
+          referenceTask.id,
+          'above',
+          [subTask1.id, subTask2.id, subTask3.id]
+        );
+
+      expect(reorderedParent).toBeDefined();
+      expect(reorderedParent!.priority).toBeLessThan(referenceTask.priority);
+      expect(reorderedParent!.priority).toBeLessThan(originalParentPriority);
+
+      // Verify sub-tasks still belong to parent and have new priorities
+      const updatedSubTasks = await Promise.all([
+        taskService.getTaskById(subTask1.id, testUser.id),
+        taskService.getTaskById(subTask2.id, testUser.id),
+        taskService.getTaskById(subTask3.id, testUser.id),
+      ]);
+
+      updatedSubTasks.forEach((subTask) => {
+        expect(subTask).toBeDefined();
+        expect(subTask!.parent_task_id).toBe(parentTask.id);
+        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
+        expect(subTask!.priority).toBeLessThan(referenceTask.priority);
+      });
+
+      // Verify sub-tasks maintain their relative ordering
+      expect(updatedSubTasks[0]!.priority).toBeLessThan(
+        updatedSubTasks[1]!.priority
+      );
+      expect(updatedSubTasks[1]!.priority).toBeLessThan(
+        updatedSubTasks[2]!.priority
+      );
+    });
+
+    it('should maintain proper priority spacing for sub-tasks after parent reorder', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create structure: topTask(50) -> parentTask(100) -> bottomTask(200)
+      const topTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Top Task',
+          priority: 50,
+        }
+      );
+
+      const parentTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Parent Task',
+          priority: 100,
+        }
+      );
+
+      const bottomTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Bottom Task',
+          priority: 200,
+        }
+      );
+
+      // Add sub-tasks to parent
+      const subTask1 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 1',
+          priority: 110,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTask2 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 2',
+          priority: 120,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTask3 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 3',
+          priority: 130,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      // Move parent between top and bottom tasks
+      const reorderedParent =
+        await taskService.reorderPendingTaskWithDescendants(
+          parentTask.id,
+          testUser.id,
+          topTask.id,
+          'below',
+          [subTask1.id, subTask2.id, subTask3.id]
+        );
+
+      expect(reorderedParent).toBeDefined();
+
+      // Parent should be between top and bottom
+      expect(reorderedParent!.priority).toBeGreaterThan(topTask.priority);
+      expect(reorderedParent!.priority).toBeLessThan(bottomTask.priority);
+
+      // Get updated sub-tasks
+      const updatedSubTasks = await Promise.all([
+        taskService.getTaskById(subTask1.id, testUser.id),
+        taskService.getTaskById(subTask2.id, testUser.id),
+        taskService.getTaskById(subTask3.id, testUser.id),
+      ]);
+
+      // All sub-tasks should be between parent and bottom task
+      updatedSubTasks.forEach((subTask) => {
+        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
+        expect(subTask!.priority).toBeLessThan(bottomTask.priority);
+      });
+
+      // Verify proper spacing exists between sub-tasks
+      const spacingBetween12 =
+        updatedSubTasks[1]!.priority - updatedSubTasks[0]!.priority;
+      const spacingBetween23 =
+        updatedSubTasks[2]!.priority - updatedSubTasks[1]!.priority;
+
+      expect(spacingBetween12).toBeGreaterThan(0);
+      expect(spacingBetween23).toBeGreaterThan(0);
+    });
+
+    it('should handle nested sub-task hierarchies when reordering parent', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create root task
+      const rootTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Root Task',
+          priority: 100,
+        }
+      );
+
+      // Create sub-task
+      const subTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task',
+          priority: 110,
+          parent_task_id: rootTask.id,
+        }
+      );
+
+      // Create sub-sub-task
+      const subSubTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Sub Task',
+          priority: 115,
+          parent_task_id: subTask.id,
+        }
+      );
+
+      // Create reference task
+      const referenceTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task',
+          priority: 50,
+        }
+      );
+
+      // Move root task above reference
+      const reorderedRoot = await taskService.reorderPendingTaskWithDescendants(
+        rootTask.id,
+        testUser.id,
+        referenceTask.id,
+        'above',
+        [subTask.id]
+      );
+
+      expect(reorderedRoot).toBeDefined();
+      expect(reorderedRoot!.priority).toBeLessThan(referenceTask.priority);
+
+      // Verify all hierarchy relationships are maintained
+      const updatedSubTask = await taskService.getTaskById(
+        subTask.id,
+        testUser.id
+      );
+      const updatedSubSubTask = await taskService.getTaskById(
+        subSubTask.id,
+        testUser.id
+      );
+
+      expect(updatedSubTask!.parent_task_id).toBe(rootTask.id);
+      expect(updatedSubSubTask!.parent_task_id).toBe(subTask.id);
+
+      // Verify priority ordering is maintained - sub-task should be between root and reference
+      expect(updatedSubTask!.priority).toBeGreaterThan(reorderedRoot!.priority);
+      expect(updatedSubTask!.priority).toBeLessThan(referenceTask.priority);
+      expect(updatedSubSubTask!.priority).toBeGreaterThan(
+        updatedSubTask!.priority
+      );
+      // Sub-sub-task should also be before the reference task
+      expect(updatedSubSubTask!.priority).toBeLessThan(referenceTask.priority);
+    });
+
+    it('should properly space sub-tasks when parent is moved to end of list', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create parent with sub-tasks
+      const parentTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Parent Task',
+          priority: 50,
+        }
+      );
+
+      const subTask1 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 1',
+          priority: 60,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTask2 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 2',
+          priority: 70,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      // Create a task that will be the last in the list
+      const lastTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Last Task',
+          priority: 200,
+        }
+      );
+
+      // Move parent to end (below last task)
+      const reorderedParent =
+        await taskService.reorderPendingTaskWithDescendants(
+          parentTask.id,
+          testUser.id,
+          lastTask.id,
+          'below',
+          [subTask1.id, subTask2.id]
+        );
+
+      expect(reorderedParent).toBeDefined();
+      expect(reorderedParent!.priority).toBeGreaterThan(lastTask.priority);
+
+      // Get updated sub-tasks
+      const updatedSubTasks = await Promise.all([
+        taskService.getTaskById(subTask1.id, testUser.id),
+        taskService.getTaskById(subTask2.id, testUser.id),
+      ]);
+
+      // Sub-tasks should be after parent with proper spacing
+      // Since we moved below lastTask, there's no next reference task, so we use fallback spacing
+      updatedSubTasks.forEach((subTask) => {
+        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
+        expect(subTask!.priority).toBeGreaterThan(lastTask.priority); // Should be after the reference point
+      });
+
+      // Verify sub-tasks maintain relative order
+      expect(updatedSubTasks[0]!.priority).toBeLessThan(
+        updatedSubTasks[1]!.priority
+      );
+
+      // Verify adequate spacing (using fallback calculation)
+      const expectedMaxSubTaskPriority = Math.max(
+        reorderedParent!.priority * 2,
+        reorderedParent!.priority + 1000
+      );
+
+      updatedSubTasks.forEach((subTask) => {
+        expect(subTask!.priority).toBeLessThan(expectedMaxSubTaskPriority);
+      });
+    });
+
+    it('should handle parent with many sub-tasks without priority collision', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create parent task
+      const parentTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Parent Task',
+          priority: 150,
+        }
+      );
+
+      // Create 10 sub-tasks
+      const subTasks = await Promise.all(
+        Array.from({ length: 10 }, (_, i) =>
+          fixtures.createTestTask(testUser.id, testJournal.id, {
+            title: `Sub Task ${i + 1}`,
+            priority: 160 + i * 5,
+            parent_task_id: parentTask.id,
+          })
+        )
+      );
+
+      // Create closely spaced reference tasks
+      const referenceTask1 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task 1',
+          priority: 100,
+        }
+      );
+
+      const referenceTask2 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task 2',
+          priority: 120,
+        }
+      );
+
+      const subTaskIds = subTasks.map((task) => task.id);
+
+      // Move parent between the two reference tasks
+      const reorderedParent =
+        await taskService.reorderPendingTaskWithDescendants(
+          parentTask.id,
+          testUser.id,
+          referenceTask1.id,
+          'below',
+          subTaskIds
+        );
+
+      expect(reorderedParent).toBeDefined();
+      expect(reorderedParent!.priority).toBeGreaterThan(
+        referenceTask1.priority
+      );
+      expect(reorderedParent!.priority).toBeLessThan(referenceTask2.priority);
+
+      // Get all updated sub-tasks
+      const updatedSubTasks = await Promise.all(
+        subTaskIds.map((id) => taskService.getTaskById(id, testUser.id))
+      );
+
+      // Verify all sub-tasks fit between parent and next reference task
+      updatedSubTasks.forEach((subTask) => {
+        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
+        expect(subTask!.priority).toBeLessThan(referenceTask2.priority);
+      });
+
+      // Verify all sub-tasks have unique priorities (no collisions)
+      const priorities = updatedSubTasks.map((task) => task!.priority);
+      const uniquePriorities = new Set(priorities);
+      expect(uniquePriorities.size).toBe(priorities.length);
+
+      // Verify proper ascending order
+      for (let i = 1; i < priorities.length; i++) {
+        expect(priorities[i]).toBeGreaterThan(priorities[i - 1]);
+      }
+    });
+
+    it('should handle edge case where next task has very close priority to parent', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create reference tasks with very close priorities
+      const referenceTask1 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task 1',
+          priority: 100,
+        }
+      );
+
+      const referenceTask2 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task 2',
+          priority: 100.1, // Very close to reference task 1
+        }
+      );
+
+      // Create parent with sub-tasks
+      const parentTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Parent Task',
+          priority: 200,
+        }
+      );
+
+      const subTask1 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 1',
+          priority: 210,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTask2 = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task 2',
+          priority: 220,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      // Move parent into the tight space
+      const reorderedParent =
+        await taskService.reorderPendingTaskWithDescendants(
+          parentTask.id,
+          testUser.id,
+          referenceTask1.id,
+          'below',
+          [subTask1.id, subTask2.id]
+        );
+
+      expect(reorderedParent).toBeDefined();
+      expect(reorderedParent!.priority).toBeGreaterThan(
+        referenceTask1.priority
+      );
+      expect(reorderedParent!.priority).toBeLessThan(referenceTask2.priority);
+
+      // Get updated sub-tasks
+      const updatedSubTasks = await Promise.all([
+        taskService.getTaskById(subTask1.id, testUser.id),
+        taskService.getTaskById(subTask2.id, testUser.id),
+      ]);
+
+      // All tasks should fit in the small gap with fractional priorities
+      updatedSubTasks.forEach((subTask) => {
+        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
+        expect(subTask!.priority).toBeLessThan(referenceTask2.priority);
+      });
+
+      // Verify unique priorities (no overlaps)
+      const allPriorities = [
+        reorderedParent!.priority,
+        ...updatedSubTasks.map((task) => task!.priority),
+      ];
+      const uniquePriorities = new Set(allPriorities);
+      expect(uniquePriorities.size).toBe(allPriorities.length);
+    });
+
+    it('should preserve relative order of sub-tasks when parent is reordered', async () => {
+      const testUser = await fixtures.createTestUser();
+      const testJournal = await fixtures.createTestJournal(testUser.id);
+
+      // Create parent task
+      const parentTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Parent Task',
+          priority: 200,
+        }
+      );
+
+      // Create sub-tasks with specific ordering: A(10), B(20), C(30)
+      const subTaskA = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task A',
+          priority: 210,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTaskB = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task B',
+          priority: 220,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      const subTaskC = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Sub Task C',
+          priority: 230,
+          parent_task_id: parentTask.id,
+        }
+      );
+
+      // Create reference task
+      const referenceTask = await fixtures.createTestTask(
+        testUser.id,
+        testJournal.id,
+        {
+          title: 'Reference Task',
+          priority: 50,
+        }
+      );
+
+      // Store original relative ordering
+      expect(subTaskA.priority).toBeLessThan(subTaskB.priority);
+      expect(subTaskB.priority).toBeLessThan(subTaskC.priority);
+
+      // Move parent to new position
+      const reorderedParent =
+        await taskService.reorderPendingTaskWithDescendants(
+          parentTask.id,
+          testUser.id,
+          referenceTask.id,
+          'above',
+          [subTaskA.id, subTaskB.id, subTaskC.id]
+        );
+
+      expect(reorderedParent).toBeDefined();
+
+      // Get updated sub-tasks
+      const updatedSubTaskA = await taskService.getTaskById(
+        subTaskA.id,
+        testUser.id
+      );
+      const updatedSubTaskB = await taskService.getTaskById(
+        subTaskB.id,
+        testUser.id
+      );
+      const updatedSubTaskC = await taskService.getTaskById(
+        subTaskC.id,
+        testUser.id
+      );
+
+      // Verify all sub-tasks are positioned between parent and reference task
+      [updatedSubTaskA, updatedSubTaskB, updatedSubTaskC].forEach((subTask) => {
+        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
+        expect(subTask!.priority).toBeLessThan(referenceTask.priority);
+      });
+
+      // Verify the relative ordering A < B < C is preserved
+      expect(updatedSubTaskA!.priority).toBeLessThan(updatedSubTaskB!.priority);
+      expect(updatedSubTaskB!.priority).toBeLessThan(updatedSubTaskC!.priority);
+
+      // Verify all are still children of the parent
+      expect(updatedSubTaskA!.parent_task_id).toBe(parentTask.id);
+      expect(updatedSubTaskB!.parent_task_id).toBe(parentTask.id);
+      expect(updatedSubTaskC!.parent_task_id).toBe(parentTask.id);
+    });
+
+    it('should not affect other users tasks when reordering with descendants', async () => {
+      const user1 = await fixtures.createTestUser();
+      const user2 = await fixtures.createTestUser();
+      const journal1 = await fixtures.createTestJournal(user1.id);
+      const journal2 = await fixtures.createTestJournal(user2.id);
+
+      // Create similar task structures for both users
+      const user1ParentTask = await fixtures.createTestTask(
+        user1.id,
+        journal1.id,
+        {
+          title: 'User 1 Parent Task',
+          priority: 100,
+        }
+      );
+
+      const user1SubTask = await fixtures.createTestTask(
+        user1.id,
+        journal1.id,
+        {
+          title: 'User 1 Sub Task',
+          priority: 110,
+          parent_task_id: user1ParentTask.id,
+        }
+      );
+
+      const user2ParentTask = await fixtures.createTestTask(
+        user2.id,
+        journal2.id,
+        {
+          title: 'User 2 Parent Task',
+          priority: 100,
+        }
+      );
+
+      const user2SubTask = await fixtures.createTestTask(
+        user2.id,
+        journal2.id,
+        {
+          title: 'User 2 Sub Task',
+          priority: 110,
+          parent_task_id: user2ParentTask.id,
+        }
+      );
+
+      // Create reference task for user 1
+      const user1ReferenceTask = await fixtures.createTestTask(
+        user1.id,
+        journal1.id,
+        {
+          title: 'User 1 Reference Task',
+          priority: 50,
+        }
+      );
+
+      // Store original priorities for user 2
+      const originalUser2ParentPriority = user2ParentTask.priority;
+      const originalUser2SubPriority = user2SubTask.priority;
+
+      // User 1 reorders their task with descendants
+      const reorderedUser1Parent =
+        await taskService.reorderPendingTaskWithDescendants(
+          user1ParentTask.id,
+          user1.id,
+          user1ReferenceTask.id,
+          'above',
+          [user1SubTask.id]
+        );
+
+      expect(reorderedUser1Parent).toBeDefined();
+      expect(reorderedUser1Parent!.priority).toBeLessThan(
+        user1ReferenceTask.priority
+      );
+
+      // Verify User 2's tasks are completely unchanged
+      const unchangedUser2Parent = await taskService.getTaskById(
+        user2ParentTask.id,
+        user2.id
+      );
+      const unchangedUser2Sub = await taskService.getTaskById(
+        user2SubTask.id,
+        user2.id
+      );
+
+      expect(unchangedUser2Parent!.priority).toBe(originalUser2ParentPriority);
+      expect(unchangedUser2Sub!.priority).toBe(originalUser2SubPriority);
+      expect(unchangedUser2Sub!.parent_task_id).toBe(user2ParentTask.id);
+
+      // Verify User 1's sub-task was updated and positioned correctly
+      const updatedUser1Sub = await taskService.getTaskById(
+        user1SubTask.id,
+        user1.id
+      );
+      expect(updatedUser1Sub!.priority).not.toBe(110); // Should have changed
+      expect(updatedUser1Sub!.parent_task_id).toBe(user1ParentTask.id);
+      // Sub-task should be between parent and reference task
+      expect(updatedUser1Sub!.priority).toBeGreaterThan(
+        reorderedUser1Parent!.priority
+      );
+      expect(updatedUser1Sub!.priority).toBeLessThan(
+        user1ReferenceTask.priority
+      );
+    });
+  });
 });

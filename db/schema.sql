@@ -727,7 +727,7 @@ CREATE TABLE public.tasks (
     completed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    priority double precision DEFAULT 1000.0,
+    priority double precision DEFAULT 1000.0 NOT NULL,
     reference_task_id uuid,
     scheduled_date date,
     parent_task_id uuid,

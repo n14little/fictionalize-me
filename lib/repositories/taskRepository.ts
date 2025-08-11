@@ -1095,7 +1095,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       try {
         // Update the parent task priority using database function
         const parentResult = await queryFn(
-          `UPDATE tasks 
+          `UPDATE tasks
            SET priority = calculate_priority_relative_to_task($2, $3, $4, $1, false),
                updated_at = NOW()
            WHERE id = $1 AND user_id = $2
@@ -1112,32 +1112,45 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         // If there are descendants, recalculate their priorities relative to the new parent position
         if (descendantIds && descendantIds.length > 0) {
           // Update all sub-task priorities to maintain proper spacing relative to the new parent position
+          // This handles nested hierarchies recursively by using a CTE to find all descendants
           await queryFn(
-            `WITH sub_tasks_ordered AS (
+            `WITH RECURSIVE all_descendants AS (
+              -- Direct children of the moved task
+              SELECT id, parent_task_id, priority, 1 as level
+              FROM tasks
+              WHERE parent_task_id = $1
+              
+              UNION ALL
+
+              -- Recursive case: children of children
+              SELECT t.id, t.parent_task_id, t.priority, ad.level + 1
+              FROM tasks t
+              INNER JOIN all_descendants ad ON t.parent_task_id = ad.id
+            ),
+            sub_tasks_ordered AS (
               SELECT id, ROW_NUMBER() OVER (ORDER BY priority ASC) as sub_order
-              FROM tasks 
-              WHERE parent_task_id = $1 
+              FROM all_descendants
               ORDER BY priority ASC
             ),
             next_root_task AS (
               SELECT priority as next_priority
-              FROM tasks 
-              WHERE user_id = $2 
-                AND parent_task_id IS NULL 
+              FROM tasks
+              WHERE user_id = $2
+                AND parent_task_id IS NULL
                 AND priority > $3
-              ORDER BY priority ASC 
+              ORDER BY priority ASC
               LIMIT 1
             ),
             priority_spacing AS (
-              SELECT 
+              SELECT
                 COALESCE(
-                  (SELECT next_priority FROM next_root_task), 
+                  (SELECT next_priority FROM next_root_task),
                   GREATEST($3 * 2, $3 + 1000)
                 ) as next_boundary,
                 $3 as parent_priority,
-                (SELECT COUNT(*) FROM tasks WHERE parent_task_id = $1) as total_subtasks
+                (SELECT COUNT(*) FROM all_descendants) as total_subtasks
             )
-            UPDATE tasks 
+            UPDATE tasks
             SET priority = ps.parent_priority + (sto.sub_order * ((ps.next_boundary - ps.parent_priority) / (ps.total_subtasks + 1))),
                 updated_at = NOW()
             FROM sub_tasks_ordered sto, priority_spacing ps
@@ -1170,7 +1183,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       }
 
       const result = await queryFn(
-        `SELECT 
+        `SELECT
           *,
           CASE
             WHEN missed_at IS NOT NULL AND missed_at < CURRENT_DATE AND completed_at IS NULL THEN 'missed'
