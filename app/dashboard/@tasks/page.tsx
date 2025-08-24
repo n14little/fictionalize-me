@@ -14,7 +14,6 @@ export default async function DashboardTasksSlot() {
   // Get bucketed tasks for the user with hierarchical ordering preserved
   const taskBuckets =
     await taskService.getUserTasksBucketedHierarchical(userId);
-  console.log('taskBuckets', JSON.stringify(taskBuckets, null, 2));
 
   // Get completed tasks from all buckets for the completed section
   const allTasks = [

@@ -14,13 +14,9 @@ const pool = new Pool({
 export default pool;
 
 export const query = async (text: string, params?: unknown[]) => {
-  // const start = Date.now();
   try {
     const result = await pool.query(text, params);
-    // const duration = Date.now() - start;
 
-    // turn off until better logging is implemented. This is too verbose
-    // console.log('Executed query', { text, duration, rows: result.rowCount });
     return result;
   } catch (error) {
     console.error('Query error', { text, error });
