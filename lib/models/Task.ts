@@ -7,7 +7,7 @@ export interface Task {
   description: string | null;
   completed: boolean;
   completed_at: Date | null;
-  priority: number;
+  priority: string; // Lexorank string for ordering
   reference_task_id: string | null; // Link to recurring task template
   recurrence_type: number | null; // 1=daily, 2=weekly, 3=monthly, 4=yearly, 5=custom, 6=regular
   scheduled_date: Date | null; // When this recurring task instance is due
@@ -21,7 +21,7 @@ export interface CreateTask {
   user_id: number;
   title: string;
   description?: string;
-  priority?: number;
+  priority?: string;
   reference_task_id?: string;
   recurrence_type?: number;
   scheduled_date?: Date;
@@ -33,7 +33,7 @@ export interface UpdateTask {
   description?: string;
   completed?: boolean;
   completed_at?: Date | null;
-  priority?: number;
+  priority?: string;
   reference_task_id?: string;
   recurrence_type?: number;
   scheduled_date?: Date;
