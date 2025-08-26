@@ -121,7 +121,7 @@ export class TestFixtures {
       journal_id: journalId,
       title: overrides.title || `Test Task ${Date.now()}`,
       description: overrides.description || 'A test task',
-      priority: overrides.priority || 1,
+      priority: overrides.priority || '0|000001',
       reference_task_id: overrides.reference_task_id ?? undefined,
       recurrence_type: overrides.recurrence_type ?? recurrenceType ?? undefined,
       scheduled_date: overrides.scheduled_date ?? undefined,

@@ -229,7 +229,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       }
 
       if (taskData.priority !== undefined) {
-        sets.push(`priority = $${paramIndex}`);
+        sets.push(`lexo_priority = $${paramIndex}`);
         values.push(taskData.priority);
         paramIndex++;
       }
@@ -262,7 +262,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
            JOIN journals j ON t.journal_id = j.id 
            WHERE j.user_id = $2
          )
-         RETURNING *`,
+         RETURNING *, lexo_priority as priority`,
         values
       );
       return (result.rows[0] as Task) || null;
@@ -279,7 +279,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       description?: string
     ): Promise<Task | null> => {
       const result = await queryFn(
-        `INSERT INTO tasks (journal_id, user_id, title, description, priority, missed_at)
+        `INSERT INTO tasks (journal_id, user_id, title, description, lexo_priority, missed_at)
          SELECT $2, $1, $3, $4, calculate_next_priority($1),
            calculate_missed_date(
              NOW(),
@@ -293,7 +293,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
            )
          FROM journals j
          WHERE j.id = $2 AND j.user_id = $1
-         RETURNING *`,
+         RETURNING *, lexo_priority as priority`,
         [userId, journalId, title, description || null]
       );
       return (result.rows[0] as Task) || null;
@@ -307,7 +307,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       priority: string
     ): Promise<Task | null> => {
       const result = await queryFn(
-        'UPDATE tasks SET lexo_priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *, lexo_priority as priority',
+        'UPDATE tasks SET lexo_priority = $1, updated_at = NOW() WHERE id = $2 RETURNING *, lexo_priority as priority, lexo_priority as priority',
         [priority, id]
       );
       return (result.rows[0] as Task) || null;
@@ -336,7 +336,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           WHERE t.id = $2 AND t.user_id = $1
         )
         INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, parent_task_id, recurrence_type, reference_task_id, missed_at
+          journal_id, user_id, title, description, lexo_priority, parent_task_id, recurrence_type, reference_task_id, missed_at
         )
         SELECT 
           pv.journal_id,
@@ -359,7 +359,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           )
         FROM parent_validation pv
         WHERE pv.id IS NOT NULL
-        RETURNING *`,
+        RETURNING *, lexo_priority as priority`,
         [userId, parentId, title, description || null]
       );
       return (result.rows[0] as Task) || null;
@@ -406,7 +406,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     }> => {
       // First update the task
       const updateResult = await queryFn(
-        'UPDATE tasks SET completed = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END WHERE id = $2 RETURNING *',
+        'UPDATE tasks SET completed = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END WHERE id = $2 RETURNING *, lexo_priority as priority',
         [completed, taskId]
       );
 
@@ -418,7 +418,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
 
       // Get incomplete sub-tasks in one query
       const subTaskResult = await queryFn(
-        'SELECT * FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY priority ASC',
+        'SELECT *, lexo_priority as priority FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY lexo_priority ASC',
         [taskId]
       );
 
@@ -441,7 +441,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       incompleteChildren: Task[];
     }> => {
       const result = await queryFn(
-        'SELECT * FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY priority ASC',
+        'SELECT *, lexo_priority as priority FROM tasks WHERE parent_task_id = $1 AND completed = false ORDER BY lexo_priority ASC',
         [taskId]
       );
 
@@ -470,7 +470,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         `UPDATE tasks 
          SET completed = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END 
          WHERE id = $2 
-         RETURNING *`,
+         RETURNING *, lexo_priority as priority`,
         [completed, taskId]
       );
 
@@ -527,7 +527,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      */
     getTasksForReordering: async (userId: number): Promise<Task[]> => {
       const result = await queryFn(
-        'SELECT id, priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
+        'SELECT id, lexo_priority as priority FROM tasks WHERE user_id = $1 ORDER BY lexo_priority ASC',
         [userId]
       );
       return result.rows as Task[];
@@ -536,11 +536,11 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
     /**
      * Get priority of a specific task
      */
-    getTaskPriority: async (taskId: string): Promise<number | null> => {
-      const result = await queryFn('SELECT priority FROM tasks WHERE id = $1', [
+    getTaskPriority: async (taskId: string): Promise<string | null> => {
+      const result = await queryFn('SELECT lexo_priority as priority FROM tasks WHERE id = $1', [
         taskId,
       ]);
-      return (result.rows[0] as { priority: number })?.priority || null;
+      return (result.rows[0] as { priority: string })?.priority || null;
     },
 
     /**
@@ -550,15 +550,15 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       userId: number,
       afterTaskId?: string,
       beforeTaskId?: string
-    ): Promise<{ afterPriority?: number; beforePriority?: number }> => {
+    ): Promise<{ afterPriority?: string; beforePriority?: string }> => {
       if (!afterTaskId && !beforeTaskId) {
         // Moving to beginning - get first task priority
         const result = await queryFn(
-          'SELECT priority FROM tasks WHERE user_id = $1 ORDER BY priority ASC LIMIT 1',
+          'SELECT lexo_priority as priority FROM tasks WHERE user_id = $1 ORDER BY lexo_priority ASC LIMIT 1',
           [userId]
         );
         return {
-          beforePriority: (result.rows[0] as { priority: number })?.priority,
+          beforePriority: (result.rows[0] as { priority: string })?.priority,
         };
       }
 
@@ -566,14 +566,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         // Moving to end or after specific task - get that task and the next one
         const result = await queryFn(
           `SELECT id, priority, 
-         LEAD(priority) OVER (ORDER BY priority ASC) as next_priority
+         LEAD(lexo_priority) OVER (ORDER BY lexo_priority ASC) as next_priority
          FROM tasks 
          WHERE user_id = $1 AND id = $2`,
           [userId, afterTaskId]
         );
         const row = result.rows[0] as {
-          priority: number;
-          next_priority: number;
+          priority: string;
+          next_priority: string;
         };
         return {
           afterPriority: row?.priority,
@@ -585,14 +585,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         // Moving before specific task (could be moving to the very top)
         const result = await queryFn(
           `SELECT id, priority,
-         LAG(priority) OVER (ORDER BY priority ASC) as prev_priority
+         LAG(lexo_priority) OVER (ORDER BY lexo_priority ASC) as prev_priority
          FROM tasks 
          WHERE user_id = $1 AND id = $2`,
           [userId, beforeTaskId]
         );
         const row = result.rows[0] as {
-          priority: number;
-          prev_priority: number;
+          priority: string;
+          prev_priority: string;
         };
         return {
           afterPriority: row?.prev_priority || undefined,
@@ -602,15 +602,15 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
 
       // Moving between two specific tasks
       const result = await queryFn(
-        'SELECT id, priority FROM tasks WHERE user_id = $1 AND id IN ($2, $3)',
+        'SELECT id, lexo_priority as priority FROM tasks WHERE user_id = $1 AND id IN ($2, $3)',
         [userId, afterTaskId, beforeTaskId]
       );
 
       const afterTask = (
-        result.rows as { id: string; priority: number }[]
+        result.rows as { id: string; priority: string }[]
       ).find((r) => r.id === afterTaskId);
       const beforeTask = (
-        result.rows as { id: string; priority: number }[]
+        result.rows as { id: string; priority: string }[]
       ).find((r) => r.id === beforeTaskId);
 
       return {
@@ -628,13 +628,13 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       taskId: string,
       referenceTaskId: string,
       position: 'above' | 'below'
-    ): Promise<number | null> => {
+    ): Promise<string | null> => {
       const result = await queryFn(
         'SELECT calculate_priority_relative_to_task($1, $2, $3, $4) as new_priority',
         [userId, referenceTaskId, position, taskId]
       );
 
-      return (result.rows[0] as { new_priority: number })?.new_priority || null;
+      return (result.rows[0] as { new_priority: string })?.new_priority || null;
     },
 
     /**
@@ -646,13 +646,13 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       taskId: string,
       referenceTaskId: string,
       position: 'above' | 'below'
-    ): Promise<number | null> => {
+    ): Promise<string | null> => {
       const result = await queryFn(
         'SELECT calculate_priority_relative_to_task($1, $2, $3, $4, false) as new_priority',
         [userId, referenceTaskId, position, taskId]
       );
 
-      return (result.rows[0] as { new_priority: number })?.new_priority || null;
+      return (result.rows[0] as { new_priority: string })?.new_priority || null;
     },
 
     // ===== TASK HIERARCHY METHODS =====
@@ -662,7 +662,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      */
     findByParentId: async (parentId: string): Promise<Task[]> => {
       const result = await queryFn(
-        'SELECT * FROM tasks WHERE parent_task_id = $1 ORDER BY priority ASC',
+        'SELECT *, lexo_priority as priority FROM tasks WHERE parent_task_id = $1 ORDER BY lexo_priority ASC',
         [parentId]
       );
       return result.rows as Task[];
@@ -674,7 +674,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      */
     findHierarchyByUserId: async (userId: number): Promise<Task[]> => {
       const result = await queryFn(
-        'SELECT * FROM tasks WHERE user_id = $1 ORDER BY priority ASC',
+        'SELECT *, lexo_priority as priority FROM tasks WHERE user_id = $1 ORDER BY lexo_priority ASC',
         [userId]
       );
       return result.rows as Task[];
@@ -779,7 +779,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           GREATEST(EXCLUDED.starts_on, CURRENT_DATE)
         ),
         updated_at = NOW()
-      RETURNING *`;
+      RETURNING *, lexo_priority as priority`;
       } else {
         sql = `INSERT INTO reference_tasks (
         user_id, journal_id, title, description, recurrence_type, recurrence_interval,
@@ -810,7 +810,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
           GREATEST(EXCLUDED.starts_on, CURRENT_DATE)
         ),
         updated_at = NOW()
-      RETURNING *`;
+      RETURNING *, lexo_priority as priority`;
       }
 
       const result = await queryFn(sql, params);
@@ -905,14 +905,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       // Use database function to calculate priorities automatically
       const insertResult = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, missed_at
+          journal_id, user_id, title, description, lexo_priority, reference_task_id, recurrence_type, scheduled_date, missed_at
         )
         SELECT 
           rt.journal_id,
           rt.user_id,
           rt.title,
           rt.description,
-          calculate_next_priority(rt.user_id) + (ROW_NUMBER() OVER (ORDER BY rt.id) - 1) * 10,
+          calculate_next_priority(rt.user_id),
           rt.id,
           rt.recurrence_type,
           $2::date,
@@ -1004,14 +1004,14 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
       // Use database function to calculate priorities automatically with proper spacing per user
       const insertResult = await queryFn(
         `INSERT INTO tasks (
-          journal_id, user_id, title, description, priority, reference_task_id, recurrence_type, scheduled_date, missed_at
+          journal_id, user_id, title, description, lexo_priority, reference_task_id, recurrence_type, scheduled_date, missed_at
         )
         SELECT
           rt.journal_id,
           rt.user_id,
           rt.title,
           rt.description,
-          calculate_next_priority(rt.user_id) + (ROW_NUMBER() OVER (PARTITION BY rt.user_id ORDER BY rt.id) - 1) * 10,
+          calculate_next_priority(rt.user_id),
           rt.id,
           rt.recurrence_type,
           $1::date,
@@ -1096,10 +1096,10 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
         // Update the parent task priority using database function
         const parentResult = await queryFn(
           `UPDATE tasks
-           SET priority = calculate_priority_relative_to_task($2, $3, $4, $1, false),
+           SET lexo_priority = calculate_priority_relative_to_task($2, $3, $4, $1, false),
                updated_at = NOW()
            WHERE id = $1 AND user_id = $2
-           RETURNING *`,
+           RETURNING *, lexo_priority as priority`,
           [taskId, userId, referenceTaskId, position]
         );
 
@@ -1128,17 +1128,17 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
               INNER JOIN all_descendants ad ON t.parent_task_id = ad.id
             ),
             sub_tasks_ordered AS (
-              SELECT id, ROW_NUMBER() OVER (ORDER BY priority ASC) as sub_order
+              SELECT id, ROW_NUMBER() OVER (ORDER BY lexo_priority ASC) as sub_order
               FROM all_descendants
-              ORDER BY priority ASC
+              ORDER BY lexo_priority ASC
             ),
             next_root_task AS (
               SELECT priority as next_priority
               FROM tasks
               WHERE user_id = $2
                 AND parent_task_id IS NULL
-                AND priority > $3
-              ORDER BY priority ASC
+                AND lexo_priority > $3
+              ORDER BY lexo_priority ASC
               LIMIT 1
             ),
             priority_spacing AS (
@@ -1151,7 +1151,7 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
                 (SELECT COUNT(*) FROM all_descendants) as total_subtasks
             )
             UPDATE tasks
-            SET priority = ps.parent_priority + (sto.sub_order * ((ps.next_boundary - ps.parent_priority) / (ps.total_subtasks + 1))),
+            SET lexo_priority = ps.parent_priority + (sto.sub_order * ((ps.next_boundary - ps.parent_priority) / (ps.total_subtasks + 1))),
                 updated_at = NOW()
             FROM sub_tasks_ordered sto, priority_spacing ps
             WHERE tasks.id = sto.id`,
