@@ -69,14 +69,14 @@ BEGIN
             JOIN test_user tu ON j.user_id = tu.id 
             WHERE j.title = 'My Test Journal'
         )
-        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, created_at, missed_at)
+        INSERT INTO tasks (user_id, journal_id, title, description, completed, lexo_priority, created_at, missed_at)
         SELECT 
             uj.user_id,
             uj.journal_id,
             task_data.title,
             task_data.description,
             task_data.completed,
-            task_data.priority,
+            '0|' || LPAD(task_data.priority::TEXT, 6, '0'), -- Convert numeric priority to lexorank format
             CURRENT_TIMESTAMP - (task_data.days_ago || ' days')::INTERVAL,
             calculate_missed_date(
                 CURRENT_TIMESTAMP - (task_data.days_ago || ' days')::INTERVAL,
@@ -121,14 +121,14 @@ BEGIN
             JOIN user_journal uj ON t.user_id = uj.user_id
             WHERE t.title IN ('Update project documentation', 'Review dashboard layout')
         )
-        INSERT INTO tasks (user_id, journal_id, title, description, completed, priority, parent_task_id, created_at, missed_at)
+        INSERT INTO tasks (user_id, journal_id, title, description, completed, lexo_priority, parent_task_id, created_at, missed_at)
         SELECT 
             pt.user_id,
             pt.journal_id,
             subtask_data.title,
             subtask_data.description,
             subtask_data.completed,
-            subtask_data.priority,
+            '0|' || LPAD(subtask_data.priority::TEXT, 6, '0'), -- Convert numeric priority to lexorank format
             pt.parent_id,
             CURRENT_TIMESTAMP - (subtask_data.days_ago || ' days')::INTERVAL,
             calculate_missed_date(

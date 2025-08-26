@@ -70,11 +70,11 @@ describe.sequential('TaskService - Integration Tests', () => {
 
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Parent Task',
-        priority: 1,
+        priority: "0|000001",
       });
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Another Task',
-        priority: 2,
+        priority: "0|000002",
       });
 
       const userTasks = await taskService.getUserTasks(testUser.id);
@@ -1383,7 +1383,7 @@ describe.sequential('TaskService - Integration Tests', () => {
           {
             title: 'Daily Parent Task',
             reference_task_id: dailyRefTask.id,
-            priority: 100,
+            priority: "0|000100",
           }
         );
 
@@ -1397,7 +1397,7 @@ describe.sequential('TaskService - Integration Tests', () => {
           testJournal.id,
           {
             title: 'Regular Parent Task',
-            priority: 200,
+            priority: "0|000200",
           }
         );
 
@@ -1438,7 +1438,7 @@ describe.sequential('TaskService - Integration Tests', () => {
           testJournal.id,
           {
             title: 'Parent Task',
-            priority: 100,
+            priority: "0|000100",
           }
         );
 
@@ -1490,7 +1490,7 @@ describe.sequential('TaskService - Integration Tests', () => {
           testJournal.id,
           {
             title: 'Parent Task',
-            priority: 100,
+            priority: "0|000100",
           }
         );
 

@@ -35,7 +35,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const createdTask = await taskService.createTask(testUser.id, taskData);
 
       expect(createdTask).toBeDefined();
-      expect(createdTask!.priority).toBe(1000);
+      expect(createdTask!.priority).toBeDefined();
+      expect(typeof createdTask!.priority).toBe('string');
+      expect(createdTask!.priority).toMatch(/^0\|/); // Should be lexorank format
     });
 
     it('should place new tasks at the top of the list with proper spacing', async () => {
@@ -57,12 +59,14 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         title: 'Third Task',
       });
 
-      expect(task1!.priority).toBe(1000);
-      expect(task2!.priority).toBe(500);
-      expect(task3!.priority).toBe(250);
+      // For lexorank, we can't predict exact values, but we can check relative ordering
+      // First task should have lexically highest priority (lowest string value)
+      // Subsequent tasks should have lexically lower priorities (higher string values)
+      expect(task2!.priority < task1!.priority).toBe(true); // task2 has higher priority
+      expect(task3!.priority < task2!.priority).toBe(true); // task3 has highest priority
 
       const allTasks = await taskService.getUserTasks(testUser.id);
-      const sortedTasks = allTasks.sort((a, b) => a.priority - b.priority);
+      const sortedTasks = allTasks.sort((a, b) => a.priority.localeCompare(b.priority));
 
       expect(sortedTasks.map((t) => t.title)).toEqual([
         'Third Task',
@@ -87,8 +91,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         title: 'User 2 Task',
       });
 
-      expect(user1Task!.priority).toBe(1000);
-      expect(user2Task!.priority).toBe(1000);
+      expect(user1Task!.priority).toBe("0|001000");
+      expect(user2Task!.priority).toBe("0|001000");
     });
   });
 
@@ -110,8 +114,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const referencePriority = referenceTask!.priority;
       const initialTaskPriority = taskToPosition!.priority;
 
-      // Verify initial state - reference task should have higher priority (lower number = higher priority)
-      expect(referencePriority).toBeLessThan(initialTaskPriority);
+      // Verify initial state - reference task should have higher priority (lexically smaller string = higher priority)
+      expect(referencePriority < initialTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         taskToPosition!.id,
@@ -123,10 +127,10 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedPriority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      // After reordering above, the task should have higher priority than reference
-      expect(referencePriority).toBeGreaterThan(updatedPriority);
-      // And it should be higher priority than before (smaller number)
-      expect(initialTaskPriority).toBeGreaterThan(updatedPriority);
+      // After reordering above, the task should have higher priority than reference (lexically smaller)
+      expect(updatedPriority < referencePriority).toBe(true);
+      // And it should be higher priority than before (lexically smaller)
+      expect(updatedPriority < initialTaskPriority).toBe(true);
     });
 
     it('should position task below reference task', async () => {
@@ -174,7 +178,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Top Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -183,7 +187,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Bottom Task',
-          priority: 300,
+          priority: "0|000300",
         }
       );
 
@@ -233,7 +237,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'First Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -268,7 +272,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Last Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -308,7 +312,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Pending Task 1',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -317,7 +321,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Completed Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -326,7 +330,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Pending Task 2',
-          priority: 300,
+          priority: "0|000300",
         }
       );
 
@@ -371,17 +375,17 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       const task1 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 1',
-        priority: 100,
+        priority: "0|000100",
       });
 
       const task2 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 2',
-        priority: 200,
+        priority: "0|000200",
       });
 
       const task3 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 3',
-        priority: 300,
+        priority: "0|000300",
       });
 
       const task1Priority = task1.priority;
@@ -470,7 +474,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -479,7 +483,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Next Root Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -512,7 +516,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -521,7 +525,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Next Root Task',
-          priority: 300,
+          priority: "0|000300",
         }
       );
 
@@ -589,7 +593,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -630,7 +634,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         {
           title: 'Daily Parent Task',
           reference_task_id: refTask.id,
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -671,7 +675,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       const parentTask = await fixtures.createTestTask(user1.id, journal1.id, {
         title: 'Parent Task',
-        priority: 100,
+        priority: "0|000100",
       });
 
       const result = await taskService.createSubTask(user2.id, parentTask.id, {
@@ -691,7 +695,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Grandparent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -700,7 +704,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Next Root Task',
-          priority: 500,
+          priority: "0|000500",
         }
       );
 
@@ -795,7 +799,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Existing Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -881,12 +885,12 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       const task1 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 1',
-        priority: 100,
+        priority: "0|000100",
       });
 
       const task2 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 2',
-        priority: 100, // Same priority
+        priority: "0|000100", // Same priority
       });
 
       const task1Priority = task1.priority;
@@ -920,7 +924,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Single Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -965,7 +969,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -1006,7 +1010,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -1068,7 +1072,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -1077,7 +1081,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Bottom Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -1161,7 +1165,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Root Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -1272,7 +1276,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Last Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -1349,7 +1353,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task 1',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -1412,7 +1416,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task 1',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -1431,7 +1435,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -1502,7 +1506,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 200,
+          priority: "0|000200",
         }
       );
 
@@ -1605,7 +1609,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal1.id,
         {
           title: 'User 1 Parent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 
@@ -1624,7 +1628,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal2.id,
         {
           title: 'User 2 Parent Task',
-          priority: 100,
+          priority: "0|000100",
         }
       );
 

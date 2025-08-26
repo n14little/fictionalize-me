@@ -1,5 +1,11 @@
 -- Update priority calculation functions to use lexorank instead of numeric priorities
 
+-- Drop existing functions first to allow return type changes
+DROP FUNCTION IF EXISTS calculate_next_priority(INTEGER);
+DROP FUNCTION IF EXISTS calculate_priority_between(INTEGER, UUID, UUID);
+DROP FUNCTION IF EXISTS calculate_priority_relative_to_task(INTEGER, UUID, TEXT, UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS calculate_subtask_priority(INTEGER, UUID, TEXT);
+
 -- Function to calculate the next priority for a task at the top of the list
 -- New tasks rise to the top for easy visibility and manual organization
 CREATE OR REPLACE FUNCTION calculate_next_priority(
