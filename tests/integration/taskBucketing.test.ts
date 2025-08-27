@@ -80,13 +80,13 @@ describe('Task Bucketing - Integration Tests', () => {
           title: 'Daily Exercise Instance 1',
           reference_task_id: dailyRefTask.id,
           scheduled_date: new Date('2025-08-01'),
-          priority: "0|000100",
+          priority: '0|000100',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Daily Exercise Instance 2',
           reference_task_id: dailyRefTask.id,
           scheduled_date: new Date('2025-08-02'),
-          priority: "0|000200",
+          priority: '0|000200',
         }),
       ]);
 
@@ -95,13 +95,13 @@ describe('Task Bucketing - Integration Tests', () => {
           title: 'Weekly Review Instance 1',
           reference_task_id: weeklyRefTask.id,
           scheduled_date: new Date('2025-08-01'),
-          priority: "0|000300",
+          priority: '0|000300',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Weekly Review Instance 2',
           reference_task_id: weeklyRefTask.id,
           scheduled_date: new Date('2025-08-08'),
-          priority: "0|000400",
+          priority: '0|000400',
         }),
       ]);
 
@@ -110,13 +110,13 @@ describe('Task Bucketing - Integration Tests', () => {
           title: 'Monthly Planning Instance 1',
           reference_task_id: monthlyRefTask.id,
           scheduled_date: new Date('2025-08-01'),
-          priority: "0|000500",
+          priority: '0|000500',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Monthly Planning Instance 2',
           reference_task_id: monthlyRefTask.id,
           scheduled_date: new Date('2025-09-01'),
-          priority: "0|000600",
+          priority: '0|000600',
         }),
       ]);
 
@@ -125,13 +125,13 @@ describe('Task Bucketing - Integration Tests', () => {
           title: 'Annual Review Instance 1',
           reference_task_id: yearlyRefTask.id,
           scheduled_date: new Date('2025-08-01'),
-          priority: "0|000700",
+          priority: '0|000700',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Annual Review Instance 2',
           reference_task_id: yearlyRefTask.id,
           scheduled_date: new Date('2026-08-01'),
-          priority: "0|000800",
+          priority: '0|000800',
         }),
       ]);
 
@@ -139,12 +139,12 @@ describe('Task Bucketing - Integration Tests', () => {
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Custom Task Instance 1',
           reference_task_id: customRefTask.id,
-          priority: "0|000900",
+          priority: '0|000900',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Custom Task Instance 2',
           reference_task_id: customRefTask.id,
-          priority: "0|001000",
+          priority: '0|001000',
         }),
       ]);
 
@@ -152,21 +152,21 @@ describe('Task Bucketing - Integration Tests', () => {
       const regularTasks = await Promise.all([
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'One-off Project Task 1',
-          priority: 1100,
+          priority: '0|001100',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'One-off Project Task 2',
-          priority: 1200,
+          priority: '0|001200',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'One-off Project Task 3',
-          priority: 1300,
+          priority: '0|001300',
         }),
       ]);
       const missedTasks = await Promise.all([
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'One-off Project Task -- MISSED',
-          priority: 1400,
+          priority: '0|001400',
         }),
       ]);
 
@@ -283,7 +283,7 @@ describe('Task Bucketing - Integration Tests', () => {
         {
           title: 'Daily Habit Instance',
           reference_task_id: dailyRef.id,
-          priority: 9000, // Very high priority number - would be last in priority sort
+          priority: '0|009000', // Very high priority number - would be last in priority sort
         }
       );
 
@@ -293,7 +293,7 @@ describe('Task Bucketing - Integration Tests', () => {
         {
           title: 'Weekly Review Instance',
           reference_task_id: weeklyRef.id,
-          priority: 8000,
+          priority: '0|008000',
         }
       );
 
@@ -303,7 +303,7 @@ describe('Task Bucketing - Integration Tests', () => {
         {
           title: 'Monthly Planning Instance',
           reference_task_id: monthlyRef.id,
-          priority: 7000,
+          priority: '0|007000',
         }
       );
 
@@ -313,7 +313,7 @@ describe('Task Bucketing - Integration Tests', () => {
         {
           title: 'Annual Review Instance',
           reference_task_id: yearlyRef.id,
-          priority: 6000,
+          priority: '0|006000',
         }
       );
 
@@ -323,7 +323,7 @@ describe('Task Bucketing - Integration Tests', () => {
         {
           title: 'Custom Task Instance',
           reference_task_id: customRef.id,
-          priority: 5000,
+          priority: '0|005000',
         }
       );
 
@@ -333,7 +333,7 @@ describe('Task Bucketing - Integration Tests', () => {
         testJournal.id,
         {
           title: 'High Priority Regular Task',
-          priority: "0|000001", // Lowest priority number - would be first in priority sort
+          priority: '0|000001', // Lowest priority number - would be first in priority sort
         }
       );
 
@@ -342,7 +342,7 @@ describe('Task Bucketing - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Another High Priority Regular Task',
-          priority: "0|000002", // Second lowest - would be second in priority sort
+          priority: '0|000002', // Second lowest - would be second in priority sort
         }
       );
 
@@ -428,24 +428,24 @@ describe('Task Bucketing - Integration Tests', () => {
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Morning Routine Instance',
         reference_task_id: refTask1.id,
-        priority: "0|000100",
+        priority: '0|000100',
       });
 
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Evening Routine Instance',
         reference_task_id: refTask2.id,
-        priority: "0|000200",
+        priority: '0|000200',
       });
 
       // Create regular tasks with different priorities
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Urgent Regular Task',
-        priority: 50,
+        priority: '0|000050',
       });
 
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Normal Regular Task',
-        priority: 150,
+        priority: '0|000150',
       });
 
       const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
@@ -564,12 +564,12 @@ describe('Task Bucketing - Integration Tests', () => {
       // Create multiple regular tasks
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Regular Task 1',
-        priority: "0|000100",
+        priority: '0|000100',
       });
 
       await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Regular Task 2',
-        priority: "0|000200",
+        priority: '0|000200',
       });
 
       const bucketedTasks = await taskService.getUserTasksBucketedHierarchical(
@@ -657,50 +657,50 @@ describe('Task Bucketing - Integration Tests', () => {
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Daily Standup Instance 1',
           reference_task_id: dailyRef.id,
-          priority: "0|000100",
+          priority: '0|000100',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Daily Standup Instance 2',
           reference_task_id: dailyRef.id,
-          priority: "0|000200",
+          priority: '0|000200',
         }),
 
         // Weekly tasks
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Weekly Team Meeting Instance 1',
           reference_task_id: weeklyRef.id,
-          priority: "0|000300",
+          priority: '0|000300',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Weekly Team Meeting Instance 2',
           reference_task_id: weeklyRef.id,
-          priority: "0|000400",
+          priority: '0|000400',
         }),
 
         // Monthly tasks
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Monthly One-on-One Instance 1',
           reference_task_id: monthlyRef.id,
-          priority: "0|000500",
+          priority: '0|000500',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Monthly One-on-One Instance 2',
           reference_task_id: monthlyRef.id,
-          priority: "0|000600",
+          priority: '0|000600',
         }),
 
         // Regular tasks
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Project Work Task 1',
-          priority: "0|000700",
+          priority: '0|000700',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Project Work Task 2',
-          priority: "0|000800",
+          priority: '0|000800',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Project Work Task 3',
-          priority: "0|000900",
+          priority: '0|000900',
         }),
       ]);
 
@@ -806,71 +806,71 @@ describe('Task Bucketing - Integration Tests', () => {
         // Regular tasks (should come last regardless of low priority numbers)
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Regular Task A',
-          priority: "0|000001", // Very low priority number
+          priority: '0|000001', // Very low priority number
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Regular Task B',
-          priority: 5,
+          priority: '0|000005',
         }),
 
         // Daily tasks (should come first)
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Daily Task A',
           reference_task_id: dailyRef.id,
-          priority: "0|001000", // High priority number
+          priority: '0|001000', // High priority number
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Daily Task B',
           reference_task_id: dailyRef.id,
-          priority: "0|002000",
+          priority: '0|002000',
         }),
 
         // Weekly tasks (should come after daily)
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Weekly Task A',
           reference_task_id: weeklyRef.id,
-          priority: "0|000500",
+          priority: '0|000500',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Weekly Task B',
           reference_task_id: weeklyRef.id,
-          priority: "0|000600",
+          priority: '0|000600',
         }),
 
         // Monthly tasks
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Monthly Task A',
           reference_task_id: monthlyRef.id,
-          priority: "0|000300",
+          priority: '0|000300',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Monthly Task B',
           reference_task_id: monthlyRef.id,
-          priority: "0|000400",
+          priority: '0|000400',
         }),
 
         // Yearly tasks
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Yearly Task A',
           reference_task_id: yearlyRef.id,
-          priority: "0|000100",
+          priority: '0|000100',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Yearly Task B',
           reference_task_id: yearlyRef.id,
-          priority: "0|000200",
+          priority: '0|000200',
         }),
 
         // Custom tasks
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Custom Task A',
           reference_task_id: customRef.id,
-          priority: "0|000700",
+          priority: '0|000700',
         }),
         fixtures.createTestTask(testUser.id, testJournal.id, {
           title: 'Custom Task B',
           reference_task_id: customRef.id,
-          priority: "0|000800",
+          priority: '0|000800',
         }),
       ]);
 

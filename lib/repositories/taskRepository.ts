@@ -43,7 +43,10 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      * Find a task by ID
      */
     findById: async (id: string): Promise<Task | null> => {
-      const result = await queryFn('SELECT *, lexo_priority as priority FROM tasks WHERE id = $1', [id]);
+      const result = await queryFn(
+        'SELECT *, lexo_priority as priority FROM tasks WHERE id = $1',
+        [id]
+      );
       return (result.rows[0] as Task) || null;
     },
 
@@ -537,9 +540,10 @@ export const createTaskRepository = (queryFn: QueryFunction) => {
      * Get priority of a specific task
      */
     getTaskPriority: async (taskId: string): Promise<string | null> => {
-      const result = await queryFn('SELECT lexo_priority as priority FROM tasks WHERE id = $1', [
-        taskId,
-      ]);
+      const result = await queryFn(
+        'SELECT lexo_priority as priority FROM tasks WHERE id = $1',
+        [taskId]
+      );
       return (result.rows[0] as { priority: string })?.priority || null;
     },
 

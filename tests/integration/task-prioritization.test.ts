@@ -62,11 +62,13 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // For lexorank, we can't predict exact values, but we can check relative ordering
       // First task should have lexically highest priority (lowest string value)
       // Subsequent tasks should have lexically lower priorities (higher string values)
-      expect(task2!.priority).toBeLessThan(task1!.priority); // task2 has higher priority
-      expect(task3!.priority).toBeLessThan(task2!.priority); // task3 has highest priority
+      expect(task2!.priority < task1!.priority).toBe(true); // task2 has higher priority
+      expect(task3!.priority < task2!.priority).toBe(true); // task3 has highest priority
 
       const allTasks = await taskService.getUserTasks(testUser.id);
-      const sortedTasks = allTasks.sort((a, b) => a.priority.localeCompare(b.priority));
+      const sortedTasks = allTasks.sort((a, b) =>
+        a.priority.localeCompare(b.priority)
+      );
 
       expect(sortedTasks.map((t) => t.title)).toEqual([
         'Third Task',
@@ -91,8 +93,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         title: 'User 2 Task',
       });
 
-      expect(user1Task!.priority).toBe("0|001000");
-      expect(user2Task!.priority).toBe("0|001000");
+      expect(user1Task!.priority).toBe('0|001000');
+      expect(user2Task!.priority).toBe('0|001000');
     });
   });
 
@@ -115,7 +117,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialTaskPriority = taskToPosition!.priority;
 
       // Verify initial state - reference task should have higher priority (lexically smaller string = higher priority)
-      expect(referencePriority).toBeLessThan(initialTaskPriority);
+      expect(referencePriority < initialTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         taskToPosition!.id,
@@ -128,9 +130,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       expect(reorderedTask).toBeDefined();
       // After reordering above, the task should have higher priority than reference (lexically smaller)
-      expect(updatedPriority).toBeLessThan(referencePriority);
+      expect(updatedPriority < referencePriority).toBe(true);
       // And it should be higher priority than before (lexically smaller)
-      expect(updatedPriority).toBeLessThan(initialTaskPriority);
+      expect(updatedPriority < initialTaskPriority).toBe(true);
     });
 
     it('should position task below reference task', async () => {
@@ -151,7 +153,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialTaskPriority = taskToPosition!.priority;
 
       // Verify initial state - reference should have lower priority (higher number) than task
-      expect(referencePriority).toBeGreaterThan(initialTaskPriority);
+      expect(referencePriority > initialTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         taskToPosition!.id,
@@ -164,9 +166,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       expect(reorderedTask).toBeDefined();
       // After reordering below, the task should have lower priority (higher number) than reference
-      expect(referencePriority).toBeLessThan(updatedPriority);
+      expect(referencePriority < updatedPriority).toBe(true);
       // And it should be lower priority than it was initially
-      expect(initialTaskPriority).toBeLessThan(updatedPriority);
+      expect(initialTaskPriority < updatedPriority).toBe(true);
     });
 
     it('should position task between two existing tasks', async () => {
@@ -178,7 +180,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Top Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -187,7 +189,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Bottom Task',
-          priority: "0|000300",
+          priority: '0|000300',
         }
       );
 
@@ -201,8 +203,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialMiddleTaskPriority = middleTask!.priority;
 
       // Verify initial state - middleTask should have higher priority than both (lower number)
-      expect(topTaskPriority).toBeGreaterThan(initialMiddleTaskPriority);
-      expect(bottomTaskPriority).toBeGreaterThan(initialMiddleTaskPriority);
+      expect(topTaskPriority > initialMiddleTaskPriority).toBe(true);
+      expect(bottomTaskPriority > initialMiddleTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         middleTask!.id,
@@ -214,13 +216,10 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedMiddleTaskPriority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(topTaskPriority).toBeLessThan(updatedMiddleTaskPriority);
-      expect(bottomTaskPriority).toBeGreaterThan(updatedMiddleTaskPriority);
+      expect(topTaskPriority < updatedMiddleTaskPriority).toBe(true);
+      expect(bottomTaskPriority > updatedMiddleTaskPriority).toBe(true);
       // Verify it actually moved from its original position
-      expect(initialMiddleTaskPriority).toBeLessThan(updatedMiddleTaskPriority);
-
-      const expectedPriority = (topTask.priority + bottomTask.priority) / 2;
-      expect(reorderedTask!.priority).toBe(expectedPriority);
+      expect(initialMiddleTaskPriority < updatedMiddleTaskPriority).toBe(true);
     });
 
     it('should handle positioning at the beginning of the list', async () => {
@@ -237,7 +236,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'First Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -245,7 +244,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialNewTaskPriority = newTask!.priority;
 
       // Verify initial state - firstTask should have higher priority (lower number) than newTask
-      expect(firstTaskPriority).toBeLessThan(initialNewTaskPriority);
+      expect(firstTaskPriority < initialNewTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         newTask!.id,
@@ -257,10 +256,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedNewTaskPriority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(firstTaskPriority).toBeGreaterThan(updatedNewTaskPriority);
+      expect(firstTaskPriority > updatedNewTaskPriority).toBe(true);
       // Verify it's even higher priority than it was initially (moving further up)
-      expect(initialNewTaskPriority).toBeGreaterThan(updatedNewTaskPriority);
-      expect(reorderedTask!.priority).toBe(firstTask.priority / 2);
+      expect(initialNewTaskPriority > updatedNewTaskPriority).toBe(true);
     });
 
     it('should handle positioning at the end of the list', async () => {
@@ -272,7 +270,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Last Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -285,7 +283,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialNewTaskPriority = newTask!.priority;
 
       // Verify initial state - newTask should have higher priority (lower number) than lastTask
-      expect(lastTaskPriority).toBeGreaterThan(initialNewTaskPriority);
+      expect(lastTaskPriority > initialNewTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         newTask!.id,
@@ -297,10 +295,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedNewTaskPriority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(lastTaskPriority).toBeLessThan(updatedNewTaskPriority);
+      expect(lastTaskPriority < updatedNewTaskPriority).toBe(true);
       // Verify it moved to lower priority (higher number) than it was initially
-      expect(initialNewTaskPriority).toBeLessThan(updatedNewTaskPriority);
-      expect(reorderedTask!.priority).toBe(lastTask.priority + 100);
+      expect(initialNewTaskPriority < updatedNewTaskPriority).toBe(true);
     });
 
     it('should only consider pending tasks when filtering by completion status', async () => {
@@ -312,7 +309,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Pending Task 1',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -321,7 +318,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Completed Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -330,7 +327,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Pending Task 2',
-          priority: "0|000300",
+          priority: '0|000300',
         }
       );
 
@@ -346,8 +343,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialNewTaskPriority = newTask!.priority;
 
       // Verify initial state - newTask should have highest priority (lowest number)
-      expect(pendingTask1Priority).toBeGreaterThan(initialNewTaskPriority);
-      expect(pendingTask2Priority).toBeGreaterThan(initialNewTaskPriority);
+      expect(pendingTask1Priority > initialNewTaskPriority).toBe(true);
+      expect(pendingTask2Priority > initialNewTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         newTask!.id,
@@ -359,14 +356,10 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedNewTaskPriority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(pendingTask1Priority).toBeLessThan(updatedNewTaskPriority);
-      expect(pendingTask2Priority).toBeGreaterThan(updatedNewTaskPriority);
+      expect(pendingTask1Priority < updatedNewTaskPriority).toBe(true);
+      expect(pendingTask2Priority > updatedNewTaskPriority).toBe(true);
       // Verify it actually moved from its original higher priority position
-      expect(initialNewTaskPriority).toBeLessThan(updatedNewTaskPriority);
-
-      const expectedPriority =
-        (pendingTask1.priority + pendingTask2.priority) / 2;
-      expect(reorderedTask!.priority).toBe(expectedPriority);
+      expect(initialNewTaskPriority < updatedNewTaskPriority).toBe(true);
     });
 
     it('should exclude specified task from calculations', async () => {
@@ -375,17 +368,17 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       const task1 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 1',
-        priority: "0|000100",
+        priority: '0|000100',
       });
 
       const task2 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 2',
-        priority: "0|000200",
+        priority: '0|000200',
       });
 
       const task3 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 3',
-        priority: "0|000300",
+        priority: '0|000300',
       });
 
       const task1Priority = task1.priority;
@@ -393,8 +386,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialTask3Priority = task3.priority;
 
       // Verify initial state - task3 has lowest priority (highest number)
-      expect(task1Priority).toBeLessThan(initialTask3Priority);
-      expect(task2Priority).toBeLessThan(initialTask3Priority);
+      expect(task1Priority < initialTask3Priority).toBe(true);
+      expect(task2Priority < initialTask3Priority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         task3.id,
@@ -406,13 +399,10 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedTask3Priority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(task1Priority).toBeLessThan(updatedTask3Priority);
-      expect(task2Priority).toBeGreaterThan(updatedTask3Priority);
+      expect(task1Priority < updatedTask3Priority).toBe(true);
+      expect(task2Priority > updatedTask3Priority).toBe(true);
       // Verify it actually moved from its original position to higher priority
-      expect(initialTask3Priority).toBeGreaterThan(updatedTask3Priority);
-
-      const expectedPriority = (task1.priority + task2.priority) / 2;
-      expect(reorderedTask!.priority).toBe(expectedPriority);
+      expect(initialTask3Priority > updatedTask3Priority).toBe(true);
     });
 
     it('should throw for invalid reference task', async () => {
@@ -474,7 +464,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -483,7 +473,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Next Root Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -502,8 +492,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const subTaskPriority = subTask!.priority;
 
       expect(subTask).toBeDefined();
-      expect(parentTaskPriority).toBeLessThan(subTaskPriority);
-      expect(nextRootTaskPriority).toBeGreaterThan(subTaskPriority);
+      expect(parentTaskPriority < subTaskPriority).toBe(true);
+      expect(nextRootTaskPriority > subTaskPriority).toBe(true);
       expect(subTask!.parent_task_id).toBe(parentTask.id);
     });
 
@@ -516,7 +506,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -525,7 +515,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Next Root Task',
-          priority: "0|000300",
+          priority: '0|000300',
         }
       );
 
@@ -563,17 +553,19 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const subTask2Priority = subTask2!.priority;
       const subTask3Priority = subTask3!.priority;
 
-      expect(parentTaskPriority).toBeLessThan(subTask1Priority);
-      expect(nextRootTaskPriority).toBeGreaterThan(subTask1Priority);
+      expect(parentTaskPriority < subTask1Priority).toBe(true);
+      expect(nextRootTaskPriority > subTask1Priority).toBe(true);
 
-      expect(subTask1Priority).toBeLessThan(subTask2Priority);
-      expect(nextRootTaskPriority).toBeGreaterThan(subTask2Priority);
+      expect(subTask1Priority < subTask2Priority).toBe(true);
+      expect(nextRootTaskPriority > subTask2Priority).toBe(true);
 
-      expect(subTask2Priority).toBeLessThan(subTask3Priority);
-      expect(nextRootTaskPriority).toBeGreaterThan(subTask3Priority);
+      expect(subTask2Priority < subTask3Priority).toBe(true);
+      expect(nextRootTaskPriority > subTask3Priority).toBe(true);
 
       const allTasks = await taskService.getUserTasks(testUser.id);
-      const sortedTasks = allTasks.sort((a, b) => a.priority - b.priority);
+      const sortedTasks = allTasks.sort((a, b) =>
+        a.priority.localeCompare(b.priority)
+      );
 
       expect(sortedTasks.map((t) => t.title)).toEqual([
         'Parent Task',
@@ -593,7 +585,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -611,7 +603,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const subTaskPriority = subTask!.priority;
 
       expect(subTask).toBeDefined();
-      expect(parentTaskPriority).toBeLessThan(subTaskPriority);
+      expect(parentTaskPriority < subTaskPriority).toBe(true);
       expect(subTask!.parent_task_id).toBe(parentTask.id);
     });
 
@@ -634,7 +626,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         {
           title: 'Daily Parent Task',
           reference_task_id: refTask.id,
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -675,7 +667,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       const parentTask = await fixtures.createTestTask(user1.id, journal1.id, {
         title: 'Parent Task',
-        priority: "0|000100",
+        priority: '0|000100',
       });
 
       const result = await taskService.createSubTask(user2.id, parentTask.id, {
@@ -695,7 +687,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Grandparent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -704,7 +696,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Next Root Task',
-          priority: "0|000500",
+          priority: '0|000500',
         }
       );
 
@@ -734,13 +726,15 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const subTaskPriority = subTask!.priority;
 
       expect(subTask).toBeDefined();
-      expect(grandparentTaskPriority).toBeLessThan(parentTaskPriority);
-      expect(parentTaskPriority).toBeLessThan(subTaskPriority);
-      expect(nextRootTaskPriority).toBeGreaterThan(subTaskPriority);
+      expect(grandparentTaskPriority < parentTaskPriority).toBe(true);
+      expect(parentTaskPriority < subTaskPriority).toBe(true);
+      expect(nextRootTaskPriority > subTaskPriority).toBe(true);
       expect(subTask!.parent_task_id).toBe(parentTask!.id);
 
       const allTasks = await taskService.getUserTasks(testUser.id);
-      const sortedTasks = allTasks.sort((a, b) => a.priority - b.priority);
+      const sortedTasks = allTasks.sort((a, b) =>
+        a.priority.localeCompare(b.priority)
+      );
 
       expect(
         sortedTasks.map((t) => ({ title: t.title, parent: t.parent_task_id }))
@@ -779,15 +773,13 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const userTasks = await taskService.getUserTasks(testUser.id);
       const createdTasks = userTasks
         .filter((task) => task.reference_task_id)
-        .sort((a, b) => a.priority - b.priority);
+        .sort((a, b) => a.priority.localeCompare(b.priority));
 
       const firstTaskPriority = createdTasks[0].priority;
       const secondTaskPriority = createdTasks[1].priority;
 
       expect(createdTasks).toHaveLength(2);
-      expect(firstTaskPriority).toBeLessThan(secondTaskPriority);
-      // Verify the actual spacing produced by the algorithm
-      expect(secondTaskPriority - firstTaskPriority).toBe(490);
+      expect(firstTaskPriority < secondTaskPriority).toBe(true);
     });
 
     it('should handle priority calculations with existing tasks', async () => {
@@ -799,7 +791,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Existing Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -830,7 +822,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const createdTaskPriority = createdTask!.priority;
 
       expect(createdTask).toBeDefined();
-      expect(existingTaskPriority).toBeGreaterThan(createdTaskPriority);
+      expect(existingTaskPriority > createdTaskPriority).toBe(true);
     });
   });
 
@@ -844,7 +836,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'High Priority Task',
-          priority: 999999999,
+          priority: '0|999999999',
         }
       );
 
@@ -854,7 +846,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       });
 
       expect(newTask).toBeDefined();
-      expect(newTask!.priority).toBeLessThan(highPriorityTask.priority);
+      expect(newTask!.priority < highPriorityTask.priority).toBe(true);
     });
 
     it('should handle priority calculations with very small numbers', async () => {
@@ -866,7 +858,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Low Priority Task',
-          priority: 0.001,
+          priority: '0|000001',
         }
       );
 
@@ -876,7 +868,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       });
 
       expect(newTask).toBeDefined();
-      expect(newTask!.priority).toBeLessThan(lowPriorityTask.priority);
+      expect(newTask!.priority < lowPriorityTask.priority).toBe(true);
     });
 
     it('should handle duplicate priorities gracefully', async () => {
@@ -885,12 +877,12 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       const task1 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 1',
-        priority: "0|000100",
+        priority: '0|000100',
       });
 
       const task2 = await fixtures.createTestTask(testUser.id, testJournal.id, {
         title: 'Task 2',
-        priority: "0|000100", // Same priority
+        priority: '0|000100', // Same priority
       });
 
       const task1Priority = task1.priority;
@@ -910,9 +902,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedTask1Priority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(task2Priority).toBeGreaterThan(updatedTask1Priority);
+      expect(task2Priority > updatedTask1Priority).toBe(true);
       // Verify it actually changed from the original priority
-      expect(initialTask1Priority).toBeGreaterThan(updatedTask1Priority);
+      expect(initialTask1Priority > updatedTask1Priority).toBe(true);
     });
 
     it('should handle reordering with only one task in the system', async () => {
@@ -924,7 +916,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Single Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -937,7 +929,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialAnotherTaskPriority = anotherTask!.priority;
 
       // Verify initial state - anotherTask should have higher priority (lower number)
-      expect(singleTaskPriority).toBeGreaterThan(initialAnotherTaskPriority);
+      expect(singleTaskPriority > initialAnotherTaskPriority).toBe(true);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         anotherTask!.id,
@@ -949,10 +941,10 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const updatedAnotherTaskPriority = reorderedTask!.priority;
 
       expect(reorderedTask).toBeDefined();
-      expect(singleTaskPriority).toBeLessThan(updatedAnotherTaskPriority);
+      expect(singleTaskPriority < updatedAnotherTaskPriority).toBe(true);
       // Verify it moved from higher priority to lower priority
-      expect(initialAnotherTaskPriority).toBeLessThan(
-        updatedAnotherTaskPriority
+      expect(initialAnotherTaskPriority < updatedAnotherTaskPriority).toBe(
+        true
       );
       expect(reorderedTask!.priority).toBe(singleTask.priority + 100);
     });
@@ -969,7 +961,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -979,7 +971,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 1',
-          priority: 210,
+          priority: '0|000210',
           parent_task_id: parentTask.id,
         }
       );
@@ -989,7 +981,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 2',
-          priority: 220,
+          priority: '0|000220',
           parent_task_id: parentTask.id,
         }
       );
@@ -999,7 +991,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 3',
-          priority: 230,
+          priority: '0|000230',
           parent_task_id: parentTask.id,
         }
       );
@@ -1010,7 +1002,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1027,8 +1019,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         );
 
       expect(reorderedParent).toBeDefined();
-      expect(reorderedParent!.priority).toBeLessThan(referenceTask.priority);
-      expect(reorderedParent!.priority).toBeLessThan(originalParentPriority);
+      expect(reorderedParent!.priority < referenceTask.priority).toBe(true);
+      expect(reorderedParent!.priority < originalParentPriority).toBe(true);
 
       // Verify sub-tasks still belong to parent and have new priorities
       const updatedSubTasks = await Promise.all([
@@ -1040,16 +1032,16 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       updatedSubTasks.forEach((subTask) => {
         expect(subTask).toBeDefined();
         expect(subTask!.parent_task_id).toBe(parentTask.id);
-        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
-        expect(subTask!.priority).toBeLessThan(referenceTask.priority);
+        expect(subTask!.priority > reorderedParent!.priority).toBe(true);
+        expect(subTask!.priority < referenceTask.priority).toBe(true);
       });
 
       // Verify sub-tasks maintain their relative ordering
-      expect(updatedSubTasks[0]!.priority).toBeLessThan(
-        updatedSubTasks[1]!.priority
+      expect(updatedSubTasks[0]!.priority < updatedSubTasks[1]!.priority).toBe(
+        true
       );
-      expect(updatedSubTasks[1]!.priority).toBeLessThan(
-        updatedSubTasks[2]!.priority
+      expect(updatedSubTasks[1]!.priority < updatedSubTasks[2]!.priority).toBe(
+        true
       );
     });
 
@@ -1063,7 +1055,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Top Task',
-          priority: 50,
+          priority: '0|000050',
         }
       );
 
@@ -1072,7 +1064,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1081,7 +1073,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Bottom Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -1091,7 +1083,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 1',
-          priority: 110,
+          priority: '0|000110',
           parent_task_id: parentTask.id,
         }
       );
@@ -1101,7 +1093,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 2',
-          priority: 120,
+          priority: '0|000120',
           parent_task_id: parentTask.id,
         }
       );
@@ -1111,7 +1103,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 3',
-          priority: 130,
+          priority: '0|000130',
           parent_task_id: parentTask.id,
         }
       );
@@ -1129,8 +1121,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(reorderedParent).toBeDefined();
 
       // Parent should be between top and bottom
-      expect(reorderedParent!.priority).toBeGreaterThan(topTask.priority);
-      expect(reorderedParent!.priority).toBeLessThan(bottomTask.priority);
+      expect(reorderedParent!.priority > topTask.priority).toBe(true);
+      expect(reorderedParent!.priority < bottomTask.priority).toBe(true);
 
       // Get updated sub-tasks
       const updatedSubTasks = await Promise.all([
@@ -1141,18 +1133,17 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       // All sub-tasks should be between parent and bottom task
       updatedSubTasks.forEach((subTask) => {
-        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
-        expect(subTask!.priority).toBeLessThan(bottomTask.priority);
+        expect(subTask!.priority > reorderedParent!.priority).toBe(true);
+        expect(subTask!.priority < bottomTask.priority).toBe(true);
       });
 
-      // Verify proper spacing exists between sub-tasks
-      const spacingBetween12 =
-        updatedSubTasks[1]!.priority - updatedSubTasks[0]!.priority;
-      const spacingBetween23 =
-        updatedSubTasks[2]!.priority - updatedSubTasks[1]!.priority;
-
-      expect(spacingBetween12).toBeGreaterThan(0);
-      expect(spacingBetween23).toBeGreaterThan(0);
+      // Verify proper spacing exists between sub-tasks - that they are in order
+      expect(updatedSubTasks[0]!.priority < updatedSubTasks[1]!.priority).toBe(
+        true
+      );
+      expect(updatedSubTasks[1]!.priority < updatedSubTasks[2]!.priority).toBe(
+        true
+      );
     });
 
     it('should handle nested sub-task hierarchies when reordering parent', async () => {
@@ -1165,7 +1156,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Root Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1175,7 +1166,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task',
-          priority: 110,
+          priority: '0|000110',
           parent_task_id: rootTask.id,
         }
       );
@@ -1186,7 +1177,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Sub Task',
-          priority: 115,
+          priority: '0|000115',
           parent_task_id: subTask.id,
         }
       );
@@ -1197,7 +1188,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task',
-          priority: 50,
+          priority: '0|000050',
         }
       );
 
@@ -1211,7 +1202,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       );
 
       expect(reorderedRoot).toBeDefined();
-      expect(reorderedRoot!.priority).toBeLessThan(referenceTask.priority);
+      expect(reorderedRoot!.priority < referenceTask.priority).toBe(true);
 
       // Verify all hierarchy relationships are maintained
       const updatedSubTask = await taskService.getTaskById(
@@ -1227,13 +1218,11 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(updatedSubSubTask!.parent_task_id).toBe(subTask.id);
 
       // Verify priority ordering is maintained - sub-task should be between root and reference
-      expect(updatedSubTask!.priority).toBeGreaterThan(reorderedRoot!.priority);
-      expect(updatedSubTask!.priority).toBeLessThan(referenceTask.priority);
-      expect(updatedSubSubTask!.priority).toBeGreaterThan(
-        updatedSubTask!.priority
-      );
+      expect(updatedSubTask!.priority > reorderedRoot!.priority).toBe(true);
+      expect(updatedSubTask!.priority < referenceTask.priority).toBe(true);
+      expect(updatedSubSubTask!.priority > updatedSubTask!.priority).toBe(true);
       // Sub-sub-task should also be before the reference task
-      expect(updatedSubSubTask!.priority).toBeLessThan(referenceTask.priority);
+      expect(updatedSubSubTask!.priority < referenceTask.priority).toBe(true);
     });
 
     it('should properly space sub-tasks when parent is moved to end of list', async () => {
@@ -1246,7 +1235,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 50,
+          priority: '0|000050',
         }
       );
 
@@ -1255,7 +1244,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 1',
-          priority: 60,
+          priority: '0|000060',
           parent_task_id: parentTask.id,
         }
       );
@@ -1265,7 +1254,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 2',
-          priority: 70,
+          priority: '0|000070',
           parent_task_id: parentTask.id,
         }
       );
@@ -1276,7 +1265,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Last Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -1291,7 +1280,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         );
 
       expect(reorderedParent).toBeDefined();
-      expect(reorderedParent!.priority).toBeGreaterThan(lastTask.priority);
+      expect(reorderedParent!.priority > lastTask.priority).toBe(true);
 
       // Get updated sub-tasks
       const updatedSubTasks = await Promise.all([
@@ -1302,24 +1291,14 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // Sub-tasks should be after parent with proper spacing
       // Since we moved below lastTask, there's no next reference task, so we use fallback spacing
       updatedSubTasks.forEach((subTask) => {
-        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
-        expect(subTask!.priority).toBeGreaterThan(lastTask.priority); // Should be after the reference point
+        expect(subTask!.priority > reorderedParent!.priority).toBe(true);
+        expect(subTask!.priority > lastTask.priority).toBe(true); // Should be after the reference point
       });
 
       // Verify sub-tasks maintain relative order
-      expect(updatedSubTasks[0]!.priority).toBeLessThan(
-        updatedSubTasks[1]!.priority
+      expect(updatedSubTasks[0]!.priority < updatedSubTasks[1]!.priority).toBe(
+        true
       );
-
-      // Verify adequate spacing (using fallback calculation)
-      const expectedMaxSubTaskPriority = Math.max(
-        reorderedParent!.priority * 2,
-        reorderedParent!.priority + 1000
-      );
-
-      updatedSubTasks.forEach((subTask) => {
-        expect(subTask!.priority).toBeLessThan(expectedMaxSubTaskPriority);
-      });
     });
 
     it('should handle parent with many sub-tasks without priority collision', async () => {
@@ -1332,7 +1311,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: 150,
+          priority: '0|000150',
         }
       );
 
@@ -1341,7 +1320,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         Array.from({ length: 10 }, (_, i) =>
           fixtures.createTestTask(testUser.id, testJournal.id, {
             title: `Sub Task ${i + 1}`,
-            priority: 160 + i * 5,
+            priority: `0|${String(160 + i * 5).padStart(6, '0')}`,
             parent_task_id: parentTask.id,
           })
         )
@@ -1353,7 +1332,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task 1',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1362,7 +1341,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task 2',
-          priority: 120,
+          priority: '0|000120',
         }
       );
 
@@ -1379,10 +1358,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         );
 
       expect(reorderedParent).toBeDefined();
-      expect(reorderedParent!.priority).toBeGreaterThan(
-        referenceTask1.priority
-      );
-      expect(reorderedParent!.priority).toBeLessThan(referenceTask2.priority);
+      expect(reorderedParent!.priority > referenceTask1.priority).toBe(true);
+      expect(reorderedParent!.priority < referenceTask2.priority).toBe(true);
 
       // Get all updated sub-tasks
       const updatedSubTasks = await Promise.all(
@@ -1391,8 +1368,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       // Verify all sub-tasks fit between parent and next reference task
       updatedSubTasks.forEach((subTask) => {
-        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
-        expect(subTask!.priority).toBeLessThan(referenceTask2.priority);
+        expect(subTask!.priority > reorderedParent!.priority).toBe(true);
+        expect(subTask!.priority < referenceTask2.priority).toBe(true);
       });
 
       // Verify all sub-tasks have unique priorities (no collisions)
@@ -1402,7 +1379,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       // Verify proper ascending order
       for (let i = 1; i < priorities.length; i++) {
-        expect(priorities[i]).toBeGreaterThan(priorities[i - 1]);
+        expect(priorities[i] > priorities[i - 1]).toBe(true);
       }
     });
 
@@ -1416,7 +1393,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task 1',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1425,7 +1402,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task 2',
-          priority: 100.1, // Very close to reference task 1
+          priority: '0|000101', // Very close to reference task 1
         }
       );
 
@@ -1435,7 +1412,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -1444,7 +1421,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 1',
-          priority: 210,
+          priority: '0|000210',
           parent_task_id: parentTask.id,
         }
       );
@@ -1454,7 +1431,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task 2',
-          priority: 220,
+          priority: '0|000220',
           parent_task_id: parentTask.id,
         }
       );
@@ -1470,10 +1447,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         );
 
       expect(reorderedParent).toBeDefined();
-      expect(reorderedParent!.priority).toBeGreaterThan(
-        referenceTask1.priority
-      );
-      expect(reorderedParent!.priority).toBeLessThan(referenceTask2.priority);
+      expect(reorderedParent!.priority > referenceTask1.priority).toBe(true);
+      expect(reorderedParent!.priority < referenceTask2.priority).toBe(true);
 
       // Get updated sub-tasks
       const updatedSubTasks = await Promise.all([
@@ -1483,8 +1458,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       // All tasks should fit in the small gap with fractional priorities
       updatedSubTasks.forEach((subTask) => {
-        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
-        expect(subTask!.priority).toBeLessThan(referenceTask2.priority);
+        expect(subTask!.priority > reorderedParent!.priority).toBe(true);
+        expect(subTask!.priority < referenceTask2.priority).toBe(true);
       });
 
       // Verify unique priorities (no overlaps)
@@ -1506,7 +1481,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Parent Task',
-          priority: "0|000200",
+          priority: '0|000200',
         }
       );
 
@@ -1516,7 +1491,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task A',
-          priority: 210,
+          priority: '0|000210',
           parent_task_id: parentTask.id,
         }
       );
@@ -1526,7 +1501,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task B',
-          priority: 220,
+          priority: '0|000220',
           parent_task_id: parentTask.id,
         }
       );
@@ -1536,7 +1511,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Sub Task C',
-          priority: 230,
+          priority: '0|000230',
           parent_task_id: parentTask.id,
         }
       );
@@ -1547,13 +1522,13 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         testJournal.id,
         {
           title: 'Reference Task',
-          priority: 50,
+          priority: '0|000050',
         }
       );
 
       // Store original relative ordering
-      expect(subTaskA.priority).toBeLessThan(subTaskB.priority);
-      expect(subTaskB.priority).toBeLessThan(subTaskC.priority);
+      expect(subTaskA.priority < subTaskB.priority).toBe(true);
+      expect(subTaskB.priority < subTaskC.priority).toBe(true);
 
       // Move parent to new position
       const reorderedParent =
@@ -1583,13 +1558,13 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       // Verify all sub-tasks are positioned between parent and reference task
       [updatedSubTaskA, updatedSubTaskB, updatedSubTaskC].forEach((subTask) => {
-        expect(subTask!.priority).toBeGreaterThan(reorderedParent!.priority);
-        expect(subTask!.priority).toBeLessThan(referenceTask.priority);
+        expect(subTask!.priority > reorderedParent!.priority).toBe(true);
+        expect(subTask!.priority < referenceTask.priority).toBe(true);
       });
 
       // Verify the relative ordering A < B < C is preserved
-      expect(updatedSubTaskA!.priority).toBeLessThan(updatedSubTaskB!.priority);
-      expect(updatedSubTaskB!.priority).toBeLessThan(updatedSubTaskC!.priority);
+      expect(updatedSubTaskA!.priority < updatedSubTaskB!.priority).toBe(true);
+      expect(updatedSubTaskB!.priority < updatedSubTaskC!.priority).toBe(true);
 
       // Verify all are still children of the parent
       expect(updatedSubTaskA!.parent_task_id).toBe(parentTask.id);
@@ -1609,7 +1584,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal1.id,
         {
           title: 'User 1 Parent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1618,7 +1593,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal1.id,
         {
           title: 'User 1 Sub Task',
-          priority: 110,
+          priority: '0|000110',
           parent_task_id: user1ParentTask.id,
         }
       );
@@ -1628,7 +1603,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal2.id,
         {
           title: 'User 2 Parent Task',
-          priority: "0|000100",
+          priority: '0|000100',
         }
       );
 
@@ -1637,7 +1612,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal2.id,
         {
           title: 'User 2 Sub Task',
-          priority: 110,
+          priority: '0|000110',
           parent_task_id: user2ParentTask.id,
         }
       );
@@ -1648,7 +1623,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         journal1.id,
         {
           title: 'User 1 Reference Task',
-          priority: 50,
+          priority: '0|000050',
         }
       );
 
@@ -1667,8 +1642,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
         );
 
       expect(reorderedUser1Parent).toBeDefined();
-      expect(reorderedUser1Parent!.priority).toBeLessThan(
-        user1ReferenceTask.priority
+      expect(reorderedUser1Parent!.priority < user1ReferenceTask.priority).toBe(
+        true
       );
 
       // Verify User 2's tasks are completely unchanged
@@ -1693,11 +1668,11 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       expect(updatedUser1Sub!.priority).not.toBe(110); // Should have changed
       expect(updatedUser1Sub!.parent_task_id).toBe(user1ParentTask.id);
       // Sub-task should be between parent and reference task
-      expect(updatedUser1Sub!.priority).toBeGreaterThan(
-        reorderedUser1Parent!.priority
+      expect(updatedUser1Sub!.priority > reorderedUser1Parent!.priority).toBe(
+        true
       );
-      expect(updatedUser1Sub!.priority).toBeLessThan(
-        user1ReferenceTask.priority
+      expect(updatedUser1Sub!.priority < user1ReferenceTask.priority).toBe(
+        true
       );
     });
   });
