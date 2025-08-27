@@ -11,9 +11,7 @@ BEGIN
         RETURN 'a';
     ELSIF c = 'z' THEN
         RETURN NULL; -- overflow, need rebalancing
-    ELSIF c ~ '[0-8]' THEN
-        RETURN CHR(ASCII(c) + 1);
-    ELSIF c ~ '[a-y]' THEN
+    ELSIF c ~ '[0-8a-y]' THEN
         RETURN CHR(ASCII(c) + 1);
     ELSE
         RETURN NULL; -- invalid character
@@ -31,9 +29,7 @@ BEGIN
         RETURN NULL; -- underflow, need rebalancing
     ELSIF c = 'a' THEN
         RETURN '9';
-    ELSIF c ~ '[1-9]' THEN
-        RETURN CHR(ASCII(c) - 1);
-    ELSIF c ~ '[b-z]' THEN
+    ELSIF c ~ '[1-9b-z]' THEN
         RETURN CHR(ASCII(c) - 1);
     ELSE
         RETURN NULL; -- invalid character

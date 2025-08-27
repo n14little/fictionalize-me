@@ -17,8 +17,13 @@ BEGIN
         FROM tasks 
         ORDER BY user_id, priority ASC
     LOOP
-        -- Generate lexorank with proper spacing (increment by 1000 for each task)
+        -- Generate lexorank with proper spacing between tasks to allow insertions
         rank_counter := rank_counter + 1;
+        -- Format: 'bucket|padded_number' where:
+        -- '0' = bucket identifier (for potential future partitioning)
+        -- '|' = separator between bucket and rank
+        -- LPAD(..., 6, '0') = zero-padded to 6 digits for consistent length
+        -- (rank_counter * 1000) = spacing of 1000 units between tasks for insertions
         rank_value := '0|' || LPAD((rank_counter * 1000)::TEXT, 6, '0');
         
         -- Update the task with the new lexorank

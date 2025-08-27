@@ -62,8 +62,8 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       // For lexorank, we can't predict exact values, but we can check relative ordering
       // First task should have lexically highest priority (lowest string value)
       // Subsequent tasks should have lexically lower priorities (higher string values)
-      expect(task2!.priority < task1!.priority).toBe(true); // task2 has higher priority
-      expect(task3!.priority < task2!.priority).toBe(true); // task3 has highest priority
+      expect(task2!.priority).toBeLessThan(task1!.priority); // task2 has higher priority
+      expect(task3!.priority).toBeLessThan(task2!.priority); // task3 has highest priority
 
       const allTasks = await taskService.getUserTasks(testUser.id);
       const sortedTasks = allTasks.sort((a, b) => a.priority.localeCompare(b.priority));
@@ -115,7 +115,7 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
       const initialTaskPriority = taskToPosition!.priority;
 
       // Verify initial state - reference task should have higher priority (lexically smaller string = higher priority)
-      expect(referencePriority < initialTaskPriority).toBe(true);
+      expect(referencePriority).toBeLessThan(initialTaskPriority);
 
       const reorderedTask = await taskService.reorderPendingTaskWithDescendants(
         taskToPosition!.id,
@@ -128,9 +128,9 @@ describe.sequential('Task Prioritization - Integration Tests', () => {
 
       expect(reorderedTask).toBeDefined();
       // After reordering above, the task should have higher priority than reference (lexically smaller)
-      expect(updatedPriority < referencePriority).toBe(true);
+      expect(updatedPriority).toBeLessThan(referencePriority);
       // And it should be higher priority than before (lexically smaller)
-      expect(updatedPriority < initialTaskPriority).toBe(true);
+      expect(updatedPriority).toBeLessThan(initialTaskPriority);
     });
 
     it('should position task below reference task', async () => {
