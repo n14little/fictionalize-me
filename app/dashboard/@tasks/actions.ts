@@ -29,7 +29,7 @@ export async function toggleTaskCompletion(formData: FormData) {
 
     return { success: true, task: result.task };
   } catch (error) {
-    console.error('Error toggling task completion:', error);
+    console.error('Error toggling task completion (dashboard action):', error);
     throw error;
   }
 }

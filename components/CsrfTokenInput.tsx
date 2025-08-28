@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 
-export function CsrfTokenInput() {
+interface CsrfTokenInputProps {
+  onTokenReady?: (ready: boolean) => void;
+}
+
+export function CsrfTokenInput({ onTokenReady }: CsrfTokenInputProps = {}) {
   const [csrfToken, setCsrfToken] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,15 +20,17 @@ export function CsrfTokenInput() {
         }
         const data = await response.json();
         setCsrfToken(data.csrfToken);
+        onTokenReady?.(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load form');
+        onTokenReady?.(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCsrfToken();
-  }, []);
+  }, [onTokenReady]);
 
   if (isLoading) {
     return null;

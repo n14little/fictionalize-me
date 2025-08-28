@@ -69,7 +69,7 @@ export async function toggleTaskCompletion(formData: FormData) {
     // Revalidate the journal page
     revalidatePath(`/journals/${journalId}`);
   } catch (error) {
-    console.error('Error toggling task completion:', error);
+    console.error('Error toggling task completion (journal action):', error);
     throw error;
   }
 

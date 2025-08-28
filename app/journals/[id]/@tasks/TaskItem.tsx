@@ -14,13 +14,14 @@ interface TaskItemProps {
 export function TaskItem({ task, journalId }: TaskItemProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [isCsrfReady, setIsCsrfReady] = useState(false);
 
   async function handleToggleCompletion(formData: FormData) {
     setIsToggling(true);
     try {
       await toggleTaskCompletion(formData);
     } catch (error) {
-      console.error('Error toggling task completion:', error);
+      console.error('Error toggling task completion (journal page):', error);
     } finally {
       setIsToggling(false);
     }
@@ -43,13 +44,13 @@ export function TaskItem({ task, journalId }: TaskItemProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <form action={handleToggleCompletion}>
-            <CsrfTokenInput />
+            <CsrfTokenInput onTokenReady={setIsCsrfReady} />
             <input type="hidden" name="taskId" value={task.id} />
             <input type="hidden" name="journalId" value={journalId} />
             {/* TODO: use FormButton */}
             <button
               type="submit"
-              disabled={isToggling}
+              disabled={isToggling || !isCsrfReady}
               className={`w-5 h-5 rounded border ${
                 task.completed
                   ? 'bg-blue-500 border-blue-600 text-white flex items-center justify-center'
@@ -102,7 +103,7 @@ export function TaskItem({ task, journalId }: TaskItemProps) {
           {/* TODO: Use FormButton */}
           <button
             type="submit"
-            disabled={isDeleting}
+            disabled={isDeleting || !isCsrfReady}
             className="text-red-500 hover:text-red-700 p-1 rounded-full"
             aria-label="Delete task"
           >

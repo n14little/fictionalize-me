@@ -17,6 +17,7 @@ interface DashboardTaskItemProps {
 export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [isCsrfReady, setIsCsrfReady] = useState(false);
 
   async function handleToggleCompletion(formData: FormData) {
     setIsToggling(true);
@@ -32,7 +33,7 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
       ) {
         throw error;
       }
-      console.error('Error toggling task completion:', error);
+      console.error('Error toggling task completion (dashboard):', error);
       // Show user-friendly error message
       if (
         error instanceof Error &&
@@ -74,11 +75,11 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
     <div className="p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
       <div className="flex items-start gap-2">
         <form action={handleToggleCompletion}>
-          <CsrfTokenInput />
+          <CsrfTokenInput onTokenReady={setIsCsrfReady} />
           <input type="hidden" name="taskId" value={task.id} />
           <button
             type="submit"
-            disabled={isToggling}
+            disabled={isToggling || !isCsrfReady}
             className={`w-4 h-4 rounded border mt-0.5 ${
               task.completed
                 ? 'bg-blue-500 border-blue-600 text-white flex items-center justify-center'
@@ -138,7 +139,7 @@ export function DashboardTaskItem({ task }: DashboardTaskItemProps) {
           <input type="hidden" name="taskId" value={task.id} />
           <button
             type="submit"
-            disabled={isDeleting}
+            disabled={isDeleting || !isCsrfReady}
             className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
             aria-label="Delete task"
           >
