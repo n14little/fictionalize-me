@@ -20,7 +20,7 @@ export function TaskItem({ task, journalId }: TaskItemProps) {
     try {
       await toggleTaskCompletion(formData);
     } catch (error) {
-      console.error('Error toggling task completion:', error);
+      console.error('Error toggling task completion (journal page):', error);
     } finally {
       setIsToggling(false);
     }

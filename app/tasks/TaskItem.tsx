@@ -31,7 +31,7 @@ export function TaskItem({
     try {
       await toggleTaskCompletion(formData);
     } catch (error) {
-      console.error('Error toggling task completion:', error);
+      console.error('Error toggling task completion (tasks page):', error);
       // Show user-friendly error message
       if (
         error instanceof Error &&
