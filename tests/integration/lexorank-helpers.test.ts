@@ -30,6 +30,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       // Verify lexicographic ordering
       expect(rank > '10').toBe(true);
       expect(rank < '20').toBe(true);
+      
+      // Deterministic equality check
+      expect(rank).toBe('1h');
     });
 
     it('should generate a rank when prev_rank is null', async () => {
@@ -41,6 +44,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const rank = result.rows[0].rank as string;
       expect(rank).toBeDefined();
       expect(rank < '20').toBe(true);
+      
+      // Deterministic equality check
+      expect(rank).toBe('1z');
     });
 
     it('should generate a rank when next_rank is null', async () => {
@@ -52,6 +58,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const rank = result.rows[0].rank as string;
       expect(rank).toBeDefined();
       expect(rank > '10').toBe(true);
+      
+      // Deterministic equality check
+      expect(rank).toBe('10a');
     });
 
     it('should generate a rank when both ranks are null', async () => {
@@ -64,6 +73,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(rank).toBeDefined();
       expect(typeof rank).toBe('string');
       expect(rank.length).toBeGreaterThan(0);
+      
+      // Deterministic equality check
+      expect(rank).toBe('n');
     });
 
     it('should handle empty strings like null values', async () => {
@@ -85,6 +97,11 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(result1.rows[0].rank).toBeDefined();
       expect(result2.rows[0].rank).toBeDefined();
       expect(result3.rows[0].rank).toBeDefined();
+      
+      // Deterministic equality checks
+      expect(result1.rows[0].rank).toBe('1z');
+      expect(result2.rows[0].rank).toBe('10a');
+      expect(result3.rows[0].rank).toBe('n');
     });
 
     it('should throw error if prev_rank >= next_rank', async () => {
@@ -107,6 +124,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(rank).toBeDefined();
       expect(rank > '1').toBe(true);
       expect(rank < 'zzzzzz').toBe(true);
+      
+      // Deterministic equality check
+      expect(rank).toBe('i');
     });
 
     it('should handle small gaps between ranks', async () => {
@@ -120,6 +140,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(rank).toBeDefined();
       expect(rank > 'a').toBe(true);
       expect(rank < 'c').toBe(true);
+      
+      // Deterministic equality check
+      expect(rank).toBe('b');
     });
   });
 
@@ -133,6 +156,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const rank = result.rows[0].rank as string;
       expect(rank).toBeDefined();
       expect(rank > '10').toBe(true);
+      
+      // Deterministic equality check - appends 'a' to input
+      expect(rank).toBe('10a');
     });
 
     it('should generate a default rank when input is null', async () => {
@@ -173,6 +199,11 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(rank1 > '1').toBe(true);
       expect(rank2 > rank1).toBe(true);
       expect(rank3 > rank2).toBe(true);
+      
+      // Deterministic equality checks - each appends 'a'
+      expect(rank1).toBe('1a');
+      expect(rank2).toBe('1aa');
+      expect(rank3).toBe('1aaa');
     });
 
     it('should handle very large ranks', async () => {
@@ -185,6 +216,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const rank = result.rows[0].rank as string;
       expect(rank).toBeDefined();
       expect(rank > largeRank).toBe(true);
+      
+      // Deterministic equality check - appends 'a'
+      expect(rank).toBe('zzzzzzzzzza');
     });
   });
 
@@ -198,6 +232,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const rank = result.rows[0].rank as string;
       expect(rank).toBeDefined();
       expect(rank < '10').toBe(true);
+      
+      // Deterministic equality check - decrements last character: '0' -> 'z' with prefix decremented
+      expect(rank).toBe('0z');
     });
 
     it('should generate a default rank when input is null', async () => {
@@ -238,6 +275,11 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(rank1 < 'zz').toBe(true);
       expect(rank2 < rank1).toBe(true);
       expect(rank3 < rank2).toBe(true);
+      
+      // Deterministic equality checks
+      expect(rank1).toBe('zy'); // 'zz' -> decrement last 'z' to 'y'
+      expect(rank2).toBe('zx'); // 'zy' -> decrement 'y' to 'x'
+      expect(rank3).toBe('zw'); // 'zx' -> decrement 'x' to 'w'
     });
 
     it('should not generate negative values and handle zero appropriately', async () => {
@@ -253,6 +295,10 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       // '0' is a valid output since it's lexicographically before '1'
       expect(rank1 < '1').toBe(true);
       expect(rank2 < '2').toBe(true);
+      
+      // Deterministic equality checks
+      expect(rank1).toBe('0'); // '1' -> previous character is '0'
+      expect(rank2).toBe('1'); // '2' -> previous character is '1'
     });
 
     it('should handle very small ranks', async () => {
@@ -266,6 +312,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       expect(rank).toBeDefined();
       expect(rank < smallRank).toBe(true);
       // '0' is a valid result since it comes before '1' lexicographically
+      
+      // Deterministic equality check
+      expect(rank).toBe('0');
     });
   });
 
@@ -296,6 +345,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const midpoint = result.rows[0].midpoint as string;
       expect(midpoint > 'a').toBe(true);
       expect(midpoint < 'z').toBe(true);
+      
+      // Deterministic equality check
+      expect(midpoint).toBe('m');
     });
   });
 
@@ -409,6 +461,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const betweenRank = betweenResult.rows[0].rank as string;
       expect(betweenRank > rank1).toBe(true);
       expect(betweenRank < rank2).toBe(true);
+      
+      // Deterministic equality check
+      expect(betweenRank).toBe('b');
     });
 
     it('should handle maximum practical range', async () => {
@@ -423,6 +478,9 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const betweenRank = betweenResult.rows[0].rank as string;
       expect(betweenRank > minRank).toBe(true);
       expect(betweenRank < maxRank).toBe(true);
+      
+      // Deterministic equality check
+      expect(betweenRank).toBe('i');
     });
 
     it('should handle case sensitivity consistently', async () => {
@@ -433,6 +491,10 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       // Both should work (functions should handle case conversion)
       expect(result1.rows[0].rank).toBeDefined();
       expect(result2.rows[0].rank).toBeDefined();
+      
+      // Deterministic equality checks - both convert to lowercase and append 'a'
+      expect(result1.rows[0].rank).toBe('abca');
+      expect(result2.rows[0].rank).toBe('abca'); // converts uppercase to lowercase then appends 'a'
     });
   });
 });
