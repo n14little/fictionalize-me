@@ -4,5 +4,7 @@
 -- Add the new lexo_priority column as TEXT
 ALTER TABLE tasks ADD COLUMN lexo_priority TEXT;
 
--- Create index for efficient lexo_priority-based ordering
+-- Create indices for efficient lexo_priority-based ordering
 CREATE INDEX idx_tasks_lexo_priority ON tasks (lexo_priority);
+CREATE INDEX idx_tasks_user_lexo_priority ON tasks (user_id, lexo_priority);
+CREATE INDEX idx_tasks_journal_lexo_priority ON tasks (journal_id, lexo_priority);
