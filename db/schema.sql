@@ -32,6 +32,7 @@ DROP INDEX IF EXISTS public.idx_tasks_user_bucketing_type;
 DROP INDEX IF EXISTS public.idx_tasks_reference_task_id;
 DROP INDEX IF EXISTS public.idx_tasks_priority;
 DROP INDEX IF EXISTS public.idx_tasks_parent_task_id;
+DROP INDEX IF EXISTS public.idx_tasks_lexo_priority;
 DROP INDEX IF EXISTS public.idx_tasks_journal_id;
 DROP INDEX IF EXISTS public.idx_tasks_completed;
 DROP INDEX IF EXISTS public.idx_reference_tasks_user_next_scheduled;
@@ -732,7 +733,8 @@ CREATE TABLE public.tasks (
     scheduled_date date,
     parent_task_id uuid,
     recurrence_type smallint DEFAULT 6,
-    missed_at date
+    missed_at date,
+    lexo_priority text
 );
 
 
@@ -1038,6 +1040,13 @@ CREATE INDEX idx_tasks_journal_id ON public.tasks USING btree (journal_id);
 --
 
 CREATE INDEX idx_tasks_parent_task_id ON public.tasks USING btree (parent_task_id);
+
+
+--
+-- Name: idx_tasks_lexo_priority; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tasks_lexo_priority ON public.tasks USING btree (lexo_priority);
 
 
 --
