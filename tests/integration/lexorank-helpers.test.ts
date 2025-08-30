@@ -1,6 +1,24 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { TestDatabase } from './testDatabase';
 
+// Type definitions for lexorank function results
+interface LexorankResult {
+  rank: string;
+}
+
+interface LexorankPadResult {
+  padded: string;
+}
+
+interface LexorankMidpointResult {
+  midpoint: string;
+}
+
+interface TestOrderRow {
+  name: string;
+  lexo_rank: string;
+}
+
 describe('Lexorank Helper Functions - Integration Tests', () => {
   let testDb: TestDatabase;
   let query: ReturnType<TestDatabase['getQueryFunction']>;
@@ -22,7 +40,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['10', '20']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank).not.toBe('10');
       expect(rank).not.toBe('20');
@@ -41,7 +60,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [null, '20']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank < '20').toBe(true);
       
@@ -55,7 +75,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['10', null]
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank > '10').toBe(true);
       
@@ -69,7 +90,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [null, null]
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(typeof rank).toBe('string');
       expect(rank.length).toBeGreaterThan(0);
@@ -94,14 +116,18 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['', '']
       );
       
-      expect(result1.rows[0].rank).toBeDefined();
-      expect(result2.rows[0].rank).toBeDefined();
-      expect(result3.rows[0].rank).toBeDefined();
+      const row1 = result1.rows[0] as LexorankResult;
+      const row2 = result2.rows[0] as LexorankResult;
+      const row3 = result3.rows[0] as LexorankResult;
+      
+      expect(row1.rank).toBeDefined();
+      expect(row2.rank).toBeDefined();
+      expect(row3.rank).toBeDefined();
       
       // Deterministic equality checks
-      expect(result1.rows[0].rank).toBe('1z');
-      expect(result2.rows[0].rank).toBe('10a');
-      expect(result3.rows[0].rank).toBe('n');
+      expect(row1.rank).toBe('1z');
+      expect(row2.rank).toBe('10a');
+      expect(row3.rank).toBe('n');
     });
 
     it('should throw error if prev_rank >= next_rank', async () => {
@@ -120,7 +146,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['1', 'zzzzzz']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank > '1').toBe(true);
       expect(rank < 'zzzzzz').toBe(true);
@@ -136,7 +163,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['a', 'c']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank > 'a').toBe(true);
       expect(rank < 'c').toBe(true);
@@ -153,7 +181,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['10']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank > '10').toBe(true);
       
@@ -167,7 +196,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [null]
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(typeof rank).toBe('string');
       expect(rank.length).toBeGreaterThan(0);
@@ -180,7 +210,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(typeof rank).toBe('string');
       expect(rank.length).toBeGreaterThan(0);
@@ -189,12 +220,17 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
 
     it('should generate increasing ranks', async () => {
       const result1 = await query('SELECT lexorank_next($1) as rank', ['1']);
-      const result2 = await query('SELECT lexorank_next($1) as rank', [result1.rows[0].rank]);
-      const result3 = await query('SELECT lexorank_next($1) as rank', [result2.rows[0].rank]);
+      const row1 = result1.rows[0] as LexorankResult;
       
-      const rank1 = result1.rows[0].rank as string;
-      const rank2 = result2.rows[0].rank as string;
-      const rank3 = result3.rows[0].rank as string;
+      const result2 = await query('SELECT lexorank_next($1) as rank', [row1.rank]);
+      const row2 = result2.rows[0] as LexorankResult;
+      
+      const result3 = await query('SELECT lexorank_next($1) as rank', [row2.rank]);
+      const row3 = result3.rows[0] as LexorankResult;
+      
+      const rank1 = row1.rank;
+      const rank2 = row2.rank;
+      const rank3 = row3.rank;
       
       expect(rank1 > '1').toBe(true);
       expect(rank2 > rank1).toBe(true);
@@ -213,7 +249,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [largeRank]
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank > largeRank).toBe(true); // Should be larger than input
       
@@ -229,7 +266,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['10']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank < '10').toBe(true);
       
@@ -243,7 +281,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [null]
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(typeof rank).toBe('string');
       expect(rank.length).toBeGreaterThan(0);
@@ -256,7 +295,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['']
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(typeof rank).toBe('string');
       expect(rank.length).toBeGreaterThan(0);
@@ -265,12 +305,17 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
 
     it('should generate decreasing ranks', async () => {
       const result1 = await query('SELECT lexorank_before($1) as rank', ['zz']);
-      const result2 = await query('SELECT lexorank_before($1) as rank', [result1.rows[0].rank]);
-      const result3 = await query('SELECT lexorank_before($1) as rank', [result2.rows[0].rank]);
+      const row1 = result1.rows[0] as LexorankResult;
       
-      const rank1 = result1.rows[0].rank as string;
-      const rank2 = result2.rows[0].rank as string;
-      const rank3 = result3.rows[0].rank as string;
+      const result2 = await query('SELECT lexorank_before($1) as rank', [row1.rank]);
+      const row2 = result2.rows[0] as LexorankResult;
+      
+      const result3 = await query('SELECT lexorank_before($1) as rank', [row2.rank]);
+      const row3 = result3.rows[0] as LexorankResult;
+      
+      const rank1 = row1.rank;
+      const rank2 = row2.rank;
+      const rank3 = row3.rank;
       
       expect(rank1 < 'zz').toBe(true);
       expect(rank2 < rank1).toBe(true);
@@ -287,8 +332,11 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const result1 = await query('SELECT lexorank_before($1) as rank', ['1']);
       const result2 = await query('SELECT lexorank_before($1) as rank', ['2']);
       
-      const rank1 = result1.rows[0].rank as string;
-      const rank2 = result2.rows[0].rank as string;
+      const row1 = result1.rows[0] as LexorankResult;
+      const row2 = result2.rows[0] as LexorankResult;
+      
+      const rank1 = row1.rank;
+      const rank2 = row2.rank;
       
       expect(rank1).toBeDefined();
       expect(rank2).toBeDefined();
@@ -308,7 +356,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [smallRank]
       );
       
-      const rank = result.rows[0].rank as string;
+      const row = result.rows[0] as LexorankResult;
+      const rank = row.rank;
       expect(rank).toBeDefined();
       expect(rank < smallRank).toBe(true);
       // '0' is a valid result since it comes before '1' lexicographically
@@ -332,7 +381,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
           'SELECT lexorank_pad_string($1, $2) as padded',
           [testCase.input, testCase.length]
         );
-        expect(result.rows[0].padded).toBe(testCase.expected);
+        const row = result.rows[0] as LexorankPadResult;
+        expect(row.padded).toBe(testCase.expected);
       }
     });
 
@@ -342,7 +392,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ['a', 'z']
       );
       
-      const midpoint = result.rows[0].midpoint as string;
+      const row = result.rows[0] as LexorankMidpointResult;
+      const midpoint = row.midpoint;
       expect(midpoint > 'a').toBe(true);
       expect(midpoint < 'z').toBe(true);
       
@@ -358,12 +409,14 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       
       // Start with a base rank  
       let currentRank = await query('SELECT lexorank_between($1, $2) as rank', [null, null]);
-      ranks.push(currentRank.rows[0].rank);
+      let currentRow = currentRank.rows[0] as LexorankResult;
+      ranks.push(currentRow.rank);
       
       // Generate 5 more ranks, each after the previous
       for (let i = 0; i < 5; i++) {
         const nextRank = await query('SELECT lexorank_next($1) as rank', [ranks[ranks.length - 1]]);
-        ranks.push(nextRank.rows[0].rank);
+        const nextRow = nextRank.rows[0] as LexorankResult;
+        ranks.push(nextRow.rank);
       }
       
       // Generate some ranks between existing ranks using different pairs to avoid duplicates
@@ -371,13 +424,15 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         'SELECT lexorank_between($1, $2) as rank',
         [ranks[0], ranks[1]]
       );
-      ranks.push(betweenRank1.rows[0].rank);
+      const betweenRow1 = betweenRank1.rows[0] as LexorankResult;
+      ranks.push(betweenRow1.rank);
       
       const betweenRank2 = await query(
         'SELECT lexorank_between($1, $2) as rank',
         [ranks[1], ranks[2]]
       );
-      ranks.push(betweenRank2.rows[0].rank);
+      const betweenRow2 = betweenRank2.rows[0] as LexorankResult;
+      ranks.push(betweenRow2.rank);
       
       // All ranks should be unique (no duplicates expected with different inputs)
       const uniqueRanks = [...new Set(ranks)];
@@ -407,10 +462,12 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         let rank: string;
         if (i === 0) {
           const result = await query('SELECT lexorank_between($1, $2) as rank', [null, null]);
-          rank = result.rows[0].rank;
+          const row = result.rows[0] as LexorankResult;
+          rank = row.rank;
         } else {
           const result = await query('SELECT lexorank_next($1) as rank', [ranks[ranks.length - 1]]);
-          rank = result.rows[0].rank;
+          const row = result.rows[0] as LexorankResult;
+          rank = row.rank;
         }
         ranks.push(rank);
         
@@ -425,9 +482,10 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         'SELECT lexorank_between($1, $2) as rank',
         [ranks[0], ranks[1]]
       );
+      const betweenRow = betweenResult.rows[0] as LexorankResult;
       await query(
         'INSERT INTO test_lexorank_order (name, lexo_rank) VALUES ($1, $2)',
-        ['Between First and Second', betweenResult.rows[0].rank]
+        ['Between First and Second', betweenRow.rank]
       );
       
       // Query with ORDER BY and verify ordering
@@ -437,13 +495,15 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         ORDER BY lexo_rank ASC
       `);
       
-      expect(orderedResult.rows.length).toBe(6);
-      expect(orderedResult.rows[0].name).toBe('First');
-      expect(orderedResult.rows[1].name).toBe('Between First and Second');
-      expect(orderedResult.rows[2].name).toBe('Second');
-      expect(orderedResult.rows[3].name).toBe('Third');
-      expect(orderedResult.rows[4].name).toBe('Fourth');
-      expect(orderedResult.rows[5].name).toBe('Fifth');
+      const orderedRows = orderedResult.rows as TestOrderRow[];
+      
+      expect(orderedRows.length).toBe(6);
+      expect(orderedRows[0].name).toBe('First');
+      expect(orderedRows[1].name).toBe('Between First and Second');
+      expect(orderedRows[2].name).toBe('Second');
+      expect(orderedRows[3].name).toBe('Third');
+      expect(orderedRows[4].name).toBe('Fourth');
+      expect(orderedRows[5].name).toBe('Fifth');
     });
   });
 
@@ -458,7 +518,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [rank1, rank2]
       );
       
-      const betweenRank = betweenResult.rows[0].rank as string;
+      const betweenRow = betweenResult.rows[0] as LexorankResult;
+      const betweenRank = betweenRow.rank;
       expect(betweenRank > 'a').toBe(true);
       expect(betweenRank < 'c').toBe(true);
       
@@ -475,7 +536,8 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
         [minRank, maxRank]
       );
       
-      const betweenRank = betweenResult.rows[0].rank as string;
+      const betweenRow = betweenResult.rows[0] as LexorankResult;
+      const betweenRank = betweenRow.rank;
       expect(betweenRank > '1').toBe(true);
       expect(betweenRank < maxRank).toBe(true);
       
@@ -488,13 +550,16 @@ describe('Lexorank Helper Functions - Integration Tests', () => {
       const result1 = await query('SELECT lexorank_next($1) as rank', ['abc']);
       const result2 = await query('SELECT lexorank_next($1) as rank', ['ABC']);
       
+      const row1 = result1.rows[0] as LexorankResult;
+      const row2 = result2.rows[0] as LexorankResult;
+      
       // Both should work (functions should handle case conversion)
-      expect(result1.rows[0].rank).toBeDefined();
-      expect(result2.rows[0].rank).toBeDefined();
+      expect(row1.rank).toBeDefined();
+      expect(row2.rank).toBeDefined();
       
       // Deterministic equality checks - both convert to lowercase and append 'a'  
-      expect(result1.rows[0].rank).toBe('abca');
-      expect(result2.rows[0].rank).toBe('abca'); // converts uppercase to lowercase then appends 'a'
+      expect(row1.rank).toBe('abca');
+      expect(row2.rank).toBe('abca'); // converts uppercase to lowercase then appends 'a'
     });
   });
 });
